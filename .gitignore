@@ -1,0 +1,25 @@
+# dependencies and build outputs
+ui/node_modules/
+ui/dist/
+api/**/target/
+api/**/out/
+
+# IDE and local tooling
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# runtime files and secrets
+*.log
+api/**/logs/
+api/**/uploadPath/
+application-local.yml
+application-local.yaml
+*.local
+
+# local Git metadata of the original framework clones
+ui/.git/
+api/.git/
+后端/
