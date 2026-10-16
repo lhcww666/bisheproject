@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -16,9 +19,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
         import com.ruoyi.common.utils.DateUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.service.IReservationService;
+import com.ruoyi.module.reservation.service.IReservationRuleService;
+import com.ruoyi.module.room.domain.Room;
 
 import jakarta.validation.Validator;
 
@@ -32,7 +39,97 @@ import jakarta.validation.Validator;
 @RequiredArgsConstructor
 public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reservation> implements IReservationService {
     private final ReservationMapper reservationMapper;
+    private final IReservationRuleService reservationRuleService;
     protected final Validator validator;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Reservation applyReservation(Reservation reservation)
+    {
+        Long userId = SecurityUtils.getUserId();
+        Room room = reservationRuleService.checkApply(userId, reservation);
+        boolean reviewRequired = reservationRuleService.isReviewRequired(room);
+
+        Reservation apply = new Reservation();
+        apply.setReservationNo(generateReservationNo(reservation.getStartTime()));
+        apply.setApplicantId(userId);
+        apply.setRoomId(room.getId());
+        apply.setExperimentName(reservation.getExperimentName());
+        apply.setStartTime(reservation.getStartTime());
+        apply.setEndTime(reservation.getEndTime());
+        apply.setParticipantCount(reservation.getParticipantCount());
+        // 风险等级与是否需要审核由实验室安全等级决定，不接受前端传入
+        apply.setRiskLevel(room.getSafetyLevel() == null ? 1L : room.getSafetyLevel());
+        apply.setReviewRequired(reviewRequired ? "1" : "0");
+        apply.setStatus(reviewRequired ? ReservationStatus.PENDING : ReservationStatus.APPROVED);
+        apply.setRemark(reservation.getRemark());
+        apply.setCreateBy(SecurityUtils.getUsername());
+        apply.setCreateTime(DateUtils.getNowDate());
+        reservationMapper.insert(apply);
+        return apply;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int cancelReservation(Long id)
+    {
+        Reservation reservation = reservationMapper.selectById(id);
+        if (reservation == null)
+        {
+            throw new ServiceException("预约不存在");
+        }
+        reservationRuleService.checkCancel(reservation, SecurityUtils.getUserId());
+        reservation.setStatus(ReservationStatus.CANCELED);
+        reservation.setUpdateBy(SecurityUtils.getUsername());
+        reservation.setUpdateTime(DateUtils.getNowDate());
+        return reservationMapper.updateById(reservation);
+    }
+
+    @Override
+    public IPage<Reservation> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime)
+    {
+        QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("applicant_id", SecurityUtils.getUserId());
+        if (StringUtils.isNotEmpty(status))
+        {
+            queryWrapper.eq("status", status);
+        }
+        if (startTime != null)
+        {
+            queryWrapper.ge("start_time", startTime);
+        }
+        if (endTime != null)
+        {
+            queryWrapper.le("end_time", endTime);
+        }
+        queryWrapper.orderByDesc("id");
+        return reservationMapper.selectPage(page, queryWrapper);
+    }
+
+    @Override
+    public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount)
+    {
+        return reservationRuleService.selectAvailableRooms(startTime, endTime, participantCount);
+    }
+
+    /**
+     * 生成预约编号：RES + 开始日期 + 三位流水
+     */
+    private String generateReservationNo(Date startTime)
+    {
+        String day = new SimpleDateFormat("yyyyMMdd").format(startTime);
+        for (int i = 0; i < 20; i++)
+        {
+            String reservationNo = "RES" + day + "-" + String.format("%03d", ThreadLocalRandom.current().nextInt(1000));
+            QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("reservation_no", reservationNo);
+            if (reservationMapper.selectList(queryWrapper).isEmpty())
+            {
+                return reservationNo;
+            }
+        }
+        throw new ServiceException("预约编号生成失败，请重试");
+    }
 
     @Override
     public String importReservation(

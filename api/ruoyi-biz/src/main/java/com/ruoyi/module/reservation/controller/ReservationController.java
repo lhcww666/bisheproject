@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import org.springframework.validation.annotation.Validated;
 import cn.hutool.json.JSONObject;
@@ -18,12 +21,15 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
@@ -121,6 +127,75 @@ public class ReservationController extends BaseController {
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody Reservation reservation) {
         return toAjax(reservationService.updateReservation(reservation));
+    }
+
+    /**
+     * 提交预约申请（学生端入口，走完整业务规则校验）
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:apply')")
+    @Log(title = "实验室预约", businessType = BusinessType.INSERT)
+    @PostMapping("/apply")
+    @RepeatSubmit
+    public AjaxResult apply(@RequestBody Reservation reservation) {
+        Reservation created = reservationService.applyReservation(reservation);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.putOpt("id", created.getId());
+        jsonObject.putOpt("reservationNo", created.getReservationNo());
+        jsonObject.putOpt("status", created.getStatus());
+        jsonObject.putOpt("reviewRequired", created.getReviewRequired());
+        return success(jsonObject);
+    }
+
+    /**
+     * 查询我的预约
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:my')")
+    @GetMapping("/my")
+    public TableDataInfo my(@RequestParam(required = false) String status,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime) {
+        IPage<Reservation> page = reservationService.pageMyReservation(getPage(), status, parseDateTime(startTime),
+                parseDateTime(endTime));
+        return getDataTableByPage(page);
+    }
+
+    /**
+     * 取消本人预约
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:cancel')")
+    @Log(title = "实验室预约", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/cancel")
+    public AjaxResult cancel(@PathVariable("id") Long id) {
+        return toAjax(reservationService.cancelReservation(id));
+    }
+
+    /**
+     * 查询指定时段可用的实验室
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:available')")
+    @GetMapping("/availableRooms")
+    public AjaxResult availableRooms(@RequestParam String startTime, @RequestParam String endTime,
+            @RequestParam(required = false) Long participantCount) {
+        return success(reservationService.selectAvailableRooms(parseDateTime(startTime), parseDateTime(endTime),
+                participantCount));
+    }
+
+    /**
+     * 解析前端传入的时间参数，支持 yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm、yyyy-MM-dd 三种写法
+     */
+    private Date parseDateTime(String text) {
+        if (StringUtils.isEmpty(text)) {
+            return null;
+        }
+        String[] patterns = { "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd" };
+        for (String pattern : patterns) {
+            try {
+                return new SimpleDateFormat(pattern).parse(text);
+            } catch (ParseException ignored) {
+                // 换下一种格式继续尝试
+            }
+        }
+        throw new ServiceException("时间格式不正确，应为 yyyy-MM-dd HH:mm:ss：" + text);
     }
 
     /**
