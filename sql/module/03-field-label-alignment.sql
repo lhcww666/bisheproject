@@ -5,7 +5,7 @@
 -- 使用前提：已执行 sql/module_core.sql 建表。
 USE bishe_schema;
 
--- 实验室信息表
+-- 实验室档案表
 ALTER TABLE room MODIFY COLUMN room_name VARCHAR(100) NOT NULL COMMENT '实验室名称';
 ALTER TABLE room MODIFY COLUMN location VARCHAR(100) NOT NULL COMMENT '位置';
 ALTER TABLE room MODIFY COLUMN capacity INT NOT NULL COMMENT '最大人数';
@@ -13,7 +13,7 @@ ALTER TABLE room MODIFY COLUMN open_start_time TIME NOT NULL DEFAULT '08:00:00' 
 ALTER TABLE room MODIFY COLUMN open_end_time TIME NOT NULL DEFAULT '21:00:00' COMMENT '开放结束时间';
 ALTER TABLE room MODIFY COLUMN description VARCHAR(500) DEFAULT NULL COMMENT '实验室说明';
 
--- 设备信息表
+-- 设备档案表
 ALTER TABLE device MODIFY COLUMN room_id BIGINT NOT NULL COMMENT '所属实验室ID';
 ALTER TABLE device MODIFY COLUMN device_code VARCHAR(30) NOT NULL COMMENT '设备编号（业务编码，全局唯一）';
 ALTER TABLE device MODIFY COLUMN device_name VARCHAR(100) NOT NULL COMMENT '设备名称';

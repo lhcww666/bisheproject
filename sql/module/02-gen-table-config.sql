@@ -3,8 +3,8 @@
 -- 执行顺序：导入表 -> 本脚本 -> sql/module/01-module-dict.sql -> 生成代码
 USE bishe_schema;
 
-UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.room', class_name='Room', business_name='room', function_name='实验室信息', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='room';
-UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.device', class_name='Device', business_name='device', function_name='设备信息', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='device';
+UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.room', class_name='Room', business_name='room', function_name='实验室档案', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='room';
+UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.device', class_name='Device', business_name='device', function_name='设备档案', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='device';
 UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.reservation', class_name='Reservation', business_name='reservation', function_name='实验室预约', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='reservation';
 UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.reservation', class_name='ReservationDevice', business_name='reservationDevice', function_name='预约设备关联', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='reservation_device';
 UPDATE gen_table SET module_name='module', package_name='com.ruoyi.module.review', class_name='ReservationReview', business_name='reservationReview', function_name='预约审核', function_author='itjialu', tpl_web_type='element-plus', gen_path='/' WHERE table_name='reservation_review';

@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * 设备信息对象 device
+ * 设备档案对象 device
  *
  * @author itjialu
  * @date 2026-10-16

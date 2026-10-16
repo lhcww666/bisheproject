@@ -31,7 +31,7 @@ import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
 /**
- * 实验室信息Controller
+ * 实验室档案Controller
  *
  * @author itjialu
  * @date 2026-10-16
@@ -44,7 +44,7 @@ public class RoomController extends BaseController {
     // private final RoomMapper roomMapper;
 
 /**
- * 查询实验室信息列表
+ * 查询实验室档案列表
  */
 @PreAuthorize("@ss.hasPermi('module:room:list')")
 @GetMapping("/list")
@@ -55,24 +55,24 @@ public class RoomController extends BaseController {
     }
 
     /**
-     * 导出实验室信息列表
+     * 导出实验室档案列表
      */
     @PreAuthorize("@ss.hasPermi('module:room:export')")
-    @Log(title = "实验室信息", businessType = BusinessType.EXPORT)
+    @Log(title = "实验室档案", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, Room room) {
         QueryWrapper<Room> queryWrapper = getQueryWrapper(Room.class);
         IPage<Room> page = roomService.pageRoom(getPage(), queryWrapper);
         List<Room> list = page.getRecords();
         ExcelUtil<Room> util = new ExcelUtil<Room>(Room. class);
-        util.exportExcel(response, list, "实验室信息");
+        util.exportExcel(response, list, "实验室档案");
     }
 
     /**
-     * 导入实验室信息数据
+     * 导入实验室档案数据
      */
     @PreAuthorize("@ss.hasPermi('module:room:import')")
-    @Log(title = "实验室信息", businessType = BusinessType.IMPORT)
+    @Log(title = "实验室档案", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         int titleNum = 0;
@@ -87,11 +87,11 @@ public class RoomController extends BaseController {
     public void importTemplate(HttpServletResponse response, Room room) {
         List<Room> list = new ArrayList<>();
         ExcelUtil<Room> util = new ExcelUtil<Room>(Room. class);
-        util.exportExcel(response, list, "实验室信息");
+        util.exportExcel(response, list, "实验室档案");
     }
 
     /**
-     * 获取实验室信息详细信息
+     * 获取实验室档案详细信息
      */
     @PreAuthorize("@ss.hasPermi('module:room:query')")
     @GetMapping(value = "/{id}")
@@ -100,10 +100,10 @@ public class RoomController extends BaseController {
     }
 
     /**
-     * 新增实验室信息
+     * 新增实验室档案
      */
     @PreAuthorize("@ss.hasPermi('module:room:add')")
-    @Log(title = "实验室信息", businessType = BusinessType.INSERT)
+    @Log(title = "实验室档案", businessType = BusinessType.INSERT)
     @PostMapping
     @RepeatSubmit
     public AjaxResult add(@Validated @RequestBody Room room) {
@@ -114,20 +114,20 @@ public class RoomController extends BaseController {
     }
 
     /**
-     * 修改实验室信息
+     * 修改实验室档案
      */
     @PreAuthorize("@ss.hasPermi('module:room:edit')")
-    @Log(title = "实验室信息", businessType = BusinessType.UPDATE)
+    @Log(title = "实验室档案", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody Room room) {
         return toAjax(roomService.updateRoom(room));
     }
 
     /**
-     * 删除实验室信息
+     * 删除实验室档案
      */
     @PreAuthorize("@ss.hasPermi('module:room:remove')")
-    @Log(title = "实验室信息", businessType = BusinessType.DELETE)
+    @Log(title = "实验室档案", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids) {
         return toAjax(roomService.deleteRoomByIds(ids));

@@ -175,7 +175,7 @@
       @pagination="deviceGetList"
     />
 
-    <!-- 添加或修改设备信息对话框 -->
+    <!-- 添加或修改设备档案对话框 -->
     <el-dialog :title="deviceTitle" v-model="deviceOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="deviceRef" :model="deviceForm" :rules="deviceRules" label-width="auto">
         <el-form-item label="所属实验室" prop="roomId">
@@ -317,7 +317,7 @@ watch(
   { immediate: true }
 );
 
-/** 查询设备信息列表 */
+/** 查询设备档案列表 */
 function deviceGetList() {
   deviceLoading.value = true;
   listDevice(proxy.addDateRange(deviceQueryParams.value, dateRange.value, 'create_time', true)).then(response => {
@@ -428,14 +428,14 @@ function deviceHandleDelete(row) {
 function deviceHandleExport() {
   proxy.download('module/device/export', {
     ...deviceQueryParams.value
-  }, `设备信息_${new Date().getTime()}.xlsx`)
+  }, `设备档案_${new Date().getTime()}.xlsx`)
 }
 
 /** 下载模板操作 */
 function deviceImportTemplate() {
   proxy.download(
       "module/device/importTemplate",{},
-      `设备信息_${new Date().getTime()}.xlsx`
+      `设备档案_${new Date().getTime()}.xlsx`
   );
 }
 </script>

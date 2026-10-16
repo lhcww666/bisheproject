@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ruoyi.module.room.domain.Room;
 
 /**
- * 实验室信息Mapper接口
+ * 实验室档案Mapper接口
  *
  * @author itjialu
  * @date 2026-10-16

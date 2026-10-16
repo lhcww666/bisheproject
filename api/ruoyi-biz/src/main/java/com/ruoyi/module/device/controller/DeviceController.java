@@ -31,7 +31,7 @@ import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
 /**
- * 设备信息Controller
+ * 设备档案Controller
  *
  * @author itjialu
  * @date 2026-10-16
@@ -44,7 +44,7 @@ public class DeviceController extends BaseController {
     // private final DeviceMapper deviceMapper;
 
 /**
- * 查询设备信息列表
+ * 查询设备档案列表
  */
 @PreAuthorize("@ss.hasPermi('module:device:list')")
 @GetMapping("/list")
@@ -55,24 +55,24 @@ public class DeviceController extends BaseController {
     }
 
     /**
-     * 导出设备信息列表
+     * 导出设备档案列表
      */
     @PreAuthorize("@ss.hasPermi('module:device:export')")
-    @Log(title = "设备信息", businessType = BusinessType.EXPORT)
+    @Log(title = "设备档案", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, Device device) {
         QueryWrapper<Device> queryWrapper = getQueryWrapper(Device.class);
         IPage<Device> page = deviceService.pageDevice(getPage(), queryWrapper);
         List<Device> list = page.getRecords();
         ExcelUtil<Device> util = new ExcelUtil<Device>(Device. class);
-        util.exportExcel(response, list, "设备信息");
+        util.exportExcel(response, list, "设备档案");
     }
 
     /**
-     * 导入设备信息数据
+     * 导入设备档案数据
      */
     @PreAuthorize("@ss.hasPermi('module:device:import')")
-    @Log(title = "设备信息", businessType = BusinessType.IMPORT)
+    @Log(title = "设备档案", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         int titleNum = 0;
@@ -87,11 +87,11 @@ public class DeviceController extends BaseController {
     public void importTemplate(HttpServletResponse response, Device device) {
         List<Device> list = new ArrayList<>();
         ExcelUtil<Device> util = new ExcelUtil<Device>(Device. class);
-        util.exportExcel(response, list, "设备信息");
+        util.exportExcel(response, list, "设备档案");
     }
 
     /**
-     * 获取设备信息详细信息
+     * 获取设备档案详细信息
      */
     @PreAuthorize("@ss.hasPermi('module:device:query')")
     @GetMapping(value = "/{id}")
@@ -100,10 +100,10 @@ public class DeviceController extends BaseController {
     }
 
     /**
-     * 新增设备信息
+     * 新增设备档案
      */
     @PreAuthorize("@ss.hasPermi('module:device:add')")
-    @Log(title = "设备信息", businessType = BusinessType.INSERT)
+    @Log(title = "设备档案", businessType = BusinessType.INSERT)
     @PostMapping
     @RepeatSubmit
     public AjaxResult add(@Validated @RequestBody Device device) {
@@ -114,20 +114,20 @@ public class DeviceController extends BaseController {
     }
 
     /**
-     * 修改设备信息
+     * 修改设备档案
      */
     @PreAuthorize("@ss.hasPermi('module:device:edit')")
-    @Log(title = "设备信息", businessType = BusinessType.UPDATE)
+    @Log(title = "设备档案", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody Device device) {
         return toAjax(deviceService.updateDevice(device));
     }
 
     /**
-     * 删除设备信息
+     * 删除设备档案
      */
     @PreAuthorize("@ss.hasPermi('module:device:remove')")
-    @Log(title = "设备信息", businessType = BusinessType.DELETE)
+    @Log(title = "设备档案", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids) {
         return toAjax(deviceService.deleteDeviceByIds(ids));

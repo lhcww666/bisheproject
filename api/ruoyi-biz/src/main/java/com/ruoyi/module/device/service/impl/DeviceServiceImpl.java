@@ -23,7 +23,7 @@ import com.ruoyi.module.device.service.IDeviceService;
 import jakarta.validation.Validator;
 
 /**
- * 设备信息Service业务层处理
+ * 设备档案Service业务层处理
  *
  * @author itjialu
  * @date 2026-10-16
@@ -93,10 +93,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
     }
 
     /**
-     * 查询设备信息
+     * 查询设备档案
      *
-     * @param id 设备信息主键
-     * @return 设备信息
+     * @param id 设备档案主键
+     * @return 设备档案
      */
     @Override
     public Device selectDeviceById(Long id) {
@@ -104,9 +104,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
     }
 
     /**
-     * 新增设备信息
+     * 新增设备档案
      *
-     * @param device 设备信息
+     * @param device 设备档案
      * @return 结果
      */
     @Override
@@ -117,9 +117,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
     }
 
     /**
-     * 修改设备信息
+     * 修改设备档案
      *
-     * @param device 设备信息
+     * @param device 设备档案
      * @return 结果
      */
     @Override
@@ -130,9 +130,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
     }
 
     /**
-     * 批量删除设备信息
+     * 批量删除设备档案
      *
-     * @param ids 需要删除的设备信息主键
+     * @param ids 需要删除的设备档案主键
      * @return 结果
      */
     @Override
@@ -141,9 +141,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
     }
 
     /**
-     * 删除设备信息信息
+     * 删除设备档案信息
      *
-     * @param id 设备信息主键
+     * @param id 设备档案主键
      * @return 结果
      */
     @Override

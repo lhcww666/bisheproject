@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-// 查询实验室信息列表
+// 查询实验室档案列表
 export function listRoom(query) {
   return request({
     url: '/module/room/list',
@@ -9,7 +9,7 @@ export function listRoom(query) {
   })
 }
 
-// 查询实验室信息详细
+// 查询实验室档案详细
 export function getRoom(id) {
   return request({
     url: '/module/room/' + id,
@@ -17,7 +17,7 @@ export function getRoom(id) {
   })
 }
 
-// 新增实验室信息
+// 新增实验室档案
 export function addRoom(data) {
   return request({
     url: '/module/room',
@@ -26,7 +26,7 @@ export function addRoom(data) {
   })
 }
 
-// 修改实验室信息
+// 修改实验室档案
 export function updateRoom(data) {
   return request({
     url: '/module/room',
@@ -35,7 +35,7 @@ export function updateRoom(data) {
   })
 }
 
-// 删除实验室信息
+// 删除实验室档案
 export function delRoom(id) {
   return request({
     url: '/module/room/' + id,

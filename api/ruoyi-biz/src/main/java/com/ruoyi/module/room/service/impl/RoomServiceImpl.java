@@ -23,7 +23,7 @@ import com.ruoyi.module.room.service.IRoomService;
 import jakarta.validation.Validator;
 
 /**
- * 实验室信息Service业务层处理
+ * 实验室档案Service业务层处理
  *
  * @author itjialu
  * @date 2026-10-16
@@ -93,10 +93,10 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
     }
 
     /**
-     * 查询实验室信息
+     * 查询实验室档案
      *
-     * @param id 实验室信息主键
-     * @return 实验室信息
+     * @param id 实验室档案主键
+     * @return 实验室档案
      */
     @Override
     public Room selectRoomById(Long id) {
@@ -104,9 +104,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
     }
 
     /**
-     * 新增实验室信息
+     * 新增实验室档案
      *
-     * @param room 实验室信息
+     * @param room 实验室档案
      * @return 结果
      */
     @Override
@@ -117,9 +117,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
     }
 
     /**
-     * 修改实验室信息
+     * 修改实验室档案
      *
-     * @param room 实验室信息
+     * @param room 实验室档案
      * @return 结果
      */
     @Override
@@ -130,9 +130,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
     }
 
     /**
-     * 批量删除实验室信息
+     * 批量删除实验室档案
      *
-     * @param ids 需要删除的实验室信息主键
+     * @param ids 需要删除的实验室档案主键
      * @return 结果
      */
     @Override
@@ -141,9 +141,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
     }
 
     /**
-     * 删除实验室信息信息
+     * 删除实验室档案信息
      *
-     * @param id 实验室信息主键
+     * @param id 实验室档案主键
      * @return 结果
      */
     @Override

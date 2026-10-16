@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * 实验室信息对象 room
+ * 实验室档案对象 room
  *
  * @author itjialu
  * @date 2026-10-16

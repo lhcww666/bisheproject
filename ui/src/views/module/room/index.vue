@@ -188,7 +188,7 @@
       @pagination="roomGetList"
     />
 
-    <!-- 添加或修改实验室信息对话框 -->
+    <!-- 添加或修改实验室档案对话框 -->
     <el-dialog :title="roomTitle" v-model="roomOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="roomRef" :model="roomForm" :rules="roomRules" label-width="auto">
         <el-form-item label="实验室编号" prop="roomCode">
@@ -342,7 +342,7 @@ watch(
   { immediate: true }
 );
 
-/** 查询实验室信息列表 */
+/** 查询实验室档案列表 */
 function roomGetList() {
   roomLoading.value = true;
   listRoom(proxy.addDateRange(roomQueryParams.value, dateRange.value, 'create_time', true)).then(response => {
@@ -456,14 +456,14 @@ function roomHandleDelete(row) {
 function roomHandleExport() {
   proxy.download('module/room/export', {
     ...roomQueryParams.value
-  }, `实验室信息_${new Date().getTime()}.xlsx`)
+  }, `实验室档案_${new Date().getTime()}.xlsx`)
 }
 
 /** 下载模板操作 */
 function roomImportTemplate() {
   proxy.download(
       "module/room/importTemplate",{},
-      `实验室信息_${new Date().getTime()}.xlsx`
+      `实验室档案_${new Date().getTime()}.xlsx`
   );
 }
 </script>

@@ -30,7 +30,7 @@ CREATE TABLE room (
   remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (id),
   UNIQUE KEY uk_room_code (room_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实验室信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实验室档案表';
 
 CREATE TABLE device (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
@@ -50,7 +50,7 @@ CREATE TABLE device (
   UNIQUE KEY uk_device_code (device_code),
   KEY idx_device_room (room_id),
   CONSTRAINT fk_device_room FOREIGN KEY (room_id) REFERENCES room (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备档案表';
 
 CREATE TABLE reservation (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
