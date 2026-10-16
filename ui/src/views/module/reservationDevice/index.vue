@@ -112,7 +112,6 @@
 
     <el-table v-loading="reservationDeviceLoading" :data="reservationDeviceList" @selection-change="reservationDeviceHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="预约ID" align="center" prop="reservationId" />
       <el-table-column label="设备ID" align="center" prop="deviceId" />
       <el-table-column label="使用数量" align="center" prop="quantity" />

@@ -162,7 +162,6 @@
 
     <el-table v-loading="reservationLoading" :data="reservationList" @selection-change="reservationHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="预约编号" align="center" prop="reservationNo" />
       <el-table-column label="申请人ID" align="center" prop="applicantId" />
       <el-table-column label="实验室" align="center" prop="roomId" />

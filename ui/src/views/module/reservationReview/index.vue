@@ -122,7 +122,6 @@
 
     <el-table v-loading="reservationReviewLoading" :data="reservationReviewList" @selection-change="reservationReviewHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="预约ID" align="center" prop="reservationId" />
       <el-table-column label="审核人ID" align="center" prop="reviewerId" />
       <el-table-column label="审核结果" align="center" prop="result">

@@ -130,7 +130,6 @@
 
     <el-table v-loading="safetyExamRecordLoading" :data="safetyExamRecordList" @selection-change="safetyExamRecordHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="学生ID" align="center" prop="studentId" />
       <el-table-column label="考试成绩" align="center" prop="score" />
       <el-table-column label="是否通过" align="center" prop="passed">
