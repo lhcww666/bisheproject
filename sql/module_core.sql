@@ -81,6 +81,11 @@ CREATE TABLE reservation_device (
   reservation_id BIGINT NOT NULL COMMENT '预约ID',
   device_id BIGINT NOT NULL COMMENT '设备ID',
   quantity INT NOT NULL DEFAULT 1 COMMENT '使用数量',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (id),
   UNIQUE KEY uk_reservation_device (reservation_id, device_id),
   CONSTRAINT fk_reservation_device_reservation FOREIGN KEY (reservation_id) REFERENCES reservation (id),
@@ -94,6 +99,11 @@ CREATE TABLE reservation_review (
   result CHAR(1) NOT NULL COMMENT '审核结果',
   review_comment VARCHAR(500) DEFAULT NULL COMMENT '审核意见',
   review_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (id),
   UNIQUE KEY uk_review_reservation (reservation_id),
   CONSTRAINT fk_review_reservation FOREIGN KEY (reservation_id) REFERENCES reservation (id)
@@ -106,6 +116,11 @@ CREATE TABLE safety_exam_record (
   passed CHAR(1) NOT NULL COMMENT '是否通过',
   exam_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '考试时间',
   valid_until DATETIME DEFAULT NULL COMMENT '有效期至',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (id),
   KEY idx_exam_student_valid (student_id, valid_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='安全考试记录表';
@@ -117,6 +132,10 @@ CREATE TABLE credit_record (
   balance_score INT NOT NULL COMMENT '变动后分值',
   reason VARCHAR(200) NOT NULL COMMENT '变动原因',
   create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '变动时间',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (id),
   KEY idx_credit_user_time (user_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='信用分流水表';
