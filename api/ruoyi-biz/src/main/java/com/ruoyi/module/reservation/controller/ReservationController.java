@@ -33,6 +33,8 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
+import com.ruoyi.module.review.domain.ReservationReviewRequest;
+import com.ruoyi.module.review.service.IReservationReviewBizService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
@@ -47,6 +49,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 @RequiredArgsConstructor
 public class ReservationController extends BaseController {
     private final IReservationService reservationService;
+    private final IReservationReviewBizService reservationReviewBizService;
     // private final ReservationMapper reservationMapper;
 
 /**
@@ -178,6 +181,27 @@ public class ReservationController extends BaseController {
             @RequestParam(required = false) Long participantCount) {
         return success(reservationService.selectAvailableRooms(parseDateTime(startTime), parseDateTime(endTime),
                 participantCount));
+    }
+
+    /**
+     * 查询待审核预约列表（教师端）
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:review')")
+    @GetMapping("/review/pending")
+    public TableDataInfo reviewPending() {
+        IPage<Reservation> page = reservationReviewBizService.pagePending(getPage());
+        return getDataTableByPage(page);
+    }
+
+    /**
+     * 审核预约：通过或驳回（教师端）
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:review')")
+    @Log(title = "实验室预约", businessType = BusinessType.UPDATE)
+    @PostMapping("/review/{id}")
+    public AjaxResult review(@PathVariable("id") Long id, @RequestBody ReservationReviewRequest request) {
+        reservationReviewBizService.review(id, request);
+        return success();
     }
 
     /**

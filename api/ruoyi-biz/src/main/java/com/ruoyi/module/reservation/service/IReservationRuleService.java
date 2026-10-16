@@ -44,6 +44,19 @@ public interface IReservationRuleService
     public void checkConflict(Long roomId, Date startTime, Date endTime, Long excludeId);
 
     /**
+     * 审核通过前的冲突校验：只与"已通过"的预约比较
+     *
+     * <p>申请阶段会与"待审核 + 已通过"比较，避免同一条时段被多次排队；
+     * 审核阶段若也把待审核算作占用，两条排队申请就会互相阻塞，因此这里只比已通过的预约。</p>
+     *
+     * @param roomId    实验室主键
+     * @param startTime 开始时间
+     * @param endTime   结束时间
+     * @param excludeId 需要排除的预约主键
+     */
+    public void checkApprovedConflict(Long roomId, Date startTime, Date endTime, Long excludeId);
+
+    /**
      * 查询指定时段可用的实验室
      *
      * @param startTime        开始时间

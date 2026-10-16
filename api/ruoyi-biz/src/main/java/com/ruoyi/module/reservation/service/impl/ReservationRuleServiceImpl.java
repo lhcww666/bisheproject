@@ -119,9 +119,20 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
     @Override
     public void checkConflict(Long roomId, Date startTime, Date endTime, Long excludeId)
     {
+        checkConflict(roomId, startTime, endTime, excludeId, ReservationStatus.PENDING, ReservationStatus.APPROVED);
+    }
+
+    @Override
+    public void checkApprovedConflict(Long roomId, Date startTime, Date endTime, Long excludeId)
+    {
+        checkConflict(roomId, startTime, endTime, excludeId, ReservationStatus.APPROVED);
+    }
+
+    private void checkConflict(Long roomId, Date startTime, Date endTime, Long excludeId, String... statuses)
+    {
         QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("room_id", roomId);
-        queryWrapper.in("status", ReservationStatus.PENDING, ReservationStatus.APPROVED);
+        queryWrapper.in("status", (Object[]) statuses);
         queryWrapper.lt("start_time", endTime);
         queryWrapper.gt("end_time", startTime);
         if (excludeId != null)
