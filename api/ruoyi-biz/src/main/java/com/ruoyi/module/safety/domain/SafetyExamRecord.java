@@ -53,18 +53,18 @@ private static final long serialVersionUID = 1L;
         private String passed;
 
             /** 考试时间 */
-                @JsonFormat(pattern = "yyyy-MM-dd" )
-                @Excel(name = "考试时间" , width = 30, dateFormat = "yyyy-MM-dd" )
         public static final String EXAMTIME = "exam_time";
             @TableField(value = EXAMTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+                @Excel(name = "考试时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
             @NotNull(message = "考试时间不能为空")
         private Date examTime;
 
             /** 有效期至 */
-                @JsonFormat(pattern = "yyyy-MM-dd" )
-                @Excel(name = "有效期至" , width = 30, dateFormat = "yyyy-MM-dd" )
         public static final String VALIDUNTIL = "valid_until";
             @TableField(value = VALIDUNTIL)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+                @Excel(name = "有效期至" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
         private Date validUntil;
 
 }

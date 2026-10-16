@@ -42,6 +42,18 @@ private static final long serialVersionUID = 1L;
             #else
             /** $column.columnComment */
             #end
+            #if($column.javaField == 'id')
+            @TableId(type = IdType.AUTO)
+            @OrderBy(asc = false, sort = 1)
+            #elseif($column.javaField == 'status')
+            // 逻辑删除替代物理删除，'0'：正常；'1'：删除
+            // @TableLogic(value = "'0'" , delval = "'1'" )
+            #elseif($column.javaField == 'tenantId')
+            @TableField(value = "tenant_id" , fill = FieldFill.INSERT)
+            #else
+        public static final String $column.javaField.toUpperCase() = "$column.columnName";
+            @TableField(value = $column.javaField.toUpperCase())
+            #end
             #if($column.list)
                 #set($parentheseIndex=$column.columnComment.indexOf("（"))
                 #if($parentheseIndex != -1)
@@ -54,23 +66,16 @@ private static final long serialVersionUID = 1L;
                 #elseif($column.dictType != '')
                 @Excel(name = "${comment}" , dictType = "$column.dictType" )
                 #elseif($column.javaType == 'Date')
+                    #if($column.columnTypeName == 'date')
                 @JsonFormat(pattern = "yyyy-MM-dd" )
                 @Excel(name = "${comment}" , width = 30, dateFormat = "yyyy-MM-dd" )
+                    #else
+                @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+                @Excel(name = "${comment}" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
+                    #end
                 #else
                 @Excel(name = "${comment}" )
                 #end
-            #end
-            #if($column.javaField == 'id')
-            @TableId(type = IdType.AUTO)
-            @OrderBy(asc = false, sort = 1)
-            #elseif($column.javaField == 'status')
-            // 逻辑删除替代物理删除，'0'：正常；'1'：删除
-            // @TableLogic(value = "'0'" , delval = "'1'" )
-            #elseif($column.javaField == 'tenantId')
-            @TableField(value = "tenant_id" , fill = FieldFill.INSERT)
-            #else
-        public static final String $column.javaField.toUpperCase() = "$column.columnName";
-            @TableField(value = $column.javaField.toUpperCase())
             #end
             #if($column.required)
                 #if($column.javaType == 'String')

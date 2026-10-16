@@ -59,10 +59,10 @@ private static final long serialVersionUID = 1L;
         private String reviewComment;
 
             /** 审核时间 */
-                @JsonFormat(pattern = "yyyy-MM-dd" )
-                @Excel(name = "审核时间" , width = 30, dateFormat = "yyyy-MM-dd" )
         public static final String REVIEWTIME = "review_time";
             @TableField(value = REVIEWTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+                @Excel(name = "审核时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
         private Date reviewTime;
 
 }

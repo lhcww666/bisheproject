@@ -61,18 +61,18 @@ private static final long serialVersionUID = 1L;
         private String experimentName;
 
             /** 开始时间 */
-                @JsonFormat(pattern = "yyyy-MM-dd" )
-                @Excel(name = "开始时间" , width = 30, dateFormat = "yyyy-MM-dd" )
         public static final String STARTTIME = "start_time";
             @TableField(value = STARTTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+                @Excel(name = "开始时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
             @NotNull(message = "开始时间不能为空")
         private Date startTime;
 
             /** 结束时间 */
-                @JsonFormat(pattern = "yyyy-MM-dd" )
-                @Excel(name = "结束时间" , width = 30, dateFormat = "yyyy-MM-dd" )
         public static final String ENDTIME = "end_time";
             @TableField(value = ENDTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+                @Excel(name = "结束时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
             @NotNull(message = "结束时间不能为空")
         private Date endTime;
 
