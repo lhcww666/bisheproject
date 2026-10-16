@@ -154,6 +154,9 @@
             isImport
           />
       </el-col>
+      <el-col :span="1.5">
+        <module-help module="reservation" />
+      </el-col>
       <right-toolbar v-model:showSearch="reservationShowSearch" @queryTable="reservationGetList"></right-toolbar>
     </el-row>
 
@@ -176,6 +179,11 @@
       </el-table-column>
       <el-table-column label="参与人数" align="center" prop="participantCount" />
       <el-table-column label="风险等级" align="center" prop="riskLevel" />
+      <el-table-column label="预约状态" align="center" prop="status">
+        <template #default="scope">
+          <dict-tag :options="module_reservation_status" :value="scope.row.status"/>
+        </template>
+      </el-table-column>
       <el-table-column label="是否需要审核" align="center" prop="reviewRequired">
         <template #default="scope">
           <dict-tag :options="module_yes_no" :value="scope.row.reviewRequired"/>

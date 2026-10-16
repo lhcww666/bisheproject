@@ -12,6 +12,14 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
+      <el-form-item label="用户ID" prop="userIdLike">
+        <el-input
+          v-model="creditRecordQueryParams.userIdLike"
+          placeholder="请输入用户ID"
+          clearable
+          @keyup.enter="creditRecordHandleQuery"
+        />
+      </el-form-item>
       <el-form-item label="变动分值" prop="changeScoreLike">
         <el-input
           v-model="creditRecordQueryParams.changeScoreLike"
@@ -104,12 +112,16 @@
             isImport
           />
       </el-col>
+      <el-col :span="1.5">
+        <module-help module="creditRecord" />
+      </el-col>
       <right-toolbar v-model:showSearch="creditRecordShowSearch" @queryTable="creditRecordGetList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="creditRecordLoading" :data="creditRecordList" @selection-change="creditRecordHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键" align="center" prop="id" />
+      <el-table-column label="用户ID" align="center" prop="userId" />
       <el-table-column label="变动分值" align="center" prop="changeScore" />
       <el-table-column label="变动后分值" align="center" prop="balanceScore" />
       <el-table-column label="变动原因" align="center" prop="reason" />

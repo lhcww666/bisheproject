@@ -122,6 +122,9 @@
             isImport
           />
       </el-col>
+      <el-col :span="1.5">
+        <module-help module="safetyExamRecord" />
+      </el-col>
       <right-toolbar v-model:showSearch="safetyExamRecordShowSearch" @queryTable="safetyExamRecordGetList"></right-toolbar>
     </el-row>
 

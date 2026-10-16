@@ -146,6 +146,9 @@
             isImport
           />
       </el-col>
+      <el-col :span="1.5">
+        <module-help module="room" />
+      </el-col>
       <right-toolbar v-model:showSearch="roomShowSearch" @queryTable="roomGetList"></right-toolbar>
     </el-row>
 
@@ -164,6 +167,11 @@
       <el-table-column label="安全等级" align="center" prop="safetyLevel" />
       <el-table-column label="开放开始时间" align="center" prop="openStartTime" />
       <el-table-column label="开放结束时间" align="center" prop="openEndTime" />
+      <el-table-column label="状态" align="center" prop="status">
+        <template #default="scope">
+          <dict-tag :options="module_room_status" :value="scope.row.status"/>
+        </template>
+      </el-table-column>
       <el-table-column label="说明" align="center" prop="description" />
       <el-table-column width="130" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">

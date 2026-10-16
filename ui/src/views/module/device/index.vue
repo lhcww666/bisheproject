@@ -132,6 +132,9 @@
             isImport
           />
       </el-col>
+      <el-col :span="1.5">
+        <module-help module="device" />
+      </el-col>
       <right-toolbar v-model:showSearch="deviceShowSearch" @queryTable="deviceGetList"></right-toolbar>
     </el-row>
 
@@ -150,6 +153,11 @@
       <el-table-column label="是否需要培训" align="center" prop="requiresTraining">
         <template #default="scope">
           <dict-tag :options="module_yes_no" :value="scope.row.requiresTraining"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" align="center" prop="status">
+        <template #default="scope">
+          <dict-tag :options="module_device_status" :value="scope.row.status"/>
         </template>
       </el-table-column>
       <el-table-column width="130" label="操作" align="center" class-name="small-padding fixed-width">

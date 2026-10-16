@@ -114,6 +114,9 @@
             isImport
           />
       </el-col>
+      <el-col :span="1.5">
+        <module-help module="reservationReview" />
+      </el-col>
       <right-toolbar v-model:showSearch="reservationReviewShowSearch" @queryTable="reservationReviewGetList"></right-toolbar>
     </el-row>
 
