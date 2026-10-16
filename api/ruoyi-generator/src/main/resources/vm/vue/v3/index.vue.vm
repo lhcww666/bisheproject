@@ -152,7 +152,7 @@
 #else
 #set($comment=$column.columnComment)
 #end
-#if($column.pk)
+#if($column.pk && $column.list)
       <el-table-column width="50" label="${comment}" align="center" prop="${javaField}" />
 #elseif($column.list && $column.htmlType == "datetime")
       <el-table-column label="${comment}" align="center" prop="${javaField}" width="180">
