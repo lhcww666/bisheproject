@@ -12,18 +12,18 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="预约主键" prop="reservationIdLike">
+      <el-form-item label="预约ID" prop="reservationIdLike">
         <el-input
           v-model="reservationReviewQueryParams.reservationIdLike"
-          placeholder="请输入预约主键"
+          placeholder="请输入预约ID"
           clearable
           @keyup.enter="reservationReviewHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="审核人，对应若依 sys_user.user_id" prop="reviewerIdLike">
+      <el-form-item label="审核人ID" prop="reviewerIdLike">
         <el-input
           v-model="reservationReviewQueryParams.reviewerIdLike"
-          placeholder="请输入审核人，对应若依 sys_user.user_id"
+          placeholder="请输入审核人ID（sys_user.user_id）"
           clearable
           @keyup.enter="reservationReviewHandleQuery"
         />
@@ -98,7 +98,7 @@
             icon="Download"
             @click="reservationReviewImportTemplate"
             v-hasPermi="['module:reservationReview:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -117,11 +117,11 @@
       <right-toolbar v-model:showSearch="reservationReviewShowSearch" @queryTable="reservationReviewGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="reservationReviewLoading" :data="reservationReviewList" @selection-change="reservationReviewHandleSelectionChange">
+    <el-table v-loading="reservationReviewLoading" :data="reservationReviewList" @selection-change="reservationReviewHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
-      <el-table-column label="预约主键" align="center" prop="reservationId" />
-      <el-table-column label="审核人，对应若依 sys_user.user_id" align="center" prop="reviewerId" />
+      <el-table-column label="主键" align="center" prop="id" />
+      <el-table-column label="预约ID" align="center" prop="reservationId" />
+      <el-table-column label="审核人ID" align="center" prop="reviewerId" />
       <el-table-column label="审核结果" align="center" prop="result">
         <template #default="scope">
           <dict-tag :options="module_review_result" :value="scope.row.result"/>
@@ -152,11 +152,11 @@
     <!-- 添加或修改预约审核对话框 -->
     <el-dialog :title="reservationReviewTitle" v-model="reservationReviewOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="reservationReviewRef" :model="reservationReviewForm" :rules="reservationReviewRules" label-width="auto">
-        <el-form-item label="预约主键" prop="reservationId">
-          <el-input v-model="reservationReviewForm.reservationId" placeholder="请输入预约主键" />
+        <el-form-item label="预约ID" prop="reservationId">
+          <el-input v-model="reservationReviewForm.reservationId" placeholder="请输入预约ID" />
         </el-form-item>
-        <el-form-item label="审核人，对应若依 sys_user.user_id" prop="reviewerId">
-          <el-input v-model="reservationReviewForm.reviewerId" placeholder="请输入审核人，对应若依 sys_user.user_id" />
+        <el-form-item label="审核人ID" prop="reviewerId">
+          <el-input v-model="reservationReviewForm.reviewerId" placeholder="请输入审核人ID（sys_user.user_id）" />
         </el-form-item>
         <el-form-item label="审核结果" prop="result">
           <el-radio-group v-model="reservationReviewForm.result">
@@ -240,10 +240,10 @@ const reservationReviewData = reactive({
   },
   reservationReviewRules: {
     reservationId: [
-      { required: true, message: "预约主键不能为空", trigger: "blur" }
+      { required: true, message: "预约ID不能为空", trigger: "blur" }
     ],
     reviewerId: [
-      { required: true, message: "审核人，对应若依 sys_user.user_id不能为空", trigger: "blur" }
+      { required: true, message: "审核人ID不能为空", trigger: "blur" }
     ],
     result: [
       { required: true, message: "审核结果不能为空", trigger: "change" }

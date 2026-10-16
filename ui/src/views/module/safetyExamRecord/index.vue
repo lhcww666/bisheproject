@@ -12,10 +12,10 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="学生，对应若依 sys_user.user_id" prop="studentIdLike">
+      <el-form-item label="学生ID" prop="studentIdLike">
         <el-input
           v-model="safetyExamRecordQueryParams.studentIdLike"
-          placeholder="请输入学生，对应若依 sys_user.user_id"
+          placeholder="请输入学生ID（sys_user.user_id）"
           clearable
           @keyup.enter="safetyExamRecordHandleQuery"
         />
@@ -106,7 +106,7 @@
             icon="Download"
             @click="safetyExamRecordImportTemplate"
             v-hasPermi="['module:safetyExamRecord:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -125,10 +125,10 @@
       <right-toolbar v-model:showSearch="safetyExamRecordShowSearch" @queryTable="safetyExamRecordGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="safetyExamRecordLoading" :data="safetyExamRecordList" @selection-change="safetyExamRecordHandleSelectionChange">
+    <el-table v-loading="safetyExamRecordLoading" :data="safetyExamRecordList" @selection-change="safetyExamRecordHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
-      <el-table-column label="学生，对应若依 sys_user.user_id" align="center" prop="studentId" />
+      <el-table-column label="主键" align="center" prop="id" />
+      <el-table-column label="学生ID" align="center" prop="studentId" />
       <el-table-column label="考试成绩" align="center" prop="score" />
       <el-table-column label="是否通过" align="center" prop="passed">
         <template #default="scope">
@@ -164,8 +164,8 @@
     <!-- 添加或修改安全考试记录对话框 -->
     <el-dialog :title="safetyExamRecordTitle" v-model="safetyExamRecordOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="safetyExamRecordRef" :model="safetyExamRecordForm" :rules="safetyExamRecordRules" label-width="auto">
-        <el-form-item label="学生，对应若依 sys_user.user_id" prop="studentId">
-          <el-input v-model="safetyExamRecordForm.studentId" placeholder="请输入学生，对应若依 sys_user.user_id" />
+        <el-form-item label="学生ID" prop="studentId">
+          <el-input v-model="safetyExamRecordForm.studentId" placeholder="请输入学生ID（sys_user.user_id）" />
         </el-form-item>
         <el-form-item label="考试成绩" prop="score">
           <el-input v-model="safetyExamRecordForm.score" placeholder="请输入考试成绩" />
@@ -257,7 +257,7 @@ const safetyExamRecordData = reactive({
   },
   safetyExamRecordRules: {
     studentId: [
-      { required: true, message: "学生，对应若依 sys_user.user_id不能为空", trigger: "blur" }
+      { required: true, message: "学生ID不能为空", trigger: "blur" }
     ],
     score: [
       { required: true, message: "考试成绩不能为空", trigger: "blur" }

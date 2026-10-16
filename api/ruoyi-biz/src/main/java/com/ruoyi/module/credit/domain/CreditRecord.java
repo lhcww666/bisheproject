@@ -28,17 +28,17 @@ private static final long serialVersionUID = 1L;
             @OrderBy(asc = false, sort = 1)
         private Long id;
 
-            /** 用户，对应若依 sys_user.user_id */
+            /** 用户ID（若依用户主键 sys_user.user_id） */
         public static final String USERID = "user_id";
             @TableField(value = USERID)
-            @NotNull(message = "用户，对应若依 sys_user.user_id不能为空")
+            @NotNull(message = "用户ID不能为空")
         private Long userId;
 
-            /** 变动分值，可正可负 */
-                @Excel(name = "变动分值，可正可负" )
+            /** 变动分值 */
+                @Excel(name = "变动分值" )
         public static final String CHANGESCORE = "change_score";
             @TableField(value = CHANGESCORE)
-            @NotNull(message = "变动分值，可正可负不能为空")
+            @NotNull(message = "变动分值不能为空")
         private Long changeScore;
 
             /** 变动后分值 */

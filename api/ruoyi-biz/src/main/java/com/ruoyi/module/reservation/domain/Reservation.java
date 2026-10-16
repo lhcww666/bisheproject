@@ -38,11 +38,11 @@ private static final long serialVersionUID = 1L;
             @Size(min = 0, max = 32, message = "预约编号长度不能超过32个字符")
         private String reservationNo;
 
-            /** 申请人，对应若依 sys_user.user_id */
-                @Excel(name = "申请人，对应若依 sys_user.user_id" )
+            /** 申请人ID（若依用户主键 sys_user.user_id） */
+                @Excel(name = "申请人ID" )
         public static final String APPLICANTID = "applicant_id";
             @TableField(value = APPLICANTID)
-            @NotNull(message = "申请人，对应若依 sys_user.user_id不能为空")
+            @NotNull(message = "申请人ID不能为空")
         private Long applicantId;
 
             /** 实验室 */

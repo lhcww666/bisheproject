@@ -31,11 +31,11 @@ private static final long serialVersionUID = 1L;
             @OrderBy(asc = false, sort = 1)
         private Long id;
 
-            /** 学生，对应若依 sys_user.user_id */
-                @Excel(name = "学生，对应若依 sys_user.user_id" )
+            /** 学生ID（若依用户主键 sys_user.user_id） */
+                @Excel(name = "学生ID" )
         public static final String STUDENTID = "student_id";
             @TableField(value = STUDENTID)
-            @NotNull(message = "学生，对应若依 sys_user.user_id不能为空")
+            @NotNull(message = "学生ID不能为空")
         private Long studentId;
 
             /** 考试成绩 */

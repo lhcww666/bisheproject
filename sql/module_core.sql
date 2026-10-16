@@ -34,8 +34,8 @@ CREATE TABLE room (
 
 CREATE TABLE device (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-  room_id BIGINT NOT NULL COMMENT '所属实验室',
-  device_code VARCHAR(30) NOT NULL COMMENT '设备编号',
+  room_id BIGINT NOT NULL COMMENT '所属实验室ID',
+  device_code VARCHAR(30) NOT NULL COMMENT '设备编号（业务编码，全局唯一）',
   device_name VARCHAR(100) NOT NULL COMMENT '设备名称',
   device_type VARCHAR(50) NOT NULL COMMENT '设备类型',
   quantity INT NOT NULL DEFAULT 1 COMMENT '数量',
@@ -55,7 +55,7 @@ CREATE TABLE device (
 CREATE TABLE reservation (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   reservation_no VARCHAR(32) NOT NULL COMMENT '预约编号',
-  applicant_id BIGINT NOT NULL COMMENT '申请人，对应若依 sys_user.user_id',
+  applicant_id BIGINT NOT NULL COMMENT '申请人ID（若依用户主键 sys_user.user_id）',
   room_id BIGINT NOT NULL COMMENT '实验室',
   experiment_name VARCHAR(100) NOT NULL COMMENT '实验名称',
   start_time DATETIME NOT NULL COMMENT '开始时间',
@@ -78,8 +78,8 @@ CREATE TABLE reservation (
 
 CREATE TABLE reservation_device (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-  reservation_id BIGINT NOT NULL COMMENT '预约主键',
-  device_id BIGINT NOT NULL COMMENT '设备主键',
+  reservation_id BIGINT NOT NULL COMMENT '预约ID',
+  device_id BIGINT NOT NULL COMMENT '设备ID',
   quantity INT NOT NULL DEFAULT 1 COMMENT '使用数量',
   PRIMARY KEY (id),
   UNIQUE KEY uk_reservation_device (reservation_id, device_id),
@@ -89,8 +89,8 @@ CREATE TABLE reservation_device (
 
 CREATE TABLE reservation_review (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-  reservation_id BIGINT NOT NULL COMMENT '预约主键',
-  reviewer_id BIGINT NOT NULL COMMENT '审核人，对应若依 sys_user.user_id',
+  reservation_id BIGINT NOT NULL COMMENT '预约ID',
+  reviewer_id BIGINT NOT NULL COMMENT '审核人ID（若依用户主键 sys_user.user_id）',
   result CHAR(1) NOT NULL COMMENT '审核结果',
   review_comment VARCHAR(500) DEFAULT NULL COMMENT '审核意见',
   review_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
@@ -101,7 +101,7 @@ CREATE TABLE reservation_review (
 
 CREATE TABLE safety_exam_record (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-  student_id BIGINT NOT NULL COMMENT '学生，对应若依 sys_user.user_id',
+  student_id BIGINT NOT NULL COMMENT '学生ID（若依用户主键 sys_user.user_id）',
   score DECIMAL(5,2) NOT NULL COMMENT '考试成绩',
   passed CHAR(1) NOT NULL COMMENT '是否通过',
   exam_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '考试时间',
@@ -112,8 +112,8 @@ CREATE TABLE safety_exam_record (
 
 CREATE TABLE credit_record (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-  user_id BIGINT NOT NULL COMMENT '用户，对应若依 sys_user.user_id',
-  change_score INT NOT NULL COMMENT '变动分值，可正可负',
+  user_id BIGINT NOT NULL COMMENT '用户ID（若依用户主键 sys_user.user_id）',
+  change_score INT NOT NULL COMMENT '变动分值（可正可负）',
   balance_score INT NOT NULL COMMENT '变动后分值',
   reason VARCHAR(200) NOT NULL COMMENT '变动原因',
   create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '变动时间',

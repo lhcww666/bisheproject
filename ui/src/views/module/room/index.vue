@@ -130,7 +130,7 @@
             icon="Download"
             @click="roomImportTemplate"
             v-hasPermi="['module:room:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -149,9 +149,9 @@
       <right-toolbar v-model:showSearch="roomShowSearch" @queryTable="roomGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="roomLoading" :data="roomList" @selection-change="roomHandleSelectionChange">
+    <el-table v-loading="roomLoading" :data="roomList" @selection-change="roomHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
+      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="实验室编号" align="center" prop="roomCode" />
       <el-table-column label="实验室名称" align="center" prop="roomName" />
       <el-table-column label="实验室类型" align="center" prop="roomType">

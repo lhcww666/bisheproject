@@ -37,11 +37,11 @@ private static final long serialVersionUID = 1L;
             @NotNull(message = "预约主键不能为空")
         private Long reservationId;
 
-            /** 审核人，对应若依 sys_user.user_id */
-                @Excel(name = "审核人，对应若依 sys_user.user_id" )
+            /** 审核人ID（若依用户主键 sys_user.user_id） */
+                @Excel(name = "审核人ID" )
         public static final String REVIEWERID = "reviewer_id";
             @TableField(value = REVIEWERID)
-            @NotNull(message = "审核人，对应若依 sys_user.user_id不能为空")
+            @NotNull(message = "审核人ID不能为空")
         private Long reviewerId;
 
             /** 审核结果 */

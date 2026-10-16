@@ -116,7 +116,7 @@
             icon="Download"
             @click="deviceImportTemplate"
             v-hasPermi="['module:device:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -135,9 +135,9 @@
       <right-toolbar v-model:showSearch="deviceShowSearch" @queryTable="deviceGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="deviceLoading" :data="deviceList" @selection-change="deviceHandleSelectionChange">
+    <el-table v-loading="deviceLoading" :data="deviceList" @selection-change="deviceHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
+      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="所属实验室" align="center" prop="roomId" />
       <el-table-column label="设备编号" align="center" prop="deviceCode" />
       <el-table-column label="设备名称" align="center" prop="deviceName" />
@@ -211,7 +211,7 @@
             >{{dict.label}}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="${comment}" prop="remark">
+        <el-form-item label="备注" prop="remark">
           <el-input v-model="deviceForm.remark" type="textarea" placeholder="请输入内容" />
         </el-form-item>
       </el-form>

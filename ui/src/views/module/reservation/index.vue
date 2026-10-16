@@ -20,10 +20,10 @@
           @keyup.enter="reservationHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="申请人，对应若依 sys_user.user_id" prop="applicantIdLike">
+      <el-form-item label="申请人ID" prop="applicantIdLike">
         <el-input
           v-model="reservationQueryParams.applicantIdLike"
-          placeholder="请输入申请人，对应若依 sys_user.user_id"
+          placeholder="请输入申请人ID（sys_user.user_id）"
           clearable
           @keyup.enter="reservationHandleQuery"
         />
@@ -138,7 +138,7 @@
             icon="Download"
             @click="reservationImportTemplate"
             v-hasPermi="['module:reservation:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -157,11 +157,11 @@
       <right-toolbar v-model:showSearch="reservationShowSearch" @queryTable="reservationGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="reservationLoading" :data="reservationList" @selection-change="reservationHandleSelectionChange">
+    <el-table v-loading="reservationLoading" :data="reservationList" @selection-change="reservationHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
+      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="预约编号" align="center" prop="reservationNo" />
-      <el-table-column label="申请人，对应若依 sys_user.user_id" align="center" prop="applicantId" />
+      <el-table-column label="申请人ID" align="center" prop="applicantId" />
       <el-table-column label="实验室" align="center" prop="roomId" />
       <el-table-column label="实验名称" align="center" prop="experimentName" />
       <el-table-column label="开始时间" align="center" prop="startTime" width="180">
@@ -203,8 +203,8 @@
         <el-form-item label="预约编号" prop="reservationNo">
           <el-input v-model="reservationForm.reservationNo" placeholder="请输入预约编号" />
         </el-form-item>
-        <el-form-item label="申请人，对应若依 sys_user.user_id" prop="applicantId">
-          <el-input v-model="reservationForm.applicantId" placeholder="请输入申请人，对应若依 sys_user.user_id" />
+        <el-form-item label="申请人ID" prop="applicantId">
+          <el-input v-model="reservationForm.applicantId" placeholder="请输入申请人ID（sys_user.user_id）" />
         </el-form-item>
         <el-form-item label="实验室" prop="roomId">
           <el-input v-model="reservationForm.roomId" placeholder="请输入实验室" />
@@ -324,7 +324,7 @@ const reservationData = reactive({
       { required: true, message: "预约编号不能为空", trigger: "blur" }
     ],
     applicantId: [
-      { required: true, message: "申请人，对应若依 sys_user.user_id不能为空", trigger: "blur" }
+      { required: true, message: "申请人ID不能为空", trigger: "blur" }
     ],
     roomId: [
       { required: true, message: "实验室不能为空", trigger: "blur" }

@@ -12,10 +12,10 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="变动分值，可正可负" prop="changeScoreLike">
+      <el-form-item label="变动分值" prop="changeScoreLike">
         <el-input
           v-model="creditRecordQueryParams.changeScoreLike"
-          placeholder="请输入变动分值，可正可负"
+          placeholder="请输入变动分值（可正可负）"
           clearable
           @keyup.enter="creditRecordHandleQuery"
         />
@@ -88,7 +88,7 @@
             icon="Download"
             @click="creditRecordImportTemplate"
             v-hasPermi="['module:creditRecord:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -107,10 +107,10 @@
       <right-toolbar v-model:showSearch="creditRecordShowSearch" @queryTable="creditRecordGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="creditRecordLoading" :data="creditRecordList" @selection-change="creditRecordHandleSelectionChange">
+    <el-table v-loading="creditRecordLoading" :data="creditRecordList" @selection-change="creditRecordHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
-      <el-table-column label="变动分值，可正可负" align="center" prop="changeScore" />
+      <el-table-column label="主键" align="center" prop="id" />
+      <el-table-column label="变动分值" align="center" prop="changeScore" />
       <el-table-column label="变动后分值" align="center" prop="balanceScore" />
       <el-table-column label="变动原因" align="center" prop="reason" />
       <el-table-column width="130" label="操作" align="center" class-name="small-padding fixed-width">
@@ -132,8 +132,8 @@
     <!-- 添加或修改信用分流水对话框 -->
     <el-dialog :title="creditRecordTitle" v-model="creditRecordOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="creditRecordRef" :model="creditRecordForm" :rules="creditRecordRules" label-width="auto">
-        <el-form-item label="变动分值，可正可负" prop="changeScore">
-          <el-input v-model="creditRecordForm.changeScore" placeholder="请输入变动分值，可正可负" />
+        <el-form-item label="变动分值" prop="changeScore">
+          <el-input v-model="creditRecordForm.changeScore" placeholder="请输入变动分值（可正可负）" />
         </el-form-item>
         <el-form-item label="变动后分值" prop="balanceScore">
           <el-input v-model="creditRecordForm.balanceScore" placeholder="请输入变动后分值" />
@@ -201,10 +201,10 @@ const creditRecordData = reactive({
   },
   creditRecordRules: {
     userId: [
-      { required: true, message: "用户，对应若依 sys_user.user_id不能为空", trigger: "blur" }
+      { required: true, message: "用户ID不能为空", trigger: "blur" }
     ],
     changeScore: [
-      { required: true, message: "变动分值，可正可负不能为空", trigger: "blur" }
+      { required: true, message: "变动分值不能为空", trigger: "blur" }
     ],
     balanceScore: [
       { required: true, message: "变动后分值不能为空", trigger: "blur" }

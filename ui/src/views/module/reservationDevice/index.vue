@@ -12,18 +12,18 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="预约主键" prop="reservationIdLike">
+      <el-form-item label="预约ID" prop="reservationIdLike">
         <el-input
           v-model="reservationDeviceQueryParams.reservationIdLike"
-          placeholder="请输入预约主键"
+          placeholder="请输入预约ID"
           clearable
           @keyup.enter="reservationDeviceHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="设备主键" prop="deviceIdLike">
+      <el-form-item label="设备ID" prop="deviceIdLike">
         <el-input
           v-model="reservationDeviceQueryParams.deviceIdLike"
-          placeholder="请输入设备主键"
+          placeholder="请输入设备ID"
           clearable
           @keyup.enter="reservationDeviceHandleQuery"
         />
@@ -88,7 +88,7 @@
             icon="Download"
             @click="reservationDeviceImportTemplate"
             v-hasPermi="['module:reservationDevice:import']"
-        >下载模版</el-button>
+        >下载模板</el-button>
       </el-col>
       <el-col :span="1.5">
       <file-upload
@@ -107,11 +107,11 @@
       <right-toolbar v-model:showSearch="reservationDeviceShowSearch" @queryTable="reservationDeviceGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="reservationDeviceLoading" :data="reservationDeviceList" @selection-change="reservationDeviceHandleSelectionChange">
+    <el-table v-loading="reservationDeviceLoading" :data="reservationDeviceList" @selection-change="reservationDeviceHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column width="50" label="主键" align="center" prop="id" />
-      <el-table-column label="预约主键" align="center" prop="reservationId" />
-      <el-table-column label="设备主键" align="center" prop="deviceId" />
+      <el-table-column label="主键" align="center" prop="id" />
+      <el-table-column label="预约ID" align="center" prop="reservationId" />
+      <el-table-column label="设备ID" align="center" prop="deviceId" />
       <el-table-column label="使用数量" align="center" prop="quantity" />
       <el-table-column width="130" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
@@ -132,11 +132,11 @@
     <!-- 添加或修改预约设备关联对话框 -->
     <el-dialog :title="reservationDeviceTitle" v-model="reservationDeviceOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="reservationDeviceRef" :model="reservationDeviceForm" :rules="reservationDeviceRules" label-width="auto">
-        <el-form-item label="预约主键" prop="reservationId">
-          <el-input v-model="reservationDeviceForm.reservationId" placeholder="请输入预约主键" />
+        <el-form-item label="预约ID" prop="reservationId">
+          <el-input v-model="reservationDeviceForm.reservationId" placeholder="请输入预约ID" />
         </el-form-item>
-        <el-form-item label="设备主键" prop="deviceId">
-          <el-input v-model="reservationDeviceForm.deviceId" placeholder="请输入设备主键" />
+        <el-form-item label="设备ID" prop="deviceId">
+          <el-input v-model="reservationDeviceForm.deviceId" placeholder="请输入设备ID" />
         </el-form-item>
         <el-form-item label="使用数量" prop="quantity">
           <el-input v-model="reservationDeviceForm.quantity" placeholder="请输入使用数量" />
@@ -201,10 +201,10 @@ const reservationDeviceData = reactive({
   },
   reservationDeviceRules: {
     reservationId: [
-      { required: true, message: "预约主键不能为空", trigger: "blur" }
+      { required: true, message: "预约ID不能为空", trigger: "blur" }
     ],
     deviceId: [
-      { required: true, message: "设备主键不能为空", trigger: "blur" }
+      { required: true, message: "设备ID不能为空", trigger: "blur" }
     ],
     quantity: [
       { required: true, message: "使用数量不能为空", trigger: "blur" }
