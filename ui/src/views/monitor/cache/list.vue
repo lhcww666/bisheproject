@@ -19,7 +19,7 @@
             :height="tableHeight"
             highlight-current-row
             @row-click="getCacheKeys"
-            style="width: 100%"
+            style="width: 100%" border
           >
             <el-table-column
               label="序号"
@@ -78,7 +78,7 @@
             :height="tableHeight"
             highlight-current-row
             @row-click="handleCacheValue"
-            style="width: 100%"
+            style="width: 100%" border
           >
             <el-table-column
               label="序号"
