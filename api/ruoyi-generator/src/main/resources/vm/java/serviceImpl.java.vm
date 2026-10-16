@@ -34,8 +34,7 @@ import jakarta.validation.Validator;
 /**
  * ${functionName}Service业务层处理
  *
- * @author 姜彦汐
- * @site https://www.undsky.com
+ * @author ${author}
  * @date ${datetime}
  */
 @Service
@@ -125,9 +124,13 @@ public class ${ClassName}ServiceImpl extends ServiceImpl<${ClassName}Mapper,${Cl
     @Override
     public int insert${ClassName}(${ClassName} ${className}) {
         #foreach ($column in $columns)
-            #if($column.javaField == 'createTime')
+            #if($column.javaField == 'userId')
                 ${className}.setUserId(SecurityUtils.getUserId());
+            #end
+            #if($column.javaField == 'deptId')
                 ${className}.setDeptId(SecurityUtils.getDeptId());
+            #end
+            #if($column.javaField == 'createTime')
                 ${className}.setCreateBy(SecurityUtils.getUsername());
                 ${className}.setCreateTime(DateUtils.getNowDate());
             #end

@@ -36,8 +36,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 /**
  * ${functionName}Controller
  *
- * @author 姜彦汐
- * @site https://www.undsky.com
+ * @author ${author}
  * @date ${datetime}
  */
 @RestController

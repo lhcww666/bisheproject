@@ -11,8 +11,7 @@ import com.ruoyi.common.core.domain.BaseEntity;
 /**
  * ${subTable.functionName}对象 ${subTableName}
  * 
- * @author 姜彦汐
- * @site https://www.undsky.com
+ * @author ${author}
  * @date ${datetime}
  */
 public class ${subClassName} extends BaseEntity

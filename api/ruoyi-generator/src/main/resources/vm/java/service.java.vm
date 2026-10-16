@@ -11,8 +11,7 @@ import ${packageName}.domain .${ClassName};
 /**
  * ${functionName}Service接口
  *
- * @author 姜彦汐
- * @site https://www.undsky.com
+ * @author ${author}
  * @date ${datetime}
  */
 public interface I${ClassName}Service extends IService<${ClassName}> {

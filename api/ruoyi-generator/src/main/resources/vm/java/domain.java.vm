@@ -15,13 +15,13 @@ import com.ruoyi.common.core.domain.BaseEntity;
 import com.ruoyi.common.core.domain.TreeEntity;
 #end
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
  * ${functionName}对象 ${tableName}
  *
- * @author 姜彦汐
- * @site https://www.undsky.com
+ * @author ${author}
  * @date ${datetime}
  */
 #if($table.crud || $table.sub)
@@ -73,7 +73,11 @@ private static final long serialVersionUID = 1L;
             @TableField(value = $column.javaField.toUpperCase())
             #end
             #if($column.required)
+                #if($column.javaType == 'String')
             @NotBlank(message = "${column.columnComment}不能为空")
+                #else
+            @NotNull(message = "${column.columnComment}不能为空")
+                #end
             #end
             #if($column.columnTypeName == 'varchar')
                 #if($column.columnTypeLength && $column.columnTypeLength != '')
