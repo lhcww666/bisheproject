@@ -27,6 +27,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.module.safety.domain.SafetyExamRecord;
 import com.ruoyi.module.safety.service.ISafetyExamRecordService;
 import com.ruoyi.module.safety.mapper.SafetyExamRecordMapper;
+import com.ruoyi.module.common.service.ModuleDataScopeService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
@@ -41,6 +42,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 @RequiredArgsConstructor
 public class SafetyExamRecordController extends BaseController {
     private final ISafetyExamRecordService safetyExamRecordService;
+    private final ModuleDataScopeService moduleDataScopeService;
     // private final SafetyExamRecordMapper safetyExamRecordMapper;
 
 /**
@@ -50,6 +52,7 @@ public class SafetyExamRecordController extends BaseController {
 @GetMapping("/list")
     public TableDataInfo list(SafetyExamRecord safetyExamRecord) {
         QueryWrapper<SafetyExamRecord> queryWrapper = getQueryWrapper(SafetyExamRecord.class);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "student_id");
         IPage<SafetyExamRecord> page = safetyExamRecordService.pageSafetyExamRecord(getPage(), queryWrapper);
         return getDataTableByPage(page);
     }
@@ -62,6 +65,7 @@ public class SafetyExamRecordController extends BaseController {
     @PostMapping("/export")
     public void export(HttpServletResponse response, SafetyExamRecord safetyExamRecord) {
         QueryWrapper<SafetyExamRecord> queryWrapper = getQueryWrapper(SafetyExamRecord.class);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "student_id");
         IPage<SafetyExamRecord> page = safetyExamRecordService.pageSafetyExamRecord(getPage(), queryWrapper);
         List<SafetyExamRecord> list = page.getRecords();
         ExcelUtil<SafetyExamRecord> util = new ExcelUtil<SafetyExamRecord>(SafetyExamRecord. class);
@@ -96,7 +100,11 @@ public class SafetyExamRecordController extends BaseController {
     @PreAuthorize("@ss.hasPermi('module:safetyExamRecord:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
-        return success(safetyExamRecordService.selectSafetyExamRecordById(id));
+        SafetyExamRecord safetyExamRecord = safetyExamRecordService.selectSafetyExamRecordById(id);
+        if (safetyExamRecord != null) {
+            moduleDataScopeService.checkStudentRecordAccess(safetyExamRecord.getStudentId());
+        }
+        return success(safetyExamRecord);
     }
 
     /**

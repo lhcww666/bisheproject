@@ -1,5 +1,21 @@
 <template>
   <div class="app-container">
+    <el-alert
+      v-if="isStudent"
+      class="scope-tip"
+      type="info"
+      :closable="false"
+      show-icon
+      title="学生视图：只展示本人的安全考试成绩，其他学生的记录不可见。"
+    />
+    <el-alert
+      v-else-if="isTeacher"
+      class="scope-tip"
+      type="info"
+      :closable="false"
+      show-icon
+      title="教师视图：只展示本人班级学生的安全考试记录。"
+    />
     <el-form @submit.prevent :model="safetyExamRecordQueryParams" ref="safetyExamRecordQueryRef" :inline="true" v-show="safetyExamRecordShowSearch" label-width="auto">
       <el-form-item label="创建时间">
         <el-date-picker
@@ -12,7 +28,7 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="学生ID" prop="studentIdLike">
+      <el-form-item v-if="!isStudent" label="学生ID" prop="studentIdLike">
         <el-input
           v-model="safetyExamRecordQueryParams.studentIdLike"
           placeholder="请输入学生ID（sys_user.user_id）"
@@ -129,8 +145,8 @@
     </el-row>
 
     <el-table v-loading="safetyExamRecordLoading" :data="safetyExamRecordList" @selection-change="safetyExamRecordHandleSelectionChange" border>
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="学生ID" align="center" prop="studentId" />
+      <el-table-column v-if="!isStudent && !isTeacher" type="selection" width="55" align="center" />
+      <el-table-column v-if="!isStudent" label="学生ID" align="center" prop="studentId" />
       <el-table-column label="考试成绩" align="center" prop="score" />
       <el-table-column label="是否通过" align="center" prop="passed">
         <template #default="scope">
@@ -210,10 +226,21 @@
 
 <script setup name="SafetyExamRecord">
 import { listSafetyExamRecord, getSafetyExamRecord, delSafetyExamRecord, addSafetyExamRecord, updateSafetyExamRecord } from "@/api/module/safetyExamRecord";
+import useUserStore from "@/store/modules/user";
 import dayjs from "dayjs";
 import xeUtils from "xe-utils";
 
 const dateRange = ref([]);
+const userStore = useUserStore();
+const isStudent = computed(() =>
+  (userStore.roles || []).includes("student") &&
+  !(userStore.roles || []).includes("teacher") &&
+  !(userStore.roles || []).includes("admin")
+);
+const isTeacher = computed(() =>
+  (userStore.roles || []).includes("teacher") &&
+  !(userStore.roles || []).includes("admin")
+);
 
 const route = useRoute();
 const action = ref(null);
@@ -399,5 +426,7 @@ function safetyExamRecordImportTemplate() {
 }
 </script>
 <style lang="scss" scoped>
-
+.scope-tip {
+  margin-bottom: 12px;
+}
 </style>

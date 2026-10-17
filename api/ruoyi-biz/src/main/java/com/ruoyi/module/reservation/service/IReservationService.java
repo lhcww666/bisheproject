@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.module.reservation.domain .Reservation;
 import com.ruoyi.module.reservation.domain.ReservationView;
+import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.room.domain.Room;
 
 /**
@@ -18,7 +19,7 @@ import com.ruoyi.module.room.domain.Room;
  * @date 2026-10-16
  */
 public interface IReservationService extends IService<Reservation> {
-    public IPage<Reservation> pageReservation(Page<Reservation> page, QueryWrapper<Reservation> queryWrapper);
+    public IPage<ReservationView> pageReservation(Page<Reservation> page, QueryWrapper<Reservation> queryWrapper);
 
     /**
      * 提交预约申请（走完整业务规则校验，申请人取自登录上下文）
@@ -56,6 +57,14 @@ public interface IReservationService extends IService<Reservation> {
      * @return 可用实验室列表
      */
     public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount);
+
+    /**
+     * 查询指定实验室中状态正常的设备
+     *
+     * @param roomId 实验室主键
+     * @return 可预约设备列表
+     */
+    public List<Device> selectAvailableDevices(Long roomId);
 
     /**
      * 查询实验室预约

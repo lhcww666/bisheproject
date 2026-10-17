@@ -13,10 +13,14 @@ import org.springframework.stereotype.Component;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationDevice;
 import com.ruoyi.module.reservation.domain.ReservationView;
+import com.ruoyi.module.reservation.mapper.ReservationDeviceMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.review.domain.ReservationReview;
 import com.ruoyi.module.review.mapper.ReservationReviewMapper;
+import com.ruoyi.module.device.domain.Device;
+import com.ruoyi.module.device.mapper.DeviceMapper;
 import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.module.room.mapper.RoomMapper;
 import com.ruoyi.common.core.domain.entity.SysUser;
@@ -36,6 +40,10 @@ public class ReservationViewAssembler
     private final RoomMapper roomMapper;
 
     private final ReservationReviewMapper reservationReviewMapper;
+
+    private final ReservationDeviceMapper reservationDeviceMapper;
+
+    private final DeviceMapper deviceMapper;
 
     private final IReservationRuleService reservationRuleService;
 
@@ -93,6 +101,33 @@ public class ReservationViewAssembler
             reviewMap.putIfAbsent(review.getReservationId(), review);
         }
 
+        Map<Long, List<String>> deviceNameMap = new HashMap<>();
+        QueryWrapper<ReservationDevice> deviceQuery = new QueryWrapper<>();
+        deviceQuery.in("reservation_id", reservationIds);
+        List<ReservationDevice> reservationDevices = reservationDeviceMapper.selectList(deviceQuery);
+        if (!reservationDevices.isEmpty())
+        {
+            Set<Long> deviceIds = new LinkedHashSet<>();
+            for (ReservationDevice reservationDevice : reservationDevices)
+            {
+                deviceIds.add(reservationDevice.getDeviceId());
+            }
+            Map<Long, String> deviceMap = new HashMap<>();
+            for (Device device : deviceMapper.selectBatchIds(deviceIds))
+            {
+                deviceMap.put(device.getId(), device.getDeviceName());
+            }
+            for (ReservationDevice reservationDevice : reservationDevices)
+            {
+                String deviceName = deviceMap.get(reservationDevice.getDeviceId());
+                if (StringUtils.isNotEmpty(deviceName))
+                {
+                    deviceNameMap.computeIfAbsent(reservationDevice.getReservationId(), key -> new ArrayList<>())
+                            .add(deviceName);
+                }
+            }
+        }
+
         List<ReservationView> views = new ArrayList<>(reservations.size());
         for (Reservation reservation : reservations)
         {
@@ -131,6 +166,7 @@ public class ReservationViewAssembler
                 view.setReviewComment(review.getReviewComment());
                 view.setReviewTime(review.getReviewTime());
             }
+            view.setDeviceNames(deviceNameMap.getOrDefault(reservation.getId(), Collections.emptyList()));
             views.add(view);
         }
         return views;

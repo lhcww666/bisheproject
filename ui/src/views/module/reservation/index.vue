@@ -1,5 +1,22 @@
 <template>
   <div class="app-container">
+    <el-alert
+      v-if="isStudent"
+      class="reservation-tip"
+      type="info"
+      :closable="false"
+      show-icon
+      title="学生视图：这里只展示你本人的预约。需要新预约时，点击上方“申请预约”。"
+    />
+    <el-alert
+      v-else-if="isTeacher"
+      class="reservation-tip"
+      type="info"
+      :closable="false"
+      show-icon
+      title="教师视图：这里展示本人班级学生的预约记录。"
+    />
+
     <el-form @submit.prevent :model="reservationQueryParams" ref="reservationQueryRef" :inline="true" v-show="reservationShowSearch" label-width="auto">
       <el-form-item label="创建时间">
         <el-date-picker
@@ -20,7 +37,7 @@
           @keyup.enter="reservationHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="申请人ID" prop="applicantIdLike">
+      <el-form-item v-if="!isStudent" label="申请人ID" prop="applicantIdLike">
         <el-input
           v-model="reservationQueryParams.applicantIdLike"
           placeholder="请输入申请人ID（sys_user.user_id）"
@@ -28,10 +45,10 @@
           @keyup.enter="reservationHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="实验室" prop="roomIdLike">
+      <el-form-item v-if="!isStudent" label="实验室" prop="roomIdLike">
         <el-input
           v-model="reservationQueryParams.roomIdLike"
-          placeholder="请输入实验室"
+          placeholder="请输入实验室ID"
           clearable
           @keyup.enter="reservationHandleQuery"
         />
@@ -43,6 +60,16 @@
           clearable
           @keyup.enter="reservationHandleQuery"
         />
+      </el-form-item>
+      <el-form-item label="预约状态" prop="status">
+        <el-select v-model="reservationQueryParams.status" placeholder="请选择预约状态" clearable>
+          <el-option
+            v-for="dict in module_reservation_status"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="开始时间" prop="startTime">
         <el-date-picker clearable
@@ -60,7 +87,7 @@
           placeholder="请选择结束时间">
         </el-date-picker>
       </el-form-item>
-      <el-form-item label="参与人数" prop="participantCountLike">
+      <el-form-item v-if="!isStudent" label="参与人数" prop="participantCountLike">
         <el-input
           v-model="reservationQueryParams.participantCountLike"
           placeholder="请输入参与人数"
@@ -68,7 +95,7 @@
           @keyup.enter="reservationHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="风险等级" prop="riskLevelLike">
+      <el-form-item v-if="!isStudent" label="风险等级" prop="riskLevelLike">
         <el-input
           v-model="reservationQueryParams.riskLevelLike"
           placeholder="请输入风险等级"
@@ -76,7 +103,7 @@
           @keyup.enter="reservationHandleQuery"
         />
       </el-form-item>
-      <el-form-item label="是否需要审核" prop="reviewRequired">
+      <el-form-item v-if="!isStudent" label="是否需要审核" prop="reviewRequired">
         <el-select v-model="reservationQueryParams.reviewRequired" placeholder="请选择是否需要审核" clearable>
           <el-option
             v-for="dict in module_yes_no"
@@ -93,7 +120,16 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
+      <el-col v-if="isStudent" :span="1.5">
+        <el-button
+          type="primary"
+          plain
+          icon="Plus"
+          @click="openApplyDialog"
+          v-hasPermi="['module:reservation:apply']"
+        >申请预约</el-button>
+      </el-col>
+      <el-col v-if="canManage" :span="1.5">
         <el-button
           type="primary"
           plain
@@ -102,7 +138,7 @@
           v-hasPermi="['module:reservation:add']"
         >新增</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-if="canManage" :span="1.5">
         <el-button
           type="success"
           plain
@@ -112,7 +148,7 @@
           v-hasPermi="['module:reservation:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-if="canManage" :span="1.5">
         <el-button
           type="danger"
           plain
@@ -122,7 +158,7 @@
           v-hasPermi="['module:reservation:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-if="canManage" :span="1.5">
         <el-button
           type="warning"
           plain
@@ -131,7 +167,7 @@
           v-hasPermi="['module:reservation:export']"
         >导出</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-if="canManage" :span="1.5">
         <el-button
             type="info"
             plain
@@ -140,7 +176,7 @@
             v-hasPermi="['module:reservation:import']"
         >下载模板</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-if="canManage" :span="1.5">
       <file-upload
             v-model="importRes"
             v-hasPermi="['module:reservation:import']"
@@ -161,11 +197,24 @@
     </el-row>
 
     <el-table v-loading="reservationLoading" :data="reservationList" @selection-change="reservationHandleSelectionChange" border>
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="预约编号" align="center" prop="reservationNo" />
-      <el-table-column label="申请人ID" align="center" prop="applicantId" />
-      <el-table-column label="实验室" align="center" prop="roomId" />
-      <el-table-column label="实验名称" align="center" prop="experimentName" />
+      <el-table-column v-if="canManage" type="selection" width="55" align="center" />
+      <el-table-column label="预约编号" align="center" prop="reservationNo" min-width="170" />
+      <el-table-column label="申请人" align="center" min-width="110">
+        <template #default="scope">
+          <span>{{ scope.row.applicantName || scope.row.applicantId }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="实验室" align="center" min-width="150">
+        <template #default="scope">
+          <span>{{ scope.row.roomName || scope.row.roomId }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="实验名称" align="center" prop="experimentName" min-width="150" />
+      <el-table-column label="使用设备" align="center" min-width="150">
+        <template #default="scope">
+          <span>{{ (scope.row.deviceNames || []).join('、') || '—' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="开始时间" align="center" prop="startTime" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.startTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
@@ -176,26 +225,33 @@
           <span>{{ parseTime(scope.row.endTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="参与人数" align="center" prop="participantCount" />
-      <el-table-column label="风险等级" align="center" prop="riskLevel" />
-      <el-table-column label="预约状态" align="center" prop="status">
+      <el-table-column label="参与人数" align="center" prop="participantCount" width="90" />
+      <el-table-column label="预约状态" align="center" prop="status" width="100">
         <template #default="scope">
           <dict-tag :options="module_reservation_status" :value="scope.row.status"/>
         </template>
       </el-table-column>
-      <el-table-column label="是否需要审核" align="center" prop="reviewRequired">
+      <el-table-column label="审核意见" align="center" prop="reviewComment" min-width="150">
         <template #default="scope">
-          <dict-tag :options="module_yes_no" :value="scope.row.reviewRequired"/>
+          <span>{{ scope.row.reviewComment || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column width="130" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="isStudent || canManage" width="120" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="reservationHandleUpdate(scope.row)" v-hasPermi="['module:reservation:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="reservationHandleDelete(scope.row)" v-hasPermi="['module:reservation:remove']">删除</el-button>
+          <el-button
+            v-if="isStudent && canCancel(scope.row)"
+            link
+            type="danger"
+            icon="CircleClose"
+            @click="handleCancel(scope.row)"
+            v-hasPermi="['module:reservation:cancel']"
+          >取消预约</el-button>
+          <el-button v-if="canManage" link type="primary" icon="Edit" @click="reservationHandleUpdate(scope.row)" v-hasPermi="['module:reservation:edit']">修改</el-button>
+          <el-button v-if="canManage" link type="primary" icon="Delete" @click="reservationHandleDelete(scope.row)" v-hasPermi="['module:reservation:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <pagination
       v-show="reservationTotal>0"
       :total="reservationTotal"
@@ -204,7 +260,95 @@
       @pagination="reservationGetList"
     />
 
-    <!-- 添加或修改实验室预约对话框 -->
+    <!-- 学生预约申请对话框 -->
+    <el-dialog title="申请预约" v-model="applyOpen" width="560px" append-to-body destroy-on-close>
+      <el-form @submit.prevent ref="applyRef" :model="applyForm" :rules="applyRules" label-width="100px">
+        <el-form-item label="开始时间" prop="startTime">
+          <el-date-picker
+            clearable
+            style="width: 100%;"
+            v-model="applyForm.startTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择开始时间"
+            @change="loadAvailableRooms"
+          />
+        </el-form-item>
+        <el-form-item label="结束时间" prop="endTime">
+          <el-date-picker
+            clearable
+            style="width: 100%;"
+            v-model="applyForm.endTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择结束时间"
+            @change="loadAvailableRooms"
+          />
+        </el-form-item>
+        <el-form-item label="参与人数" prop="participantCount">
+          <el-input-number
+            v-model="applyForm.participantCount"
+            :min="1"
+            :max="200"
+            style="width: 100%;"
+            @change="loadAvailableRooms"
+          />
+        </el-form-item>
+        <el-form-item label="实验室" prop="roomId">
+          <el-select
+            v-model="applyForm.roomId"
+            filterable
+            clearable
+            style="width: 100%;"
+            :loading="availableRoomsLoading"
+            placeholder="请先选择时间，再选择可用实验室"
+            no-data-text="该时段没有可用实验室"
+            @change="handleApplyRoomChange"
+          >
+            <el-option
+              v-for="room in availableRooms"
+              :key="room.id"
+              :label="room.roomCode + ' ' + room.roomName + '（容量 ' + room.capacity + ' 人）'"
+              :value="room.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="实验名称" prop="experimentName">
+          <el-input v-model="applyForm.experimentName" placeholder="例如：有机溶剂萃取实验" />
+        </el-form-item>
+        <el-form-item label="使用设备" prop="deviceIds">
+          <el-select
+            v-model="applyForm.deviceIds"
+            multiple
+            filterable
+            clearable
+            style="width: 100%;"
+            :disabled="!applyForm.roomId"
+            :loading="availableDevicesLoading"
+            placeholder="可不选；选择实验室后可挑设备"
+            no-data-text="该实验室暂无可预约设备"
+          >
+            <el-option
+              v-for="device in availableDevices"
+              :key="device.id"
+              :label="device.deviceName + '（' + device.deviceCode + '）'"
+              :value="device.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="实验说明" prop="remark">
+          <el-input v-model="applyForm.remark" type="textarea" :rows="3" placeholder="补充实验内容、防护要求等" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" :loading="applyLoading" @click="submitApply">提交申请</el-button>
+          <el-button @click="applyOpen = false">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 管理员添加或修改预约对话框 -->
     <el-dialog :title="reservationTitle" v-model="reservationOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="reservationRef" :model="reservationForm" :rules="reservationRules" label-width="auto">
         <el-form-item label="预约编号" prop="reservationNo">
@@ -222,16 +366,16 @@
         <el-form-item label="开始时间" prop="startTime">
           <el-date-picker clearable style="width: 100%;"
             v-model="reservationForm.startTime"
-            type="date"
-            value-format="YYYY-MM-DD"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
             placeholder="请选择开始时间">
           </el-date-picker>
         </el-form-item>
         <el-form-item label="结束时间" prop="endTime">
           <el-date-picker clearable style="width: 100%;"
             v-model="reservationForm.endTime"
-            type="date"
-            value-format="YYYY-MM-DD"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
             placeholder="请选择结束时间">
           </el-date-picker>
         </el-form-item>
@@ -274,14 +418,33 @@
 </template>
 
 <script setup name="Reservation">
-import { listReservation, getReservation, delReservation, addReservation, updateReservation } from "@/api/module/reservation";
-import dayjs from "dayjs";
+import {
+  listReservation,
+  getReservation,
+  delReservation,
+  addReservation,
+  updateReservation,
+  applyReservation,
+  cancelReservation,
+  listAvailableRooms,
+  listAvailableDevices
+} from "@/api/module/reservation";
+import useUserStore from "@/store/modules/user";
 import xeUtils from "xe-utils";
 
 const dateRange = ref([]);
-
 const route = useRoute();
 const action = ref(null);
+const userStore = useUserStore();
+
+const roleKeys = computed(() => userStore.roles || []);
+const isStudent = computed(() =>
+  roleKeys.value.includes("student") &&
+  !roleKeys.value.includes("teacher") &&
+  !roleKeys.value.includes("admin")
+);
+const isTeacher = computed(() => roleKeys.value.includes("teacher") && !roleKeys.value.includes("admin"));
+const canManage = computed(() => roleKeys.value.length > 0 && !isStudent.value && !isTeacher.value);
 
 onMounted(() => {
   reservationHandleQuery();
@@ -316,14 +479,15 @@ const reservationData = reactive({
   reservationQueryParams: {
     pageNum: 1,
     pageSize: 10,
-    reservationNo: null,
-    applicantId: null,
-    roomId: null,
-    experimentName: null,
+    reservationNoLike: null,
+    applicantIdLike: null,
+    roomIdLike: null,
+    experimentNameLike: null,
+    status: null,
     startTime: null,
     endTime: null,
-    participantCount: null,
-    riskLevel: null,
+    participantCountLike: null,
+    riskLevelLike: null,
     reviewRequired: null,
   },
   reservationRules: {
@@ -362,6 +526,32 @@ const reservationData = reactive({
 
 const { reservationQueryParams, reservationForm, reservationRules } = toRefs(reservationData);
 
+const applyOpen = ref(false);
+const applyLoading = ref(false);
+const availableRooms = ref([]);
+const availableRoomsLoading = ref(false);
+const availableDevices = ref([]);
+const availableDevicesLoading = ref(false);
+const applyData = reactive({
+  applyForm: {
+    startTime: null,
+    endTime: null,
+    participantCount: 1,
+    roomId: null,
+    experimentName: null,
+    deviceIds: [],
+    remark: null
+  },
+  applyRules: {
+    startTime: [{ required: true, message: "开始时间不能为空", trigger: "change" }],
+    endTime: [{ required: true, message: "结束时间不能为空", trigger: "change" }],
+    participantCount: [{ required: true, message: "参与人数不能为空", trigger: "change" }],
+    roomId: [{ required: true, message: "实验室不能为空", trigger: "change" }],
+    experimentName: [{ required: true, message: "实验名称不能为空", trigger: "blur" }]
+  }
+});
+const { applyForm, applyRules } = toRefs(applyData);
+
 watch(
   route,
   (newRoute) => {
@@ -376,8 +566,100 @@ function reservationGetList() {
   listReservation(proxy.addDateRange(reservationQueryParams.value, dateRange.value, 'create_time', true)).then(response => {
     reservationList.value = response.rows;
     reservationTotal.value = response.total;
+  }).finally(() => {
     reservationLoading.value = false;
   });
+}
+
+function canCancel(row) {
+  return row.status === "0" || row.status === "1";
+}
+
+function openApplyDialog() {
+  applyForm.value = {
+    startTime: null,
+    endTime: null,
+    participantCount: 1,
+    roomId: null,
+    experimentName: null,
+    deviceIds: [],
+    remark: null
+  };
+  availableRooms.value = [];
+  availableDevices.value = [];
+  applyOpen.value = true;
+}
+
+function loadAvailableRooms() {
+  applyForm.value.roomId = null;
+  applyForm.value.deviceIds = [];
+  availableRooms.value = [];
+  availableDevices.value = [];
+  if (!applyForm.value.startTime || !applyForm.value.endTime) {
+    return;
+  }
+  availableRoomsLoading.value = true;
+  listAvailableRooms({
+    startTime: applyForm.value.startTime,
+    endTime: applyForm.value.endTime,
+    participantCount: applyForm.value.participantCount
+  }).then(response => {
+    availableRooms.value = response.data || [];
+  }).finally(() => {
+    availableRoomsLoading.value = false;
+  });
+}
+
+function handleApplyRoomChange(roomId) {
+  applyForm.value.deviceIds = [];
+  availableDevices.value = [];
+  if (!roomId) {
+    return;
+  }
+  availableDevicesLoading.value = true;
+  listAvailableDevices({ roomId: roomId }).then(response => {
+    availableDevices.value = response.data || [];
+  }).finally(() => {
+    availableDevicesLoading.value = false;
+  });
+}
+
+function submitApply() {
+  proxy.$refs["applyRef"].validate(valid => {
+    if (!valid) {
+      return;
+    }
+    if (applyForm.value.startTime >= applyForm.value.endTime) {
+      proxy.$modal.msgError("结束时间必须晚于开始时间");
+      return;
+    }
+    applyLoading.value = true;
+    applyReservation({
+      roomId: applyForm.value.roomId,
+      experimentName: applyForm.value.experimentName,
+      startTime: applyForm.value.startTime,
+      endTime: applyForm.value.endTime,
+      participantCount: applyForm.value.participantCount,
+      deviceIds: applyForm.value.deviceIds,
+      remark: applyForm.value.remark
+    }).then(response => {
+      const reservationNo = response.data && response.data.reservationNo ? response.data.reservationNo : "";
+      proxy.$modal.msgSuccess(reservationNo ? "预约申请已提交，编号：" + reservationNo : "预约申请已提交");
+      applyOpen.value = false;
+      reservationGetList();
+    }).finally(() => {
+      applyLoading.value = false;
+    });
+  });
+}
+
+function handleCancel(row) {
+  proxy.$modal.confirm('是否确认取消预约“' + row.reservationNo + '”？').then(function() {
+    return cancelReservation(row.id);
+  }).then(() => {
+    proxy.$modal.msgSuccess("预约已取消");
+    reservationGetList();
+  }).catch(() => {});
 }
 
 // 取消按钮
@@ -496,5 +778,7 @@ function reservationImportTemplate() {
 }
 </script>
 <style lang="scss" scoped>
-
+.reservation-tip {
+  margin-bottom: 12px;
+}
 </style>

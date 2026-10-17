@@ -34,6 +34,7 @@ import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
+import com.ruoyi.module.common.service.ModuleDataScopeService;
 import com.ruoyi.module.review.domain.ReservationReviewRequest;
 import com.ruoyi.module.review.service.IReservationReviewBizService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
@@ -51,6 +52,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 public class ReservationController extends BaseController {
     private final IReservationService reservationService;
     private final IReservationReviewBizService reservationReviewBizService;
+    private final ModuleDataScopeService moduleDataScopeService;
     // private final ReservationMapper reservationMapper;
 
 /**
@@ -60,7 +62,8 @@ public class ReservationController extends BaseController {
 @GetMapping("/list")
     public TableDataInfo list(Reservation reservation) {
         QueryWrapper<Reservation> queryWrapper = getQueryWrapper(Reservation.class);
-        IPage<Reservation> page = reservationService.pageReservation(getPage(), queryWrapper);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "applicant_id");
+        IPage<ReservationView> page = reservationService.pageReservation(getPage(), queryWrapper);
         return getDataTableByPage(page);
     }
 
@@ -72,9 +75,10 @@ public class ReservationController extends BaseController {
     @PostMapping("/export")
     public void export(HttpServletResponse response, Reservation reservation) {
         QueryWrapper<Reservation> queryWrapper = getQueryWrapper(Reservation.class);
-        IPage<Reservation> page = reservationService.pageReservation(getPage(), queryWrapper);
-        List<Reservation> list = page.getRecords();
-        ExcelUtil<Reservation> util = new ExcelUtil<Reservation>(Reservation. class);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "applicant_id");
+        IPage<ReservationView> page = reservationService.pageReservation(getPage(), queryWrapper);
+        List<ReservationView> list = page.getRecords();
+        ExcelUtil<ReservationView> util = new ExcelUtil<ReservationView>(ReservationView. class);
         util.exportExcel(response, list, "实验室预约");
     }
 
@@ -106,7 +110,11 @@ public class ReservationController extends BaseController {
     @PreAuthorize("@ss.hasPermi('module:reservation:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
-        return success(reservationService.selectReservationById(id));
+        Reservation reservation = reservationService.selectReservationById(id);
+        if (reservation != null) {
+            moduleDataScopeService.checkStudentRecordAccess(reservation.getApplicantId());
+        }
+        return success(reservation);
     }
 
     /**
@@ -182,6 +190,15 @@ public class ReservationController extends BaseController {
             @RequestParam(required = false) Long participantCount) {
         return success(reservationService.selectAvailableRooms(parseDateTime(startTime), parseDateTime(endTime),
                 participantCount));
+    }
+
+    /**
+     * 查询指定实验室中可预约的设备（学生预约时使用，不开放设备档案菜单）
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:available')")
+    @GetMapping("/availableDevices")
+    public AjaxResult availableDevices(@RequestParam Long roomId) {
+        return success(reservationService.selectAvailableDevices(roomId));
     }
 
     /**

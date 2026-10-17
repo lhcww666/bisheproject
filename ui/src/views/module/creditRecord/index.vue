@@ -1,5 +1,21 @@
 <template>
   <div class="app-container">
+    <el-alert
+      v-if="isStudent"
+      class="scope-tip"
+      type="info"
+      :closable="false"
+      show-icon
+      title="学生视图：只展示本人的信用分流水，其他学生的记录不可见。"
+    />
+    <el-alert
+      v-else-if="isTeacher"
+      class="scope-tip"
+      type="info"
+      :closable="false"
+      show-icon
+      title="教师视图：只展示本人班级学生的信用分流水。"
+    />
     <el-form @submit.prevent :model="creditRecordQueryParams" ref="creditRecordQueryRef" :inline="true" v-show="creditRecordShowSearch" label-width="auto">
       <el-form-item label="创建时间">
         <el-date-picker
@@ -12,7 +28,7 @@
             end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="用户ID" prop="userIdLike">
+      <el-form-item v-if="!isStudent" label="用户ID" prop="userIdLike">
         <el-input
           v-model="creditRecordQueryParams.userIdLike"
           placeholder="请输入用户ID"
@@ -119,8 +135,8 @@
     </el-row>
 
     <el-table v-loading="creditRecordLoading" :data="creditRecordList" @selection-change="creditRecordHandleSelectionChange" border>
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="用户ID" align="center" prop="userId" />
+      <el-table-column v-if="!isStudent && !isTeacher" type="selection" width="55" align="center" />
+      <el-table-column v-if="!isStudent" label="用户ID" align="center" prop="userId" />
       <el-table-column label="变动分值" align="center" prop="changeScore" />
       <el-table-column label="变动后分值" align="center" prop="balanceScore" />
       <el-table-column label="变动原因" align="center" prop="reason" />
@@ -165,10 +181,21 @@
 
 <script setup name="CreditRecord">
 import { listCreditRecord, getCreditRecord, delCreditRecord, addCreditRecord, updateCreditRecord } from "@/api/module/creditRecord";
+import useUserStore from "@/store/modules/user";
 import dayjs from "dayjs";
 import xeUtils from "xe-utils";
 
 const dateRange = ref([]);
+const userStore = useUserStore();
+const isStudent = computed(() =>
+  (userStore.roles || []).includes("student") &&
+  !(userStore.roles || []).includes("teacher") &&
+  !(userStore.roles || []).includes("admin")
+);
+const isTeacher = computed(() =>
+  (userStore.roles || []).includes("teacher") &&
+  !(userStore.roles || []).includes("admin")
+);
 
 const route = useRoute();
 const action = ref(null);
@@ -206,6 +233,7 @@ const creditRecordData = reactive({
   creditRecordQueryParams: {
     pageNum: 1,
     pageSize: 10,
+    userIdLike: null,
     changeScore: null,
     balanceScore: null,
     reason: null,
@@ -352,5 +380,7 @@ function creditRecordImportTemplate() {
 }
 </script>
 <style lang="scss" scoped>
-
+.scope-tip {
+  margin-bottom: 12px;
+}
 </style>

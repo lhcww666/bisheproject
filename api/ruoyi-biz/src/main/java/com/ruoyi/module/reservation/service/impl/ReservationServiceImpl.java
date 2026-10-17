@@ -5,7 +5,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -21,11 +23,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
+import com.ruoyi.module.reservation.mapper.ReservationDeviceMapper;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationDevice;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
+import com.ruoyi.module.device.domain.Device;
+import com.ruoyi.module.device.mapper.DeviceMapper;
 import com.ruoyi.module.room.domain.Room;
 
 import jakarta.validation.Validator;
@@ -40,6 +46,8 @@ import jakarta.validation.Validator;
 @RequiredArgsConstructor
 public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reservation> implements IReservationService {
     private final ReservationMapper reservationMapper;
+    private final ReservationDeviceMapper reservationDeviceMapper;
+    private final DeviceMapper deviceMapper;
     private final IReservationRuleService reservationRuleService;
     private final ReservationViewAssembler reservationViewAssembler;
     protected final Validator validator;
@@ -68,7 +76,57 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         apply.setCreateBy(SecurityUtils.getUsername());
         apply.setCreateTime(DateUtils.getNowDate());
         reservationMapper.insert(apply);
+        saveReservationDevices(apply.getId(), room, userId, reservation.getDeviceIds());
         return apply;
+    }
+
+    /**
+     * 保存预约与设备的关联。设备必须属于预约实验室、状态正常；
+     * 需要培训的设备还要求申请人持有有效期内的安全考试记录。
+     */
+    private void saveReservationDevices(Long reservationId, Room room, Long userId, List<Long> deviceIds)
+    {
+        if (deviceIds == null || deviceIds.isEmpty())
+        {
+            return;
+        }
+        Set<Long> uniqueDeviceIds = new LinkedHashSet<>(deviceIds);
+        for (Long deviceId : uniqueDeviceIds)
+        {
+            if (deviceId == null)
+            {
+                throw new ServiceException("设备不能为空");
+            }
+            Device device = deviceMapper.selectById(deviceId);
+            if (device == null)
+            {
+                throw new ServiceException("选择的设备不存在");
+            }
+            if (!room.getId().equals(device.getRoomId()))
+            {
+                throw new ServiceException("设备“" + device.getDeviceName() + "”不属于所选实验室");
+            }
+            if (!"0".equals(device.getStatus()))
+            {
+                throw new ServiceException("设备“" + device.getDeviceName() + "”当前不可用");
+            }
+            if (device.getQuantity() == null || device.getQuantity() < 1L)
+            {
+                throw new ServiceException("设备“" + device.getDeviceName() + "”没有可用数量");
+            }
+            if ("1".equals(device.getRequiresTraining()) && !reservationRuleService.isExamValid(userId))
+            {
+                throw new ServiceException("设备“" + device.getDeviceName() + "”需要培训，请先通过安全考试");
+            }
+
+            ReservationDevice reservationDevice = new ReservationDevice();
+            reservationDevice.setReservationId(reservationId);
+            reservationDevice.setDeviceId(deviceId);
+            reservationDevice.setQuantity(1L);
+            reservationDevice.setCreateBy(SecurityUtils.getUsername());
+            reservationDevice.setCreateTime(DateUtils.getNowDate());
+            reservationDeviceMapper.insert(reservationDevice);
+        }
     }
 
     @Override
@@ -115,6 +173,20 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount)
     {
         return reservationRuleService.selectAvailableRooms(startTime, endTime, participantCount);
+    }
+
+    @Override
+    public List<Device> selectAvailableDevices(Long roomId)
+    {
+        if (roomId == null)
+        {
+            throw new ServiceException("请选择实验室");
+        }
+        QueryWrapper<Device> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("room_id", roomId);
+        queryWrapper.eq("status", "0");
+        queryWrapper.orderByAsc("device_code");
+        return deviceMapper.selectList(queryWrapper);
     }
 
     /**
@@ -190,8 +262,11 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     }
 
     @Override
-    public IPage<Reservation> pageReservation(Page<Reservation> page, QueryWrapper<Reservation> queryWrapper) {
-        return reservationMapper.selectPage(page, queryWrapper);
+    public IPage<ReservationView> pageReservation(Page<Reservation> page, QueryWrapper<Reservation> queryWrapper) {
+        IPage<Reservation> pageData = reservationMapper.selectPage(page, queryWrapper);
+        Page<ReservationView> viewPage = new Page<>(pageData.getCurrent(), pageData.getSize(), pageData.getTotal());
+        viewPage.setRecords(reservationViewAssembler.assemble(pageData.getRecords()));
+        return viewPage;
     }
 
     /**

@@ -42,3 +42,38 @@ export function delReservation(id) {
     method: 'delete'
   })
 }
+
+// 学生提交预约申请
+export function applyReservation(data) {
+  return request({
+    url: '/module/reservation/apply',
+    method: 'post',
+    data: data
+  })
+}
+
+// 取消本人预约
+export function cancelReservation(id) {
+  return request({
+    url: '/module/reservation/' + id + '/cancel',
+    method: 'post'
+  })
+}
+
+// 查询指定时段可用实验室
+export function listAvailableRooms(params) {
+  return request({
+    url: '/module/reservation/availableRooms',
+    method: 'get',
+    params: params
+  })
+}
+
+// 查询实验室中可预约的设备
+export function listAvailableDevices(params) {
+  return request({
+    url: '/module/reservation/availableDevices',
+    method: 'get',
+    params: params
+  })
+}

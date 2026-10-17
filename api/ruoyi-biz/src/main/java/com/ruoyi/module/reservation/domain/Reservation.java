@@ -1,6 +1,7 @@
 package com.ruoyi.module.reservation.domain;
 
 import java.util.Date;
+import java.util.List;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -102,5 +103,9 @@ private static final long serialVersionUID = 1L;
             @TableField(value = REVIEWREQUIRED)
             @NotBlank(message = "是否需要审核不能为空")
         private String reviewRequired;
+
+            /** 申请使用的设备主键集合，仅用于提交预约，不映射到 reservation 表 */
+            @TableField(exist = false)
+        private List<Long> deviceIds;
 
 }

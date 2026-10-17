@@ -27,6 +27,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.module.credit.domain.CreditRecord;
 import com.ruoyi.module.credit.service.ICreditRecordService;
 import com.ruoyi.module.credit.mapper.CreditRecordMapper;
+import com.ruoyi.module.common.service.ModuleDataScopeService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
@@ -41,6 +42,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 @RequiredArgsConstructor
 public class CreditRecordController extends BaseController {
     private final ICreditRecordService creditRecordService;
+    private final ModuleDataScopeService moduleDataScopeService;
     // private final CreditRecordMapper creditRecordMapper;
 
 /**
@@ -50,6 +52,7 @@ public class CreditRecordController extends BaseController {
 @GetMapping("/list")
     public TableDataInfo list(CreditRecord creditRecord) {
         QueryWrapper<CreditRecord> queryWrapper = getQueryWrapper(CreditRecord.class);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "user_id");
         IPage<CreditRecord> page = creditRecordService.pageCreditRecord(getPage(), queryWrapper);
         return getDataTableByPage(page);
     }
@@ -62,6 +65,7 @@ public class CreditRecordController extends BaseController {
     @PostMapping("/export")
     public void export(HttpServletResponse response, CreditRecord creditRecord) {
         QueryWrapper<CreditRecord> queryWrapper = getQueryWrapper(CreditRecord.class);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "user_id");
         IPage<CreditRecord> page = creditRecordService.pageCreditRecord(getPage(), queryWrapper);
         List<CreditRecord> list = page.getRecords();
         ExcelUtil<CreditRecord> util = new ExcelUtil<CreditRecord>(CreditRecord. class);
@@ -96,7 +100,11 @@ public class CreditRecordController extends BaseController {
     @PreAuthorize("@ss.hasPermi('module:creditRecord:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
-        return success(creditRecordService.selectCreditRecordById(id));
+        CreditRecord creditRecord = creditRecordService.selectCreditRecordById(id);
+        if (creditRecord != null) {
+            moduleDataScopeService.checkStudentRecordAccess(creditRecord.getUserId());
+        }
+        return success(creditRecord);
     }
 
     /**

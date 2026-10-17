@@ -1,6 +1,7 @@
 package com.ruoyi.module.reservation.domain;
 
 import java.util.Date;
+import java.util.List;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -39,4 +40,7 @@ public class ReservationView extends Reservation
 
     /** 最近一次审核时间 */
     private Date reviewTime;
+
+    /** 本次预约使用的设备名称 */
+    private List<String> deviceNames;
 }

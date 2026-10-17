@@ -13,6 +13,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.module.common.service.ModuleDataScopeService;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.domain.ReservationView;
@@ -49,6 +50,8 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
 
     private final ReservationViewAssembler reservationViewAssembler;
 
+    private final ModuleDataScopeService moduleDataScopeService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void review(Long reservationId, ReservationReviewRequest request)
@@ -62,6 +65,7 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
         {
             throw new ServiceException("该预约不是待审核状态，不能重复审核");
         }
+        moduleDataScopeService.checkStudentRecordAccess(reservation.getApplicantId());
         if (request == null || StringUtils.isEmpty(request.getResult()))
         {
             throw new ServiceException("请选择审核结果");
@@ -106,6 +110,7 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
     {
         QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status", ReservationStatus.PENDING);
+        moduleDataScopeService.applyStudentRecordScope(queryWrapper, "applicant_id");
         queryWrapper.orderByAsc("start_time");
         IPage<Reservation> pageData = reservationMapper.selectPage(page, queryWrapper);
         Page<ReservationView> viewPage = new Page<>(pageData.getCurrent(), pageData.getSize(), pageData.getTotal());
