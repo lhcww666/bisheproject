@@ -14,7 +14,15 @@ public class RuoYiApplication
 {
     public static void main(String[] args)
     {
-         System.setProperty("spring.devtools.restart.enabled", "false");
+        System.setProperty("spring.devtools.restart.enabled", "false");
+        // 兼容 IDEA 只编译 Java、未把 src/main/resources 拷到 target/classes 的情况。
+        // 正常打包运行时 classpath 中已有 application.yml，不会走到这里。
+        if (RuoYiApplication.class.getResource("/application.yml") == null
+                && System.getProperty("spring.config.additional-location") == null)
+        {
+            System.setProperty("spring.config.additional-location",
+                    "optional:file:./src/main/resources/,optional:file:./ruoyi-admin/src/main/resources/");
+        }
         SpringApplication.run(RuoYiApplication.class, args);
         System.out.println("(♥◠‿◠)ﾉﾞ  若依启动成功   ლ(´ڡ`ლ)ﾞ  \n" +
                 " .-------.       ____     __        \n" +
