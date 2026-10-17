@@ -113,6 +113,27 @@ npm run dev
 
 登录与调试的两个固有条件（容易踩坑）：密码需要先用 `ui/src/utils/jsencrypt.js` 的公钥做 RSA 加密再提交；验证码答案存放在 Redis 的 `captcha_codes:<uuid>`（db1）。本地开发账号与重置细节见 `docs/04-本地开发指导书.md`，不要把密码写进代码或提交记录。
 
+### 资源文件与 IDEA/JRebel 启动约束
+
+`src/main/resources` 是源文件，任何情况下都不允许删除、清空或覆盖其中的配置、Mapper XML、i18n 等资源。`target/classes` 只是构建产物，IDEA/JRebel 的 Make 可能只编译 Java 而不拷贝 `resources`，表现为 `application.yml`、`mybatis/mybatis-config.xml`、`mapper/**/*Mapper.xml` 在运行类路径中突然消失；这并不代表源文件被删除。
+
+每次在 IDEA 里启动后端之前（尤其是刚改过 Java/XML、切换分支、执行过 clean 或 IDEA 重新 Make 后），先执行：
+
+```powershell
+cd D:\bishe_project\api
+mvn -q -pl ruoyi-admin -am process-resources
+```
+
+并确认以下文件存在，全部为 `True` 再启动：
+
+```powershell
+Test-Path ruoyi-admin\target\classes\application.yml
+Test-Path ruoyi-admin\target\classes\mybatis\mybatis-config.xml
+Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
+```
+
+更稳妥的做法是在 IDEA 的 Spring Boot 启动配置里增加 Before launch → Run Maven Goal：`process-resources`，工作目录为 `D:\bishe_project\api`。`RuoYiApplication` 里的资源回退只作为最后兜底，不能替代正常的资源拷贝流程。
+
 ## 六、数据库与代码生成流程
 
 业务表到可运行页面经过固定几步，脚本执行顺序不能颠倒：
@@ -154,6 +175,7 @@ npm run dev
 - 前端：`cd ui` 后 `npm run dev`，页面改动要在真实浏览器里点一遍（若依的登录、权限、字典渲染问题只有跑起来才看得出来），确认无控制台报错。
 - 涉及生成器模板的改动：重新生成至少一个模块，确认生成的代码可编译、页面可渲染。
 - 涉及 SQL 的改动：确认脚本在空库上按第六节顺序可重复执行。
+- 后端启动前：确认 `target/classes` 中已有 `application.yml`、`mybatis/mybatis-config.xml` 和 `mapper/**/*Mapper.xml`；缺失时先执行 `mvn -q -pl ruoyi-admin -am process-resources`，不要直接启动或删除源码资源。
 - 验证过程中产生的测试数据要清理干净。
 
 ## 九、硬性约束
@@ -163,6 +185,7 @@ npm run dev
 - 不提交密码、令牌、`application-local.yml`、构建产物（`target/`、`dist/`、`node_modules/`）以及无关文件；`application-devdmy.yml` 中的数据库口令只在本地存在。
 - 不直接修改 `main` 分支，不执行 `git reset --hard`、`git checkout --` 之类的破坏性命令。
 - 不修改 `后端/` 目录（旧版框架参考代码）和 `api/.agent/`、`api/openspec/` 等工具目录，除非用户明确要求。
+- 不删除、清空或覆盖 `api/**/src/main/resources` 下的资源文件；清理 `target/` 后必须重新执行 `process-resources` 或完整构建，确认资源恢复后再启动。
 
 ## 十、常见坑
 
@@ -176,6 +199,8 @@ npm run dev
 | 业务表编译报 `setUserId` / `setDeptId` 找不到 | 模板假定存在 `user_id` / `dept_id` 列，业务表没有时需要按列存在与否回填 |
 | 新建模块菜单跑到“系统工具”下 | 补跑 `sql/module/00-module-menu-directory.sql` |
 | `reservation_device` 主键相关编译错误 | 该表已改为自增代理主键 `id`，组合键降级为唯一索引 |
+| 启动报 `Could not resolve placeholder 'xss.excludes'` | IDE Make/JRebel 没有把 `application.yml` 拷进 `target/classes`。先执行 `mvn -q -pl ruoyi-admin -am process-resources`，确认 `target/classes/application.yml` 存在后再启动 |
+| 启动报 `mybatis/mybatis-config.xml cannot be opened` | 同一原因，`target/classes` 中的 MyBatis 配置或 Mapper XML 被 IDE 构建清空。先恢复资源，不要删除 `src/main/resources`；确认 `mybatis-config.xml` 和 `mapper/**/*Mapper.xml` 存在后再启动 |
 
 ## 十一、文档索引
 
