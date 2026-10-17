@@ -4,7 +4,11 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -18,7 +22,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 import com.ruoyi.module.room.mapper.RoomMapper;
 import com.ruoyi.module.room.domain.Room;
+import com.ruoyi.module.room.domain.RoomReservationMode;
 import com.ruoyi.module.room.service.IRoomService;
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.system.service.ISysDeptService;
 
 import jakarta.validation.Validator;
 
@@ -32,6 +39,7 @@ import jakarta.validation.Validator;
 @RequiredArgsConstructor
 public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRoomService {
     private final RoomMapper roomMapper;
+    private final ISysDeptService sysDeptService;
     protected final Validator validator;
 
     @Override
@@ -89,7 +97,9 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
 
     @Override
     public IPage<Room> pageRoom(Page<Room> page, QueryWrapper<Room> queryWrapper) {
-        return roomMapper.selectPage(page, queryWrapper);
+        IPage<Room> pageData = roomMapper.selectPage(page, queryWrapper);
+        fillDeptNames(pageData.getRecords());
+        return pageData;
     }
 
     /**
@@ -100,7 +110,11 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
      */
     @Override
     public Room selectRoomById(Long id) {
-        return roomMapper.selectById(id);
+        Room room = roomMapper.selectById(id);
+        if (room != null) {
+            fillDeptNames(List.of(room));
+        }
+        return room;
     }
 
     /**
@@ -111,6 +125,7 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
      */
     @Override
     public int insertRoom(Room room) {
+                normalizeReservationMode(room);
                 room.setCreateBy(SecurityUtils.getUsername());
                 room.setCreateTime(DateUtils.getNowDate());
             return roomMapper.insert(room);
@@ -124,6 +139,7 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
      */
     @Override
     public int updateRoom(Room room) {
+                normalizeReservationMode(room);
                 room.setUpdateTime(DateUtils.getNowDate());
                 room.setUpdateBy(SecurityUtils.getUsername());
         return roomMapper.updateById(room);
@@ -149,5 +165,42 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper,Room> implements IRo
     @Override
     public int deleteRoomById(Long id) {
         return roomMapper.deleteById(id);
+    }
+
+    private void normalizeReservationMode(Room room)
+    {
+        if (StringUtils.isEmpty(room.getReservationMode()))
+        {
+            room.setReservationMode(RoomReservationMode.OPEN);
+        }
+        if (!RoomReservationMode.isValid(room.getReservationMode()))
+        {
+            throw new ServiceException("预约模式不正确");
+        }
+    }
+
+    private void fillDeptNames(List<Room> rooms)
+    {
+        if (rooms == null || rooms.isEmpty())
+        {
+            return;
+        }
+        Set<Long> deptIds = rooms.stream()
+                .map(Room::getDeptId)
+                .filter(deptId -> deptId != null)
+                .collect(Collectors.toSet());
+        Map<Long, String> deptNameMap = new HashMap<>();
+        for (Long deptId : deptIds)
+        {
+            SysDept dept = sysDeptService.selectDeptById(deptId);
+            if (dept != null)
+            {
+                deptNameMap.put(deptId, dept.getDeptName());
+            }
+        }
+        for (Room room : rooms)
+        {
+            room.setDeptName(deptNameMap.get(room.getDeptId()));
+        }
     }
 }

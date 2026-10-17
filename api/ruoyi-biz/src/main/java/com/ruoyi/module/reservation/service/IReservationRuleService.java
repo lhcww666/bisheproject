@@ -59,12 +59,13 @@ public interface IReservationRuleService
     /**
      * 查询指定时段可用的实验室
      *
+     * @param userId           当前学生用户主键
      * @param startTime        开始时间
      * @param endTime          结束时间
      * @param participantCount 参与人数，可为空
      * @return 满足开放时间、状态、容量与冲突条件的实验室
      */
-    public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount);
+    public List<Room> selectAvailableRooms(Long userId, Date startTime, Date endTime, Long participantCount);
 
     /**
      * 实验室是否需要教师审核：安全等级达到中风险及以上时为 true
@@ -73,6 +74,15 @@ public interface IReservationRuleService
      * @return 是否需要审核
      */
     public boolean isReviewRequired(Room room);
+
+    /**
+     * 实验室是否要求安全考试：安全等级达到中风险及以上时为 true。
+     * 预约模式为“需审核”不会单独增加安全考试门槛。
+     *
+     * @param room 实验室
+     * @return 是否要求安全考试
+     */
+    public boolean requiresSafetyExam(Room room);
 
     /**
      * 查询用户当前信用分

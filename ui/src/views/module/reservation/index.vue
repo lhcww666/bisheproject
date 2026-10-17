@@ -302,7 +302,7 @@
             style="width: 100%;"
             :loading="availableRoomsLoading"
             placeholder="请先选择时间，再选择可用实验室"
-            no-data-text="该时段没有可用实验室"
+            no-data-text="该时段没有你可预约的实验室（可能时间冲突或未开通准入）"
             @change="handleApplyRoomChange"
           >
             <el-option

@@ -60,6 +60,13 @@ private static final long serialVersionUID = 1L;
             @Size(min = 0, max = 100, message = "位置长度不能超过100个字符")
         private String location;
 
+            /** 归属院系ID（sys_dept.dept_id） */
+                @Excel(name = "归属院系ID" )
+        public static final String DEPTID = "dept_id";
+            @TableField(value = DEPTID)
+            @NotNull(message = "归属院系不能为空")
+        private Long deptId;
+
             /** 最大人数 */
                 @Excel(name = "最大人数" )
         public static final String CAPACITY = "capacity";
@@ -94,11 +101,22 @@ private static final long serialVersionUID = 1L;
             @NotBlank(message = "状态不能为空")
         private String status;
 
+            /** 预约模式 */
+                @Excel(name = "预约模式" , dictType = "module_reservation_mode" )
+        public static final String RESERVATIONMODE = "reservation_mode";
+            @TableField(value = RESERVATIONMODE)
+            @NotBlank(message = "预约模式不能为空")
+        private String reservationMode;
+
             /** 说明 */
                 @Excel(name = "说明" )
         public static final String DESCRIPTION = "description";
             @TableField(value = DESCRIPTION)
             @Size(min = 0, max = 500, message = "说明长度不能超过500个字符")
         private String description;
+
+            /** 归属院系名称，仅用于列表展示 */
+            @TableField(exist = false)
+        private String deptName;
 
 }

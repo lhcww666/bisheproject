@@ -51,12 +51,13 @@ public interface IReservationService extends IService<Reservation> {
     /**
      * 查询指定时段可用的实验室
      *
+     * @param userId           当前学生用户主键
      * @param startTime        开始时间
      * @param endTime          结束时间
      * @param participantCount 参与人数，可为空
      * @return 可用实验室列表
      */
-    public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount);
+    public List<Room> selectAvailableRooms(Long userId, Date startTime, Date endTime, Long participantCount);
 
     /**
      * 查询指定实验室中状态正常的设备

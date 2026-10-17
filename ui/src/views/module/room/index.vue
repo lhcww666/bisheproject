@@ -161,6 +161,7 @@
           <dict-tag :options="module_room_type" :value="scope.row.roomType"/>
         </template>
       </el-table-column>
+      <el-table-column label="归属院系" align="center" prop="deptName" />
       <el-table-column label="位置" align="center" prop="location" />
       <el-table-column label="最大人数" align="center" prop="capacity" />
       <el-table-column label="安全等级" align="center" prop="safetyLevel" />
@@ -169,6 +170,11 @@
       <el-table-column label="状态" align="center" prop="status">
         <template #default="scope">
           <dict-tag :options="module_room_status" :value="scope.row.status"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="预约模式" align="center" prop="reservationMode">
+        <template #default="scope">
+          <dict-tag :options="module_reservation_mode" :value="scope.row.reservationMode"/>
         </template>
       </el-table-column>
       <el-table-column label="说明" align="center" prop="description" />
@@ -207,6 +213,18 @@
             ></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="归属院系" prop="deptId">
+          <el-tree-select
+            v-model="roomForm.deptId"
+            :data="deptOptions"
+            :props="{ value: 'id', label: 'label', children: 'children' }"
+            value-key="id"
+            placeholder="请选择归属院系"
+            clearable
+            check-strictly
+            style="width: 100%;"
+          />
+        </el-form-item>
         <el-form-item label="位置" prop="location">
           <el-input v-model="roomForm.location" placeholder="请输入位置" />
         </el-form-item>
@@ -231,6 +249,16 @@
             >{{dict.label}}</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="预约模式" prop="reservationMode">
+          <el-select v-model="roomForm.reservationMode" placeholder="请选择预约模式" style="width: 100%;">
+            <el-option
+              v-for="dict in module_reservation_mode"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            ></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="说明" prop="description">
           <el-input v-model="roomForm.description" type="textarea" placeholder="请输入内容" />
         </el-form-item>
@@ -250,10 +278,12 @@
 
 <script setup name="Room">
 import { listRoom, getRoom, delRoom, addRoom, updateRoom } from "@/api/module/room";
+import { deptTreeSelect } from "@/api/system/user";
 import dayjs from "dayjs";
 import xeUtils from "xe-utils";
 
 const dateRange = ref([]);
+const deptOptions = ref([]);
 
 const route = useRoute();
 const action = ref(null);
@@ -263,7 +293,7 @@ onMounted(() => {
 });
 
 const { proxy } = getCurrentInstance();
-const { sys_common_status, module_room_type, module_room_status } = proxy.useDict('sys_common_status', 'module_room_type', 'module_room_status');
+const { sys_common_status, module_room_type, module_room_status, module_reservation_mode } = proxy.useDict('sys_common_status', 'module_room_type', 'module_room_status', 'module_reservation_mode');
 
 const importRes = ref(null);
 watch(
@@ -311,6 +341,9 @@ const roomData = reactive({
     roomType: [
       { required: true, message: "实验室类型不能为空", trigger: "change" }
     ],
+    deptId: [
+      { required: true, message: "归属院系不能为空", trigger: "change" }
+    ],
     location: [
       { required: true, message: "位置不能为空", trigger: "blur" }
     ],
@@ -328,6 +361,9 @@ const roomData = reactive({
     ],
     status: [
       { required: true, message: "状态不能为空", trigger: "change" }
+    ],
+    reservationMode: [
+      { required: true, message: "预约模式不能为空", trigger: "change" }
     ],
   }
 });
@@ -352,6 +388,15 @@ function roomGetList() {
   });
 }
 
+function roomLoadDeptOptions() {
+  if (deptOptions.value.length > 0) {
+    return;
+  }
+  deptTreeSelect().then(response => {
+    deptOptions.value = response.data || [];
+  });
+}
+
 // 取消按钮
 function roomCancel() {
   roomOpen.value = false;
@@ -365,6 +410,9 @@ function roomReset() {
     roomCode: null,
     roomName: null,
     roomType: null,
+    deptId: null,
+    deptName: null,
+    reservationMode: null,
     location: null,
     capacity: null,
     safetyLevel: null,
@@ -404,6 +452,7 @@ function roomHandleSelectionChange(selection) {
 /** 新增按钮操作 */
 function roomHandleAdd() {
   roomReset();
+  roomLoadDeptOptions();
   roomOpen.value = true;
   roomTitle.value = "添加";
 }
@@ -411,6 +460,7 @@ function roomHandleAdd() {
 /** 修改按钮操作 */
 function roomHandleUpdate(row) {
   roomReset();
+  roomLoadDeptOptions();
   const _id = row.id || roomIds.value
   getRoom(_id).then(response => {
     roomForm.value = response.data;

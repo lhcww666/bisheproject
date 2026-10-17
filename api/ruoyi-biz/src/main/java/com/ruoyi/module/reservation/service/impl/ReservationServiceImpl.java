@@ -170,9 +170,9 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     }
 
     @Override
-    public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount)
+    public List<Room> selectAvailableRooms(Long userId, Date startTime, Date endTime, Long participantCount)
     {
-        return reservationRuleService.selectAvailableRooms(startTime, endTime, participantCount);
+        return reservationRuleService.selectAvailableRooms(userId, startTime, endTime, participantCount);
     }
 
     @Override

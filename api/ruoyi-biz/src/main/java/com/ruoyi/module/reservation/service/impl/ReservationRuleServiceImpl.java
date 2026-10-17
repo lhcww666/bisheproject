@@ -20,7 +20,9 @@ import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.room.domain.Room;
+import com.ruoyi.module.room.domain.RoomReservationMode;
 import com.ruoyi.module.room.mapper.RoomMapper;
+import com.ruoyi.module.roomaccess.service.IRoomAccessService;
 import com.ruoyi.module.safety.domain.SafetyExamRecord;
 import com.ruoyi.module.safety.mapper.SafetyExamRecordMapper;
 
@@ -55,6 +57,8 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
     private static final DateTimeFormatter TIME_WITHOUT_SECOND = DateTimeFormatter.ofPattern("HH:mm");
 
     private final RoomMapper roomMapper;
+
+    private final IRoomAccessService roomAccessService;
 
     private final ReservationMapper reservationMapper;
 
@@ -92,11 +96,12 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
         {
             throw new ServiceException("实验室当前不可预约（维护中或已停用）");
         }
+        roomAccessService.checkBookAccess(userId, room);
         checkCapacity(room, reservation.getParticipantCount());
         checkOpenTime(room, reservation.getStartTime(), reservation.getEndTime());
         checkConflict(room.getId(), reservation.getStartTime(), reservation.getEndTime(), null);
         checkCredit(userId);
-        if (isReviewRequired(room))
+        if (requiresSafetyExam(room))
         {
             checkSafetyExam(userId);
         }
@@ -148,7 +153,7 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
     }
 
     @Override
-    public List<Room> selectAvailableRooms(Date startTime, Date endTime, Long participantCount)
+    public List<Room> selectAvailableRooms(Long userId, Date startTime, Date endTime, Long participantCount)
     {
         checkTimeRange(startTime, endTime);
         QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
@@ -172,13 +177,23 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
                 // 不满足条件的实验室不出现在候选列表里
             }
         }
-        return available;
+        return roomAccessService.filterBookableRooms(userId, available);
     }
 
     /**
      * 安全等级达到中风险及以上的实验室，需要安全考试与教师审核
      */
     public boolean isReviewRequired(Room room)
+    {
+        if (RoomReservationMode.APPROVAL_ONLY.equals(room.getReservationMode()))
+        {
+            return true;
+        }
+        return requiresSafetyExam(room);
+    }
+
+    @Override
+    public boolean requiresSafetyExam(Room room)
     {
         return room.getSafetyLevel() != null && room.getSafetyLevel() >= REVIEW_SAFETY_LEVEL;
     }
