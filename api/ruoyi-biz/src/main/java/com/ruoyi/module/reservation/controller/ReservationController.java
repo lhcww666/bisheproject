@@ -31,6 +31,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.review.domain.ReservationReviewRequest;
@@ -157,7 +158,7 @@ public class ReservationController extends BaseController {
     public TableDataInfo my(@RequestParam(required = false) String status,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
-        IPage<Reservation> page = reservationService.pageMyReservation(getPage(), status, parseDateTime(startTime),
+        IPage<ReservationView> page = reservationService.pageMyReservation(getPage(), status, parseDateTime(startTime),
                 parseDateTime(endTime));
         return getDataTableByPage(page);
     }
@@ -189,7 +190,7 @@ public class ReservationController extends BaseController {
     @PreAuthorize("@ss.hasPermi('module:reservation:review')")
     @GetMapping("/review/pending")
     public TableDataInfo reviewPending() {
-        IPage<Reservation> page = reservationReviewBizService.pagePending(getPage());
+        IPage<ReservationView> page = reservationReviewBizService.pagePending(getPage());
         return getDataTableByPage(page);
     }
 

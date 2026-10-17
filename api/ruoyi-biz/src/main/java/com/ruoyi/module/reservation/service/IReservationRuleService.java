@@ -81,4 +81,12 @@ public interface IReservationRuleService
      * @return 当前信用分
      */
     public long currentCreditScore(Long userId);
+
+    /**
+     * 查询用户是否持有有效期内的安全考试通过记录
+     *
+     * @param userId 用户主键
+     * @return true 表示通过且在有效期内
+     */
+    public boolean isExamValid(Long userId);
 }

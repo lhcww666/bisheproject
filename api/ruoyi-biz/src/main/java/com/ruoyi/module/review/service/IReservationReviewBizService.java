@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.review.domain.ReservationReviewRequest;
 
 /**
@@ -27,5 +28,5 @@ public interface IReservationReviewBizService
      * @param page 分页参数
      * @return 待审核预约
      */
-    public IPage<Reservation> pagePending(Page<Reservation> page);
+    public IPage<ReservationView> pagePending(Page<Reservation> page);
 }

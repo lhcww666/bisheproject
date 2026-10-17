@@ -252,6 +252,15 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
 
     private void checkSafetyExam(Long userId)
     {
+        if (!isExamValid(userId))
+        {
+            throw new ServiceException("尚未通过安全考试或考试成绩已过期，请先完成安全考试");
+        }
+    }
+
+    @Override
+    public boolean isExamValid(Long userId)
+    {
         QueryWrapper<SafetyExamRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("student_id", userId);
         queryWrapper.eq("passed", EXAM_PASSED);
@@ -259,10 +268,7 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
         queryWrapper.orderByDesc("id");
         queryWrapper.last("limit 1");
         List<SafetyExamRecord> records = safetyExamRecordMapper.selectList(queryWrapper);
-        if (records.isEmpty())
-        {
-            throw new ServiceException("尚未通过安全考试或考试成绩已过期，请先完成安全考试");
-        }
+        return !records.isEmpty();
     }
 
     private LocalTime parseLocalTime(String text)

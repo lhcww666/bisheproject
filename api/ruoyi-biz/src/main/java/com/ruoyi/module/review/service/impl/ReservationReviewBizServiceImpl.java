@@ -15,8 +15,10 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
+import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
+import com.ruoyi.module.reservation.service.impl.ReservationViewAssembler;
 import com.ruoyi.module.review.domain.ReservationReview;
 import com.ruoyi.module.review.domain.ReservationReviewRequest;
 import com.ruoyi.module.review.mapper.ReservationReviewMapper;
@@ -45,6 +47,8 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
 
     private final IReservationRuleService reservationRuleService;
 
+    private final ReservationViewAssembler reservationViewAssembler;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void review(Long reservationId, ReservationReviewRequest request)
@@ -72,6 +76,10 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
         {
             throw new ServiceException("驳回预约时必须填写审核意见");
         }
+        if (reservation.getApplicantId() != null && reservation.getApplicantId().equals(SecurityUtils.getUserId()))
+        {
+            throw new ServiceException("不能审核本人提交的预约，请由其他教师或管理员处理");
+        }
         if (approved)
         {
             // 等待审核期间时段可能已被其它已通过的预约占用，通过前必须再校验一次
@@ -94,11 +102,14 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
     }
 
     @Override
-    public IPage<Reservation> pagePending(Page<Reservation> page)
+    public IPage<ReservationView> pagePending(Page<Reservation> page)
     {
         QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status", ReservationStatus.PENDING);
         queryWrapper.orderByAsc("start_time");
-        return reservationMapper.selectPage(page, queryWrapper);
+        IPage<Reservation> pageData = reservationMapper.selectPage(page, queryWrapper);
+        Page<ReservationView> viewPage = new Page<>(pageData.getCurrent(), pageData.getSize(), pageData.getTotal());
+        viewPage.setRecords(reservationViewAssembler.assemble(pageData.getRecords()));
+        return viewPage;
     }
 }

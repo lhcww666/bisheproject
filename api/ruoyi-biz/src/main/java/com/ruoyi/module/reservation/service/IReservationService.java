@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.module.reservation.domain .Reservation;
+import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.room.domain.Room;
 
 /**
@@ -44,7 +45,7 @@ public interface IReservationService extends IService<Reservation> {
      * @param endTime   结束时间上限，可为空
      * @return 分页结果
      */
-    public IPage<Reservation> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime);
+    public IPage<ReservationView> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime);
 
     /**
      * 查询指定时段可用的实验室

@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
+import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.room.domain.Room;
@@ -40,6 +41,7 @@ import jakarta.validation.Validator;
 public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reservation> implements IReservationService {
     private final ReservationMapper reservationMapper;
     private final IReservationRuleService reservationRuleService;
+    private final ReservationViewAssembler reservationViewAssembler;
     protected final Validator validator;
 
     @Override
@@ -86,7 +88,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     }
 
     @Override
-    public IPage<Reservation> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime)
+    public IPage<ReservationView> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime)
     {
         QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("applicant_id", SecurityUtils.getUserId());
@@ -103,7 +105,10 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
             queryWrapper.le("end_time", endTime);
         }
         queryWrapper.orderByDesc("id");
-        return reservationMapper.selectPage(page, queryWrapper);
+        IPage<Reservation> pageData = reservationMapper.selectPage(page, queryWrapper);
+        Page<ReservationView> viewPage = new Page<>(pageData.getCurrent(), pageData.getSize(), pageData.getTotal());
+        viewPage.setRecords(reservationViewAssembler.assemble(pageData.getRecords()));
+        return viewPage;
     }
 
     @Override
