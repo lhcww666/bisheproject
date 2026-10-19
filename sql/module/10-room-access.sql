@@ -96,7 +96,7 @@ WHERE NOT EXISTS (SELECT 1 FROM (SELECT * FROM sys_dict_data) d WHERE d.dict_typ
 SET @moduleMenuId := (SELECT menu_id FROM sys_menu WHERE menu_name = '实验室业务' AND menu_type = 'M' LIMIT 1);
 
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
-SELECT '实验室准入', @moduleMenuId, 6, 'roomAccess', 'module/roomAccess/index', 1, 0, 'C', '0', '0', 'module:roomAccess:list', 'lock', 'admin', sysdate(), '实验室准入规则'
+SELECT '实验室准入', @moduleMenuId, 6, 'roomAccess', 'module/roomAccess/list', 1, 0, 'C', '0', '0', 'module:roomAccess:list', 'lock', 'admin', sysdate(), '实验室准入规则'
 FROM (SELECT 1) t
 WHERE @moduleMenuId IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM (SELECT * FROM sys_menu) m WHERE m.perms = 'module:roomAccess:list');

@@ -1,6 +1,6 @@
 -- 菜单 SQL
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('预约设备关联', '3', '1', 'reservationDevice', 'module/reservationDevice/index', 1, 0, 'C', '0', '0', 'module:reservationDevice:list', '#', 'admin', sysdate(), '', null, '预约设备关联菜单')
+values('预约设备关联', '3', '1', 'reservationDevice', 'module/reservationDevice/list', 1, 0, 'C', '0', '0', 'module:reservationDevice:list', '#', 'admin', sysdate(), '', null, '预约设备关联菜单')
     ;
     -- 按钮父菜单ID
     SELECT @parentId := LAST_INSERT_ID();

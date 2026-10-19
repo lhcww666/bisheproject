@@ -1,6 +1,6 @@
 -- 菜单 SQL
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('安全考试记录', '3', '1', 'safetyExamRecord', 'module/safetyExamRecord/index', 1, 0, 'C', '0', '0', 'module:safetyExamRecord:list', '#', 'admin', sysdate(), '', null, '安全考试记录菜单')
+values('安全考试记录', '3', '1', 'safetyExamRecord', 'module/safetyExamRecord/list', 1, 0, 'C', '0', '0', 'module:safetyExamRecord:list', '#', 'admin', sysdate(), '', null, '安全考试记录菜单')
     ;
     -- 按钮父菜单ID
     SELECT @parentId := LAST_INSERT_ID();
