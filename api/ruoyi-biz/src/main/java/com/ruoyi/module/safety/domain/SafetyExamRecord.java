@@ -67,4 +67,17 @@ private static final long serialVersionUID = 1L;
                 @Excel(name = "有效期至" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
         private Date validUntil;
 
+            /** 学生姓名/账号/班级，仅用于列表展示 */
+            @Excel(name = "学生姓名" )
+            @TableField(exist = false)
+        private String nickName;
+
+            @Excel(name = "学生账号" )
+            @TableField(exist = false)
+        private String userName;
+
+            @Excel(name = "班级" )
+            @TableField(exist = false)
+        private String deptName;
+
 }

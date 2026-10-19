@@ -122,6 +122,19 @@ public class ReservationController extends BaseController {
     }
 
     /**
+     * 预约详情：包含设备明细和审核历史
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:query')")
+    @GetMapping("/{id}/detail")
+    public AjaxResult getDetail(@PathVariable("id") Long id) {
+        Reservation reservation = reservationService.selectReservationById(id);
+        if (reservation != null) {
+            moduleDataScopeService.checkStudentRecordAccess(reservation.getApplicantId());
+        }
+        return success(reservationService.selectReservationDetail(id));
+    }
+
+    /**
      * 新增实验室预约
      */
     @PreAuthorize("@ss.hasPermi('module:reservation:add')")

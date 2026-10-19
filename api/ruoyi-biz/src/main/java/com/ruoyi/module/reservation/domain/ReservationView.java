@@ -46,4 +46,10 @@ public class ReservationView extends Reservation
 
     /** 班级预约的班级名称 */
     private String classDeptName;
+
+    /** 预约设备明细 */
+    private List<ReservationDeviceView> deviceList;
+
+    /** 审核历史 */
+    private List<ReservationReviewView> reviewList;
 }

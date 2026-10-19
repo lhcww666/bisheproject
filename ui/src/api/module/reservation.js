@@ -17,6 +17,14 @@ export function getReservation(id) {
   })
 }
 
+// 查询预约详情（设备明细 + 审核历史）
+export function getReservationDetail(id) {
+  return request({
+    url: '/module/reservation/' + id + '/detail',
+    method: 'get'
+  })
+}
+
 // 新增实验室预约
 export function addReservation(data) {
   return request({

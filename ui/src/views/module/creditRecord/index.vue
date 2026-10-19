@@ -137,6 +137,9 @@
     <el-table v-loading="creditRecordLoading" :data="creditRecordList" @selection-change="creditRecordHandleSelectionChange" border>
       <el-table-column v-if="!isStudent && !isTeacher" type="selection" width="55" align="center" />
       <el-table-column v-if="!isStudent" label="用户ID" align="center" prop="userId" />
+      <el-table-column label="学生姓名" align="center" prop="nickName" min-width="120" />
+      <el-table-column label="学生账号" align="center" prop="userName" min-width="110" />
+      <el-table-column label="班级" align="center" prop="deptName" min-width="130" />
       <el-table-column label="变动分值" align="center" prop="changeScore" />
       <el-table-column label="变动后分值" align="center" prop="balanceScore" />
       <el-table-column label="变动原因" align="center" prop="reason" />

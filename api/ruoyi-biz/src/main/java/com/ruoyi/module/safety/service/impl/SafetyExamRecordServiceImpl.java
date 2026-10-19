@@ -14,10 +14,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import org.springframework.stereotype.Service;
 import com.ruoyi.module.safety.mapper.SafetyExamRecordMapper;
 import com.ruoyi.module.safety.domain.SafetyExamRecord;
 import com.ruoyi.module.safety.service.ISafetyExamRecordService;
+import com.ruoyi.system.service.ISysDeptService;
+import com.ruoyi.system.service.ISysUserService;
 
 import jakarta.validation.Validator;
 
@@ -31,6 +35,8 @@ import jakarta.validation.Validator;
 @RequiredArgsConstructor
 public class SafetyExamRecordServiceImpl extends ServiceImpl<SafetyExamRecordMapper,SafetyExamRecord> implements ISafetyExamRecordService {
     private final SafetyExamRecordMapper safetyExamRecordMapper;
+    private final ISysUserService sysUserService;
+    private final ISysDeptService sysDeptService;
     protected final Validator validator;
 
     @Override
@@ -88,7 +94,9 @@ public class SafetyExamRecordServiceImpl extends ServiceImpl<SafetyExamRecordMap
 
     @Override
     public IPage<SafetyExamRecord> pageSafetyExamRecord(Page<SafetyExamRecord> page, QueryWrapper<SafetyExamRecord> queryWrapper) {
-        return safetyExamRecordMapper.selectPage(page, queryWrapper);
+        IPage<SafetyExamRecord> pageData = safetyExamRecordMapper.selectPage(page, queryWrapper);
+        fillStudentInfo(pageData.getRecords());
+        return pageData;
     }
 
     /**
@@ -99,7 +107,11 @@ public class SafetyExamRecordServiceImpl extends ServiceImpl<SafetyExamRecordMap
      */
     @Override
     public SafetyExamRecord selectSafetyExamRecordById(Long id) {
-        return safetyExamRecordMapper.selectById(id);
+        SafetyExamRecord record = safetyExamRecordMapper.selectById(id);
+        if (record != null) {
+            fillStudentInfo(List.of(record));
+        }
+        return record;
     }
 
     /**
@@ -144,5 +156,21 @@ public class SafetyExamRecordServiceImpl extends ServiceImpl<SafetyExamRecordMap
     @Override
     public int deleteSafetyExamRecordById(Long id) {
         return safetyExamRecordMapper.deleteById(id);
+    }
+
+    private void fillStudentInfo(List<SafetyExamRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        for (SafetyExamRecord record : records) {
+            SysUser user = sysUserService.selectUserById(record.getStudentId());
+            if (user == null) {
+                continue;
+            }
+            record.setNickName(StringUtils.isNotEmpty(user.getNickName()) ? user.getNickName() : user.getUserName());
+            record.setUserName(user.getUserName());
+            SysDept dept = sysDeptService.selectDeptById(user.getDeptId());
+            record.setDeptName(dept == null ? null : dept.getDeptName());
+        }
     }
 }

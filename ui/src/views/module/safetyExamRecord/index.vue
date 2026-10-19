@@ -147,6 +147,9 @@
     <el-table v-loading="safetyExamRecordLoading" :data="safetyExamRecordList" @selection-change="safetyExamRecordHandleSelectionChange" border>
       <el-table-column v-if="!isStudent && !isTeacher" type="selection" width="55" align="center" />
       <el-table-column v-if="!isStudent" label="学生ID" align="center" prop="studentId" />
+      <el-table-column label="学生姓名" align="center" prop="nickName" min-width="120" />
+      <el-table-column label="学生账号" align="center" prop="userName" min-width="110" />
+      <el-table-column label="班级" align="center" prop="deptName" min-width="130" />
       <el-table-column label="考试成绩" align="center" prop="score" />
       <el-table-column label="是否通过" align="center" prop="passed">
         <template #default="scope">

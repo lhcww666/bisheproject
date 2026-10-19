@@ -15,10 +15,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
         import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import org.springframework.stereotype.Service;
 import com.ruoyi.module.credit.mapper.CreditRecordMapper;
 import com.ruoyi.module.credit.domain.CreditRecord;
 import com.ruoyi.module.credit.service.ICreditRecordService;
+import com.ruoyi.system.service.ISysDeptService;
+import com.ruoyi.system.service.ISysUserService;
 
 import jakarta.validation.Validator;
 
@@ -32,6 +36,8 @@ import jakarta.validation.Validator;
 @RequiredArgsConstructor
 public class CreditRecordServiceImpl extends ServiceImpl<CreditRecordMapper,CreditRecord> implements ICreditRecordService {
     private final CreditRecordMapper creditRecordMapper;
+    private final ISysUserService sysUserService;
+    private final ISysDeptService sysDeptService;
     protected final Validator validator;
 
     @Override
@@ -89,7 +95,9 @@ public class CreditRecordServiceImpl extends ServiceImpl<CreditRecordMapper,Cred
 
     @Override
     public IPage<CreditRecord> pageCreditRecord(Page<CreditRecord> page, QueryWrapper<CreditRecord> queryWrapper) {
-        return creditRecordMapper.selectPage(page, queryWrapper);
+        IPage<CreditRecord> pageData = creditRecordMapper.selectPage(page, queryWrapper);
+        fillUserInfo(pageData.getRecords());
+        return pageData;
     }
 
     /**
@@ -100,7 +108,11 @@ public class CreditRecordServiceImpl extends ServiceImpl<CreditRecordMapper,Cred
      */
     @Override
     public CreditRecord selectCreditRecordById(Long id) {
-        return creditRecordMapper.selectById(id);
+        CreditRecord record = creditRecordMapper.selectById(id);
+        if (record != null) {
+            fillUserInfo(List.of(record));
+        }
+        return record;
     }
 
     /**
@@ -148,5 +160,21 @@ public class CreditRecordServiceImpl extends ServiceImpl<CreditRecordMapper,Cred
     @Override
     public int deleteCreditRecordById(Long id) {
         return creditRecordMapper.deleteById(id);
+    }
+
+    private void fillUserInfo(List<CreditRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        for (CreditRecord record : records) {
+            SysUser user = sysUserService.selectUserById(record.getUserId());
+            if (user == null) {
+                continue;
+            }
+            record.setNickName(StringUtils.isNotEmpty(user.getNickName()) ? user.getNickName() : user.getUserName());
+            record.setUserName(user.getUserName());
+            SysDept dept = sysDeptService.selectDeptById(user.getDeptId());
+            record.setDeptName(dept == null ? null : dept.getDeptName());
+        }
     }
 }

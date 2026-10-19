@@ -56,4 +56,17 @@ private static final long serialVersionUID = 1L;
             @Size(min = 0, max = 200, message = "变动原因长度不能超过200个字符")
         private String reason;
 
+            /** 学生姓名/账号/班级，仅用于列表展示 */
+            @Excel(name = "学生姓名" )
+            @TableField(exist = false)
+        private String nickName;
+
+            @Excel(name = "学生账号" )
+            @TableField(exist = false)
+        private String userName;
+
+            @Excel(name = "班级" )
+            @TableField(exist = false)
+        private String deptName;
+
 }

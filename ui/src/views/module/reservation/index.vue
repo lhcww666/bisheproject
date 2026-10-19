@@ -256,8 +256,15 @@
           <span>{{ scope.row.reviewComment || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="240" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="300" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button
+            link
+            type="primary"
+            icon="View"
+            @click="openDetail(scope.row)"
+            v-hasPermi="['module:reservation:query']"
+          >详情</el-button>
           <el-button
             v-if="canReview && scope.row.status === '0'"
             link
@@ -461,6 +468,57 @@
       </template>
     </el-dialog>
 
+    <!-- 预约详情抽屉：设备明细和审核历史 -->
+    <el-drawer title="预约详情" v-model="detailOpen" size="620px" append-to-body>
+      <div v-loading="detailLoading" class="reservation-detail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="预约编号">{{ detailData.reservationNo || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="预约类型">
+            <dict-tag :options="module_reservation_type" :value="detailData.reservationType || 'INDIVIDUAL'"/>
+          </el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ detailData.applicantName || detailData.applicantId || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="预约班级">{{ detailData.classDeptName || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="实验室">{{ detailData.roomName || detailData.roomId || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="实验名称">{{ detailData.experimentName || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="开始时间">{{ parseTime(detailData.startTime, '{y}-{m}-{d} {h}:{i}:{s}') || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="结束时间">{{ parseTime(detailData.endTime, '{y}-{m}-{d} {h}:{i}:{s}') || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="参与人数">{{ detailData.participantCount || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="预约状态">
+            <dict-tag :options="module_reservation_status" :value="detailData.status"/>
+          </el-descriptions-item>
+          <el-descriptions-item label="审核状态">
+            <dict-tag :options="module_check_status" :value="detailData.checkStatus || 'no_check'"/>
+          </el-descriptions-item>
+          <el-descriptions-item label="审核人">{{ detailData.checkName || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="审核时间">{{ parseTime(detailData.checkDate, '{y}-{m}-{d} {h}:{i}:{s}') || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="实验说明" :span="2">{{ detailData.remark || '—' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <h4 class="detail-section-title">使用设备</h4>
+        <el-table :data="detailData.deviceList || []" border size="small" empty-text="未选择设备">
+          <el-table-column label="设备编号" align="center" prop="deviceCode" />
+          <el-table-column label="设备名称" align="center" prop="deviceName" />
+          <el-table-column label="数量" align="center" prop="quantity" width="80" />
+        </el-table>
+
+        <h4 class="detail-section-title">审核历史</h4>
+        <el-table :data="detailData.reviewList || []" border size="small" empty-text="暂无审核记录">
+          <el-table-column label="审核人" align="center" prop="reviewerName" width="120" />
+          <el-table-column label="结果" align="center" width="90">
+            <template #default="scope">
+              <dict-tag :options="module_review_result" :value="scope.row.result"/>
+            </template>
+          </el-table-column>
+          <el-table-column label="审核意见" align="center" prop="reviewComment" show-overflow-tooltip />
+          <el-table-column label="审核时间" align="center" width="170">
+            <template #default="scope">
+              <span>{{ parseTime(scope.row.reviewTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-drawer>
+
     <!-- 管理员添加或修改预约对话框 -->
     <el-dialog :title="reservationTitle" v-model="reservationOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="reservationRef" :model="reservationForm" :rules="reservationRules" label-width="auto">
@@ -516,6 +574,7 @@
 import {
   listReservation,
   getReservation,
+  getReservationDetail,
   delReservation,
   addReservation,
   updateReservation,
@@ -552,7 +611,7 @@ onMounted(() => {
 });
 
 const { proxy } = getCurrentInstance();
-  const { sys_common_status, module_reservation_status, module_yes_no, module_reservation_type, module_check_status } = proxy.useDict('sys_common_status', 'module_reservation_status', 'module_yes_no', 'module_reservation_type', 'module_check_status');
+  const { sys_common_status, module_reservation_status, module_yes_no, module_reservation_type, module_check_status, module_review_result } = proxy.useDict('sys_common_status', 'module_reservation_status', 'module_yes_no', 'module_reservation_type', 'module_check_status', 'module_review_result');
 
 const importRes = ref(null);
 watch(
@@ -635,6 +694,9 @@ const reviewForm = ref({});
 const unauditOpen = ref(false);
 const unauditLoading = ref(false);
 const unauditForm = ref({});
+const detailOpen = ref(false);
+const detailLoading = ref(false);
+const detailData = ref({});
 const classReservationInfo = ref({
   representative: false,
   deptId: null,
@@ -754,6 +816,17 @@ function openReviewDialog(row) {
     comment: ""
   };
   reviewOpen.value = true;
+}
+
+function openDetail(row) {
+  detailData.value = {};
+  detailOpen.value = true;
+  detailLoading.value = true;
+  getReservationDetail(row.id).then(response => {
+    detailData.value = response.data || {};
+  }).finally(() => {
+    detailLoading.value = false;
+  });
 }
 
 function submitReview() {
@@ -1004,5 +1077,13 @@ function reservationImportTemplate() {
 .review-class {
   margin-left: 8px;
   color: #909399;
+}
+.reservation-detail {
+  padding-bottom: 24px;
+}
+.detail-section-title {
+  margin: 20px 0 10px;
+  font-size: 14px;
+  color: #409eff;
 }
 </style>

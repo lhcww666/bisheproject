@@ -14,6 +14,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationDevice;
+import com.ruoyi.module.reservation.domain.ReservationDeviceView;
+import com.ruoyi.module.reservation.domain.ReservationReviewView;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.mapper.ReservationDeviceMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
@@ -195,5 +197,70 @@ public class ReservationViewAssembler
             views.add(view);
         }
         return views;
+    }
+
+    /**
+     * 组装预约详情：在列表展示字段基础上补设备明细和审核历史。
+     */
+    public ReservationView assembleDetail(Reservation reservation)
+    {
+        ReservationView view = assemble(List.of(reservation)).get(0);
+
+        QueryWrapper<ReservationDevice> deviceQuery = new QueryWrapper<>();
+        deviceQuery.eq("reservation_id", reservation.getId());
+        List<ReservationDevice> links = reservationDeviceMapper.selectList(deviceQuery);
+        List<ReservationDeviceView> deviceViews = new ArrayList<>();
+        if (!links.isEmpty())
+        {
+            Set<Long> deviceIds = new LinkedHashSet<>();
+            for (ReservationDevice link : links)
+            {
+                deviceIds.add(link.getDeviceId());
+            }
+            Map<Long, Device> deviceMap = new HashMap<>();
+            for (Device device : deviceMapper.selectBatchIds(deviceIds))
+            {
+                deviceMap.put(device.getId(), device);
+            }
+            for (ReservationDevice link : links)
+            {
+                Device device = deviceMap.get(link.getDeviceId());
+                if (device == null)
+                {
+                    continue;
+                }
+                ReservationDeviceView deviceView = new ReservationDeviceView();
+                deviceView.setId(link.getId());
+                deviceView.setDeviceId(device.getId());
+                deviceView.setDeviceCode(device.getDeviceCode());
+                deviceView.setDeviceName(device.getDeviceName());
+                deviceView.setQuantity(link.getQuantity());
+                deviceViews.add(deviceView);
+            }
+        }
+        view.setDeviceList(deviceViews);
+
+        QueryWrapper<ReservationReview> reviewQuery = new QueryWrapper<>();
+        reviewQuery.eq("reservation_id", reservation.getId());
+        reviewQuery.orderByDesc("id");
+        List<ReservationReviewView> reviewViews = new ArrayList<>();
+        for (ReservationReview review : reservationReviewMapper.selectList(reviewQuery))
+        {
+            ReservationReviewView reviewView = new ReservationReviewView();
+            reviewView.setId(review.getId());
+            reviewView.setReviewerId(review.getReviewerId());
+            reviewView.setResult(review.getResult());
+            reviewView.setReviewComment(review.getReviewComment());
+            reviewView.setReviewTime(review.getReviewTime());
+            SysUser reviewer = sysUserService.selectUserById(review.getReviewerId());
+            if (reviewer != null)
+            {
+                reviewView.setReviewerName(StringUtils.isNotEmpty(reviewer.getNickName())
+                        ? reviewer.getNickName() : reviewer.getUserName());
+            }
+            reviewViews.add(reviewView);
+        }
+        view.setReviewList(reviewViews);
+        return view;
     }
 }

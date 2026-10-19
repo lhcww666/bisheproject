@@ -76,6 +76,11 @@ public interface IReservationService extends IService<Reservation> {
     public Reservation selectReservationById(Long id);
 
     /**
+     * 查询预约详情，包含设备明细和审核历史。
+     */
+    public ReservationView selectReservationDetail(Long id);
+
+    /**
      * 新增实验室预约
      *
      * @param reservation 实验室预约

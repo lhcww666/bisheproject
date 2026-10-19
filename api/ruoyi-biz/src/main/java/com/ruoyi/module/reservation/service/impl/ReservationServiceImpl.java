@@ -304,6 +304,15 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         return reservationMapper.selectById(id);
     }
 
+    @Override
+    public ReservationView selectReservationDetail(Long id) {
+        Reservation reservation = reservationMapper.selectById(id);
+        if (reservation == null) {
+            return null;
+        }
+        return reservationViewAssembler.assembleDetail(reservation);
+    }
+
     /**
      * 新增实验室预约
      *
