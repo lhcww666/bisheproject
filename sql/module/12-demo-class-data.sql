@@ -20,6 +20,9 @@ UPDATE IGNORE sys_user SET user_name = 'teacher201' WHERE user_name IN ('t201', 
 UPDATE IGNORE sys_user SET user_name = 'teacher301' WHERE user_name IN ('t301', 'teacher302');
 
 -- 1. 部门/班级
+-- 若依默认根部门叫“总公司”，这里统一改成学校口径
+UPDATE sys_dept SET dept_name = '学校' WHERE dept_id = 100 AND dept_name = '总公司';
+
 DROP PROCEDURE IF EXISTS db_demo_add_dept;
 DELIMITER $$
 CREATE PROCEDURE db_demo_add_dept(IN p_id BIGINT, IN p_parent BIGINT, IN p_ancestors VARCHAR(50),
