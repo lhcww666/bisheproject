@@ -83,6 +83,19 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
+  },
+  {
+    path: '/business',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: ':moduleName/:businessName/:page/:id?',
+        component: () => import('@/views/business/index.vue'),
+        name: 'BusinessPage',
+        meta: { title: '业务页面', noCache: true }
+      }
+    ]
   }
 ]
 

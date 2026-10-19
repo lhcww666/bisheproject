@@ -1,0 +1,145 @@
+<template>
+  <div class="app-container" v-loading="loading">
+    <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5">
+        <el-button icon="Back" @click="goList">返回列表</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="primary" plain icon="Plus" @click="goAdd" v-hasPermi="['${permissionPrefix}:add']">新增</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="success" plain icon="Edit" @click="goEdit" v-hasPermi="['${permissionPrefix}:edit']">编辑</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="danger" plain icon="Delete" @click="handleDelete" v-hasPermi="['${permissionPrefix}:remove']">删除</el-button>
+      </el-col>
+    </el-row>
+
+    <el-card class="detail-card">
+      <el-descriptions title="${functionName}" :column="2" border>
+#foreach($column in $columns)
+#set($javaField=$column.javaField)
+#set($parentheseIndex=$column.columnComment.indexOf("（"))
+#if($parentheseIndex != -1)
+#set($comment=$column.columnComment.substring(0, $parentheseIndex))
+#else
+#set($comment=$column.columnComment)
+#end
+        <el-descriptions-item label="${comment}"#if($column.htmlType == "textarea" || $column.htmlType == "editor") :span="2"#end>
+#if($column.htmlType == "datetime")
+          {{ formatDate(detail.${javaField}) }}
+#elseif($column.htmlType == "imageUpload")
+          <image-preview :src="detail.${javaField}" :width="50" :height="50"/>
+#elseif("" != $column.dictType)
+#if($column.htmlType == "checkbox")
+          <dict-tag :options="${column.dictType}" :value="detail.${javaField} ? String(detail.${javaField}).split(',') : []"/>
+#else
+          <dict-tag :options="${column.dictType}" :value="detail.${javaField}"/>
+#end
+#else
+          <span>{{ detail.${javaField} ?? '—' }}</span>
+#end
+        </el-descriptions-item>
+#end
+      </el-descriptions>
+
+#if($table.sub)
+      <h4 class="detail-section-title">${subTable.functionName}</h4>
+      <el-table :data="detail.${subclassName}List || []" border size="small" empty-text="暂无${subTable.functionName}">
+#foreach($column in $subTable.columns)
+#set($javaField=$column.javaField)
+#set($parentheseIndex=$column.columnComment.indexOf("（"))
+#if($parentheseIndex != -1)
+#set($comment=$column.columnComment.substring(0, $parentheseIndex))
+#else
+#set($comment=$column.columnComment)
+#end
+#if($column.pk || $javaField == ${subTableFkclassName})
+#elseif($column.htmlType == "datetime")
+        <el-table-column label="${comment}" align="center" prop="${javaField}" width="180">
+          <template #default="scope">{{ formatDate(scope.row.${javaField}) }}</template>
+        </el-table-column>
+#elseif("" != $column.dictType)
+        <el-table-column label="${comment}" align="center" prop="${javaField}">
+          <template #default="scope">
+#if($column.htmlType == "checkbox")
+            <dict-tag :options="${column.dictType}" :value="scope.row.${javaField} ? String(scope.row.${javaField}).split(',') : []"/>
+#else
+            <dict-tag :options="${column.dictType}" :value="scope.row.${javaField}"/>
+#end
+          </template>
+        </el-table-column>
+#else
+        <el-table-column label="${comment}" align="center" prop="${javaField}" show-overflow-tooltip />
+#end
+#end
+      </el-table>
+#end
+    </el-card>
+  </div>
+</template>
+
+<script setup name="${BusinessName}View">
+import { get${BusinessName}, del${BusinessName} } from "@/api/${moduleName}/${businessName}";
+
+const route = useRoute();
+const router = useRouter();
+const { proxy } = getCurrentInstance();
+#if(${dicts} != '')
+#set($dictsNoSymbol=$dicts.replace("'", ""))
+const { ${dictsNoSymbol} } = proxy.useDict(${dicts});
+#end
+
+const ${businessName}PageBase = "/business/${moduleName}/${businessName}";
+const ${businessName}ListPath = "/${moduleName}/${businessName}";
+const loading = ref(true);
+const detail = ref({});
+
+onMounted(loadDetail);
+
+function loadDetail() {
+  loading.value = true;
+  get${BusinessName}(route.params.id).then(response => {
+    detail.value = response.data || {};
+  }).finally(() => {
+    loading.value = false;
+  });
+}
+
+function goList() {
+  router.push(${businessName}ListPath);
+}
+
+function goAdd() {
+  router.push(${businessName}PageBase + "/add");
+}
+
+function goEdit() {
+  router.push(${businessName}PageBase + "/edit/" + detail.value.${pkColumn.javaField});
+}
+
+function handleDelete() {
+  proxy.#[[$]]#modal.confirm('是否确认删除编号为"' + detail.value.${pkColumn.javaField} + '"的数据项？').then(function() {
+    return del${BusinessName}(detail.value.${pkColumn.javaField});
+  }).then(() => {
+    proxy.#[[$]]#modal.msgSuccess("删除成功");
+    goList();
+  }).catch(() => {});
+}
+
+function formatDate(value) {
+  return value ? proxy.parseTime(value, "{y}-{m}-{d} {h}:{i}:{s}") : "—";
+}
+</script>
+
+<style lang="scss" scoped>
+.detail-card {
+  margin-top: 4px;
+}
+
+.detail-section-title {
+  margin: 20px 0 10px;
+  font-size: 14px;
+  color: #409eff;
+}
+</style>

@@ -140,6 +140,7 @@ public class VelocityUtils {
      */
     public static List<String> getTemplateList(String tplCategory, String tplWebType) {
         String useWebType = "vm/vue";
+        boolean elementPlus = "element-plus".equals(tplWebType);
         if ("element-plus".equals(tplWebType)) {
             useWebType = "vm/vue/v3";
         } else if ("lmw".equals(tplWebType)) {
@@ -157,10 +158,24 @@ public class VelocityUtils {
         templates.add("vm/sql/sql.vm");
         templates.add("vm/js/api.js.vm");
         if (GenConstants.TPL_CRUD.equals(tplCategory)) {
+            if (elementPlus) {
+                templates.add(useWebType + "/list.vue.vm");
+                templates.add(useWebType + "/view.vue.vm");
+                templates.add(useWebType + "/add.vue.vm");
+                templates.add(useWebType + "/edit.vue.vm");
+                templates.add(useWebType + "/components/detail.vue.vm");
+            }
             templates.add(useWebType + "/index.vue.vm");
         } else if (GenConstants.TPL_TREE.equals(tplCategory)) {
             templates.add(useWebType + "/index-tree.vue.vm");
         } else if (GenConstants.TPL_SUB.equals(tplCategory)) {
+            if (elementPlus) {
+                templates.add(useWebType + "/list.vue.vm");
+                templates.add(useWebType + "/view.vue.vm");
+                templates.add(useWebType + "/add.vue.vm");
+                templates.add(useWebType + "/edit.vue.vm");
+                templates.add(useWebType + "/components/detail.vue.vm");
+            }
             templates.add(useWebType + "/index.vue.vm");
             templates.add("vm/java/sub-domain.java.vm");
         }
@@ -215,6 +230,16 @@ public class VelocityUtils {
             fileName = businessName + "Menu.sql";
         } else if (template.contains("api.js.vm")) {
             fileName = StringUtils.format("{}/api/{}/{}.js", vuePath, moduleName, businessName);
+        } else if (template.contains("components/detail.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/components/detail.vue", vuePath, moduleName, businessName);
+        } else if (template.contains("list.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/list.vue", vuePath, moduleName, businessName);
+        } else if (template.contains("view.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/view.vue", vuePath, moduleName, businessName);
+        } else if (template.contains("add.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/add.vue", vuePath, moduleName, businessName);
+        } else if (template.contains("edit.vue.vm")) {
+            fileName = StringUtils.format("{}/views/{}/{}/edit.vue", vuePath, moduleName, businessName);
         } else if (template.contains("index.vue.vm")) {
             fileName = StringUtils.format("{}/views/{}/{}/index.vue", vuePath, moduleName, businessName);
         } else if (template.contains("index-tree.vue.vm")) {
