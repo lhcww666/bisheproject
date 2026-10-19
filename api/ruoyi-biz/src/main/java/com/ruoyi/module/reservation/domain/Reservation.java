@@ -84,6 +84,18 @@ private static final long serialVersionUID = 1L;
             @NotNull(message = "参与人数不能为空")
         private Long participantCount;
 
+            /** 预约类型：INDIVIDUAL/CLASS */
+                @Excel(name = "预约类型" , dictType = "module_reservation_type" )
+        public static final String RESERVATIONTYPE = "reservation_type";
+            @TableField(value = RESERVATIONTYPE)
+        private String reservationType;
+
+            /** 班级预约对应的班级ID */
+                @Excel(name = "班级ID" )
+        public static final String CLASSDEPTID = "class_dept_id";
+            @TableField(value = CLASSDEPTID)
+        private Long classDeptId;
+
             /** 风险等级 */
                 @Excel(name = "风险等级" )
         public static final String RISKLEVEL = "risk_level";

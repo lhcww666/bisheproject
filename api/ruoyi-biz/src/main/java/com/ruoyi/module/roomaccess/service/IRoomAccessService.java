@@ -42,6 +42,12 @@ public interface IRoomAccessService
     void checkBookAccess(Long userId, Room room);
 
     /**
+     * 判断某个班级是否对实验室有班级级准入资格。
+     * 只认 CLASS/DEPT 规则，不把某个学生的 USER 白名单当作全班授权。
+     */
+    boolean hasClassAccess(Long classDeptId, Room room);
+
+    /**
      * 从候选实验室中过滤出当前学生有权预约的实验室。
      */
     List<Room> filterBookableRooms(Long userId, List<Room> rooms);

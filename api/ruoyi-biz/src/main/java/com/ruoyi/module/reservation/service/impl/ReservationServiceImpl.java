@@ -27,6 +27,7 @@ import com.ruoyi.module.reservation.mapper.ReservationDeviceMapper;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationDevice;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
+import com.ruoyi.module.reservation.domain.ReservationType;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
@@ -57,8 +58,25 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     public Reservation applyReservation(Reservation reservation)
     {
         Long userId = SecurityUtils.getUserId();
+        String reservationType = StringUtils.isEmpty(reservation.getReservationType())
+                ? ReservationType.INDIVIDUAL : reservation.getReservationType().trim().toUpperCase();
+        if (!ReservationType.isValid(reservationType))
+        {
+            throw new ServiceException("预约类型不正确");
+        }
+        reservation.setReservationType(reservationType);
+        if (ReservationType.CLASS.equals(reservationType))
+        {
+            // 班级ID由登录用户所属班级决定，不信任前端传入值
+            reservation.setClassDeptId(SecurityUtils.getDeptId());
+        }
+        else
+        {
+            reservation.setClassDeptId(null);
+        }
         Room room = reservationRuleService.checkApply(userId, reservation);
-        boolean reviewRequired = reservationRuleService.isReviewRequired(room);
+        boolean reviewRequired = reservationRuleService.isReviewRequired(room)
+                || ReservationType.CLASS.equals(reservationType);
 
         Reservation apply = new Reservation();
         apply.setReservationNo(generateReservationNo(reservation.getStartTime()));
@@ -68,6 +86,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         apply.setStartTime(reservation.getStartTime());
         apply.setEndTime(reservation.getEndTime());
         apply.setParticipantCount(reservation.getParticipantCount());
+        apply.setReservationType(reservationType);
+        apply.setClassDeptId(reservation.getClassDeptId());
         // 风险等级与是否需要审核由实验室安全等级决定，不接受前端传入
         apply.setRiskLevel(room.getSafetyLevel() == null ? 1L : room.getSafetyLevel());
         apply.setReviewRequired(reviewRequired ? "1" : "0");
@@ -288,6 +308,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
      */
     @Override
     public int insertReservation(Reservation reservation) {
+                normalizeReservationType(reservation, true);
                 reservation.setCreateBy(SecurityUtils.getUsername());
                 reservation.setCreateTime(DateUtils.getNowDate());
             return reservationMapper.insert(reservation);
@@ -301,6 +322,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
      */
     @Override
     public int updateReservation(Reservation reservation) {
+                normalizeReservationType(reservation, false);
                 reservation.setUpdateTime(DateUtils.getNowDate());
                 reservation.setUpdateBy(SecurityUtils.getUsername());
         return reservationMapper.updateById(reservation);
@@ -326,5 +348,21 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     @Override
     public int deleteReservationById(Long id) {
         return reservationMapper.deleteById(id);
+    }
+
+    private void normalizeReservationType(Reservation reservation, boolean applyDefault)
+    {
+        if (StringUtils.isEmpty(reservation.getReservationType()))
+        {
+            if (applyDefault)
+            {
+                reservation.setReservationType(ReservationType.INDIVIDUAL);
+            }
+            return;
+        }
+        if (!ReservationType.isValid(reservation.getReservationType()))
+        {
+            throw new ServiceException("预约类型不正确");
+        }
     }
 }

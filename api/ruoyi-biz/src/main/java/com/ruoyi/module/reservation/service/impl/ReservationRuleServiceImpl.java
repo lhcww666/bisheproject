@@ -12,11 +12,14 @@ import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.module.classrep.service.IClassRepresentativeService;
 import com.ruoyi.module.credit.domain.CreditRecord;
 import com.ruoyi.module.credit.mapper.CreditRecordMapper;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
+import com.ruoyi.module.reservation.domain.ReservationType;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.room.domain.Room;
@@ -60,6 +63,8 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
 
     private final IRoomAccessService roomAccessService;
 
+    private final IClassRepresentativeService classRepresentativeService;
+
     private final ReservationMapper reservationMapper;
 
     private final SafetyExamRecordMapper safetyExamRecordMapper;
@@ -97,6 +102,10 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
             throw new ServiceException("实验室当前不可预约（维护中或已停用）");
         }
         roomAccessService.checkBookAccess(userId, room);
+        if (ReservationType.CLASS.equals(reservation.getReservationType()))
+        {
+            checkClassReservation(userId, reservation, room);
+        }
         checkCapacity(room, reservation.getParticipantCount());
         checkOpenTime(room, reservation.getStartTime(), reservation.getEndTime());
         checkConflict(room.getId(), reservation.getStartTime(), reservation.getEndTime(), null);
@@ -190,6 +199,34 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
             return true;
         }
         return requiresSafetyExam(room);
+    }
+
+    private void checkClassReservation(Long userId, Reservation reservation, Room room)
+    {
+        Long classDeptId = reservation.getClassDeptId();
+        if (classDeptId == null)
+        {
+            throw new ServiceException("班级预约必须指定班级");
+        }
+        if (!classDeptId.equals(SecurityUtils.getDeptId()))
+        {
+            throw new ServiceException("只能代表本人所在班级提交班级预约");
+        }
+        if (!classRepresentativeService.isRepresentative(userId, classDeptId))
+        {
+            throw new ServiceException("只有班级负责人可以提交班级预约");
+        }
+        if (!roomAccessService.hasClassAccess(classDeptId, room))
+        {
+            throw new ServiceException("该实验室尚未对本班开放，不能提交班级预约");
+        }
+        long classSize = classRepresentativeService.countClassStudents(classDeptId);
+        if (classSize <= 0)
+        {
+            throw new ServiceException("班级没有可参与预约的学生");
+        }
+        // 班级预约代表全班，人数由后端按班级学生数计算，不接受前端传入
+        reservation.setParticipantCount(classSize);
     }
 
     @Override

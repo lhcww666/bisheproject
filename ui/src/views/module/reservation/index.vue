@@ -204,6 +204,16 @@
           <span>{{ scope.row.applicantName || scope.row.applicantId }}</span>
         </template>
       </el-table-column>
+      <el-table-column label="预约类型" align="center" width="110">
+        <template #default="scope">
+          <dict-tag :options="module_reservation_type" :value="scope.row.reservationType || 'INDIVIDUAL'"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="预约班级" align="center" min-width="120">
+        <template #default="scope">
+          <span>{{ scope.row.classDeptName || '—' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="实验室" align="center" min-width="150">
         <template #default="scope">
           <span>{{ scope.row.roomName || scope.row.roomId }}</span>
@@ -236,7 +246,7 @@
           <span>{{ scope.row.reviewComment || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="isStudent || canManage" width="120" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="isStudent || canManage" fixed="right" width="120" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button
             v-if="isStudent && canCancel(scope.row)"
@@ -263,6 +273,20 @@
     <!-- 学生预约申请对话框 -->
     <el-dialog title="申请预约" v-model="applyOpen" width="560px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="applyRef" :model="applyForm" :rules="applyRules" label-width="100px">
+        <el-form-item label="预约类型" prop="reservationType">
+          <el-radio-group v-model="applyForm.reservationType" @change="handleReservationTypeChange">
+            <el-radio label="INDIVIDUAL">个人预约</el-radio>
+            <el-radio v-if="isClassRepresentative" label="CLASS">班级预约</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-alert
+          v-if="applyForm.reservationType === 'CLASS'"
+          class="reservation-tip"
+          type="warning"
+          :closable="false"
+          show-icon
+          :title="'将代表 ' + (classReservationInfo.deptName || '本班') + ' 提交班级预约，参与人数按班级学生数 ' + (classReservationInfo.studentCount || 0) + ' 人计算，提交后需教师审核。'"
+        />
         <el-form-item label="开始时间" prop="startTime">
           <el-date-picker
             clearable
@@ -289,7 +313,8 @@
           <el-input-number
             v-model="applyForm.participantCount"
             :min="1"
-            :max="200"
+            :max="1000"
+            :disabled="applyForm.reservationType === 'CLASS'"
             style="width: 100%;"
             @change="loadAvailableRooms"
           />
@@ -427,7 +452,8 @@ import {
   applyReservation,
   cancelReservation,
   listAvailableRooms,
-  listAvailableDevices
+  listAvailableDevices,
+  getMyClassRepresentative
 } from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 import xeUtils from "xe-utils";
@@ -448,10 +474,13 @@ const canManage = computed(() => roleKeys.value.length > 0 && !isStudent.value &
 
 onMounted(() => {
   reservationHandleQuery();
+  if (isStudent.value) {
+    loadClassReservationInfo();
+  }
 });
 
 const { proxy } = getCurrentInstance();
-const { sys_common_status, module_reservation_status, module_yes_no } = proxy.useDict('sys_common_status', 'module_reservation_status', 'module_yes_no');
+const { sys_common_status, module_reservation_status, module_yes_no, module_reservation_type } = proxy.useDict('sys_common_status', 'module_reservation_status', 'module_yes_no', 'module_reservation_type');
 
 const importRes = ref(null);
 watch(
@@ -528,12 +557,20 @@ const { reservationQueryParams, reservationForm, reservationRules } = toRefs(res
 
 const applyOpen = ref(false);
 const applyLoading = ref(false);
+const classReservationInfo = ref({
+  representative: false,
+  deptId: null,
+  deptName: null,
+  studentCount: 0
+});
+const isClassRepresentative = computed(() => classReservationInfo.value && classReservationInfo.value.representative === true);
 const availableRooms = ref([]);
 const availableRoomsLoading = ref(false);
 const availableDevices = ref([]);
 const availableDevicesLoading = ref(false);
 const applyData = reactive({
   applyForm: {
+    reservationType: "INDIVIDUAL",
     startTime: null,
     endTime: null,
     participantCount: 1,
@@ -543,6 +580,7 @@ const applyData = reactive({
     remark: null
   },
   applyRules: {
+    reservationType: [{ required: true, message: "预约类型不能为空", trigger: "change" }],
     startTime: [{ required: true, message: "开始时间不能为空", trigger: "change" }],
     endTime: [{ required: true, message: "结束时间不能为空", trigger: "change" }],
     participantCount: [{ required: true, message: "参与人数不能为空", trigger: "change" }],
@@ -576,7 +614,11 @@ function canCancel(row) {
 }
 
 function openApplyDialog() {
+  if (isStudent.value) {
+    loadClassReservationInfo();
+  }
   applyForm.value = {
+    reservationType: "INDIVIDUAL",
     startTime: null,
     endTime: null,
     participantCount: 1,
@@ -588,6 +630,37 @@ function openApplyDialog() {
   availableRooms.value = [];
   availableDevices.value = [];
   applyOpen.value = true;
+}
+
+function loadClassReservationInfo() {
+  getMyClassRepresentative().then(response => {
+    classReservationInfo.value = response.data || {
+      representative: false,
+      deptId: null,
+      deptName: null,
+      studentCount: 0
+    };
+  }).catch(() => {
+    classReservationInfo.value = {
+      representative: false,
+      deptId: null,
+      deptName: null,
+      studentCount: 0
+    };
+  });
+}
+
+function handleReservationTypeChange(type) {
+  applyForm.value.roomId = null;
+  applyForm.value.deviceIds = [];
+  availableRooms.value = [];
+  availableDevices.value = [];
+  if (type === "CLASS") {
+    applyForm.value.participantCount = Number(classReservationInfo.value.studentCount || 1);
+  } else {
+    applyForm.value.participantCount = 1;
+  }
+  loadAvailableRooms();
 }
 
 function loadAvailableRooms() {
@@ -635,6 +708,7 @@ function submitApply() {
     }
     applyLoading.value = true;
     applyReservation({
+      reservationType: applyForm.value.reservationType,
       roomId: applyForm.value.roomId,
       experimentName: applyForm.value.experimentName,
       startTime: applyForm.value.startTime,

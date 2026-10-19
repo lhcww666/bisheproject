@@ -23,7 +23,9 @@ import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.device.mapper.DeviceMapper;
 import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.module.room.mapper.RoomMapper;
+import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysUserService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,8 @@ public class ReservationViewAssembler
 
     private final ISysUserService sysUserService;
 
+    private final ISysDeptService sysDeptService;
+
     public List<ReservationView> assemble(List<Reservation> reservations)
     {
         if (reservations == null || reservations.isEmpty())
@@ -58,6 +62,7 @@ public class ReservationViewAssembler
         Set<Long> roomIds = new LinkedHashSet<>();
         Set<Long> applicantIds = new LinkedHashSet<>();
         Set<Long> reservationIds = new LinkedHashSet<>();
+        Set<Long> classDeptIds = new LinkedHashSet<>();
         for (Reservation reservation : reservations)
         {
             reservationIds.add(reservation.getId());
@@ -68,6 +73,10 @@ public class ReservationViewAssembler
             if (reservation.getApplicantId() != null)
             {
                 applicantIds.add(reservation.getApplicantId());
+            }
+            if (reservation.getClassDeptId() != null)
+            {
+                classDeptIds.add(reservation.getClassDeptId());
             }
         }
 
@@ -88,6 +97,16 @@ public class ReservationViewAssembler
             {
                 applicantMap.put(applicantId, StringUtils.isNotEmpty(user.getNickName()) ? user.getNickName()
                         : user.getUserName());
+            }
+        }
+
+        Map<Long, String> classDeptNameMap = new HashMap<>();
+        for (Long classDeptId : classDeptIds)
+        {
+            SysDept dept = sysDeptService.selectDeptById(classDeptId);
+            if (dept != null)
+            {
+                classDeptNameMap.put(classDeptId, dept.getDeptName());
             }
         }
 
@@ -140,6 +159,9 @@ public class ReservationViewAssembler
             view.setStartTime(reservation.getStartTime());
             view.setEndTime(reservation.getEndTime());
             view.setParticipantCount(reservation.getParticipantCount());
+            view.setReservationType(reservation.getReservationType());
+            view.setClassDeptId(reservation.getClassDeptId());
+            view.setClassDeptName(classDeptNameMap.get(reservation.getClassDeptId()));
             view.setRiskLevel(reservation.getRiskLevel());
             view.setStatus(reservation.getStatus());
             view.setReviewRequired(reservation.getReviewRequired());

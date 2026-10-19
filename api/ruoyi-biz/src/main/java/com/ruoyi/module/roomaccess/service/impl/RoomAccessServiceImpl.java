@@ -195,6 +195,51 @@ public class RoomAccessServiceImpl extends ServiceImpl<RoomAccessMapper, RoomAcc
     }
 
     @Override
+    public boolean hasClassAccess(Long classDeptId, Room room)
+    {
+        if (classDeptId == null || room == null)
+        {
+            return false;
+        }
+        String mode = normalizeMode(room.getReservationMode());
+        if (RoomReservationMode.CLOSED.equals(mode))
+        {
+            return false;
+        }
+        if (RoomReservationMode.OPEN.equals(mode))
+        {
+            return true;
+        }
+        SysDept classDept = sysDeptService.selectDeptById(classDeptId);
+        if (classDept == null)
+        {
+            return false;
+        }
+        for (RoomAccess rule : selectActiveRules(List.of(room.getId())))
+        {
+            if (RoomAccessSubjectType.CLASS.equals(rule.getSubjectType())
+                    && Objects.equals(rule.getSubjectId(), classDeptId))
+            {
+                return true;
+            }
+            if (RoomAccessSubjectType.DEPT.equals(rule.getSubjectType()))
+            {
+                if (Objects.equals(rule.getSubjectId(), classDeptId))
+                {
+                    return true;
+                }
+                if (StringUtils.isNotEmpty(classDept.getAncestors())
+                        && Arrays.asList(classDept.getAncestors().split(","))
+                                .contains(String.valueOf(rule.getSubjectId())))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public List<Room> filterBookableRooms(Long userId, List<Room> rooms)
     {
         if (rooms == null || rooms.isEmpty())

@@ -36,6 +36,7 @@ import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.common.service.ModuleDataScopeService;
+import com.ruoyi.module.classrep.service.IClassRepresentativeService;
 import com.ruoyi.module.review.domain.ReservationReviewRequest;
 import com.ruoyi.module.review.service.IReservationReviewBizService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
@@ -54,6 +55,7 @@ public class ReservationController extends BaseController {
     private final IReservationService reservationService;
     private final IReservationReviewBizService reservationReviewBizService;
     private final ModuleDataScopeService moduleDataScopeService;
+    private final IClassRepresentativeService classRepresentativeService;
     // private final ReservationMapper reservationMapper;
 
 /**
@@ -170,6 +172,15 @@ public class ReservationController extends BaseController {
         IPage<ReservationView> page = reservationService.pageMyReservation(getPage(), status, parseDateTime(startTime),
                 parseDateTime(endTime));
         return getDataTableByPage(page);
+    }
+
+    /**
+     * 查询当前学生是否为本班班级负责人，用于决定是否显示“班级预约”
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:apply')")
+    @GetMapping("/myClassRepresentative")
+    public AjaxResult myClassRepresentative() {
+        return success(classRepresentativeService.getMyClassReservationInfo(SecurityUtils.getUserId()));
     }
 
     /**

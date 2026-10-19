@@ -77,3 +77,11 @@ export function listAvailableDevices(params) {
     params: params
   })
 }
+
+// 查询当前学生是否为本班班级负责人
+export function getMyClassRepresentative() {
+  return request({
+    url: '/module/reservation/myClassRepresentative',
+    method: 'get'
+  })
+}
