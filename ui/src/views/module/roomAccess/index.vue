@@ -5,7 +5,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="实验室准入：院系授权会包含下级班级；班级只匹配本班；学生白名单适合毕设、竞赛等例外场景。"
+      title="实验室准入：开放预约的实验室不需要配置规则；院系授权包含下级班级，班级只匹配本班，学生白名单用于毕设、竞赛等例外场景。"
     />
 
     <el-form @submit.prevent :model="roomAccessQueryParams" ref="roomAccessQueryRef" :inline="true" v-show="roomAccessShowSearch" label-width="auto">
@@ -81,13 +81,13 @@
 
     <el-table v-loading="roomAccessLoading" :data="roomAccessList" @selection-change="roomAccessHandleSelectionChange" border>
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="实验室" align="center" prop="roomName" min-width="180" />
+      <el-table-column label="实验室" align="center" prop="roomName" min-width="180" show-overflow-tooltip />
       <el-table-column label="授权对象" align="center" prop="subjectType" width="110">
         <template #default="scope">
           <dict-tag :options="module_room_access_subject" :value="scope.row.subjectType"/>
         </template>
       </el-table-column>
-      <el-table-column label="对象名称" align="center" prop="subjectName" min-width="160" />
+      <el-table-column label="对象名称" align="center" prop="subjectName" min-width="160" show-overflow-tooltip />
       <el-table-column label="对象ID" align="center" prop="subjectId" width="100" />
       <el-table-column label="生效时间" align="center" prop="validFrom" width="180">
         <template #default="scope">
@@ -99,8 +99,8 @@
           <span>{{ scope.row.validUntil ? parseTime(scope.row.validUntil, '{y}-{m}-{d} {h}:{i}:{s}') : '长期有效' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark" min-width="150" />
-      <el-table-column width="130" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column label="备注" align="center" prop="remark" min-width="150" show-overflow-tooltip />
+      <el-table-column fixed="right" width="130" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="roomAccessHandleUpdate(scope.row)" v-hasPermi="['module:roomAccess:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="roomAccessHandleDelete(scope.row)" v-hasPermi="['module:roomAccess:remove']">删除</el-button>
