@@ -47,9 +47,7 @@
     <el-table
       v-loading="roomAccessLoading"
       :data="roomAccessList"
-      :row-class-name="roomAccessRowClassName"
       border
-      @row-click="roomAccessHandleRowClick"
       @selection-change="roomAccessHandleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
@@ -97,7 +95,6 @@ const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { module_room_access_subject } = proxy.useDict('module_room_access_subject');
 const roomAccessPageBase = "/business/module/roomAccess";
-const roomAccessListPath = "/module/roomAccess";
 const roomAccessList = ref([]);
 const roomAccessLoading = ref(true);
 const roomAccessShowSearch = ref(true);
@@ -179,18 +176,8 @@ function roomAccessHandleDelete(row) {
   }).catch(() => {});
 }
 
-function roomAccessHandleRowClick(row, column) {
-  if (!row || !row.id) return;
-  if (column && (column.type === "selection" || column.label === "操作")) return;
-  router.push(roomAccessPageBase + "/view/" + row.id);
-}
-
-function roomAccessRowClassName() {
-  return "room-access-clickable-row";
-}
 </script>
 
 <style lang="scss" scoped>
 .scope-tip { margin-bottom: 12px; }
-:deep(.room-access-clickable-row) { cursor: pointer; }
 </style>

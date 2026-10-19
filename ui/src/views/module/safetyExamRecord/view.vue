@@ -4,16 +4,9 @@
       <el-col :span="1.5">
         <el-button icon="Back" @click="goList">返回列表</el-button>
       </el-col>
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="goAdd" v-hasPermi="['module:safetyExamRecord:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" @click="goEdit" v-hasPermi="['module:safetyExamRecord:edit']">编辑</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" @click="handleDelete" v-hasPermi="['module:safetyExamRecord:remove']">删除</el-button>
-      </el-col>
     </el-row>
+
+    <el-alert class="readonly-tip" type="info" :closable="false" show-icon title="安全考试记录为只读记录，由考试结果生成，不支持手工新增、修改或删除。" />
 
     <el-card class="detail-card">
       <el-descriptions title="安全考试记录" :column="2" border>
@@ -34,14 +27,13 @@
 </template>
 
 <script setup name="SafetyExamRecordView">
-import { getSafetyExamRecord, delSafetyExamRecord } from "@/api/module/safetyExamRecord";
+import { getSafetyExamRecord } from "@/api/module/safetyExamRecord";
 
 const route = useRoute();
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { module_yes_no } = proxy.useDict('module_yes_no');
 
-const safetyExamRecordPageBase = "/business/module/safetyExamRecord";
 const safetyExamRecordListPath = "/module/safetyExamRecord";
 const loading = ref(true);
 const detail = ref({});
@@ -61,26 +53,12 @@ function goList() {
   router.push(safetyExamRecordListPath);
 }
 
-function goAdd() {
-  router.push(safetyExamRecordPageBase + "/add");
-}
-
-function goEdit() {
-  router.push(safetyExamRecordPageBase + "/edit/" + detail.value.id);
-}
-
-function handleDelete() {
-  proxy.$modal.confirm('是否确认删除编号为"' + detail.value.id + '"的数据项？').then(() => delSafetyExamRecord(detail.value.id)).then(() => {
-    proxy.$modal.msgSuccess("删除成功");
-    goList();
-  }).catch(() => {});
-}
-
 function formatDate(value) {
   return value ? proxy.parseTime(value, "{y}-{m}-{d} {h}:{i}:{s}") : "—";
 }
 </script>
 
 <style lang="scss" scoped>
+.readonly-tip { margin-bottom: 12px; }
 .detail-card { margin-top: 4px; }
 </style>

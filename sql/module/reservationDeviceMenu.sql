@@ -10,17 +10,5 @@ insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame
 values('预约设备关联查询', @parentId, '1',  '#', '', 1, 0, 'F', '0', '0', 'module:reservationDevice:query',        '#', 'admin', sysdate(), '', null, '');
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('预约设备关联新增', @parentId, '2',  '#', '', 1, 0, 'F', '0', '0', 'module:reservationDevice:add',          '#', 'admin', sysdate(), '', null, '');
-
-insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('预约设备关联修改', @parentId, '3',  '#', '', 1, 0, 'F', '0', '0', 'module:reservationDevice:edit',         '#', 'admin', sysdate(), '', null, '');
-
-insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('预约设备关联删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'module:reservationDevice:remove',       '#', 'admin', sysdate(), '', null, '');
-
-insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
 values('预约设备关联导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'module:reservationDevice:export',       '#', 'admin', sysdate(), '', null, '');
-
-insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('预约设备关联导入', @parentId, '6',  '#', '', 1, 0, 'F', '0', '0', 'module:reservationDevice:import',       '#', 'admin', sysdate(), '', null, '');
 

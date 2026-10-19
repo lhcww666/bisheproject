@@ -34,33 +34,7 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="reservationReviewHandleAdd" v-hasPermi="['module:reservationReview:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="reservationReviewSingle" @click="reservationReviewHandleUpdate" v-hasPermi="['module:reservationReview:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="reservationReviewMultiple" @click="reservationReviewHandleDelete" v-hasPermi="['module:reservationReview:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="reservationReviewHandleExport" v-hasPermi="['module:reservationReview:export']">导出</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="info" plain icon="Download" @click="reservationReviewImportTemplate" v-hasPermi="['module:reservationReview:import']">下载模板</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <file-upload
-          v-model="importRes"
-          v-hasPermi="['module:reservationReview:import']"
-          :limit="1"
-          uploadBtnText="导入"
-          :fileType="['xlsx']"
-          accept=".xlsx"
-          :action="'/module/reservationReview/importData'"
-          :isShowTip="false"
-          :isShowFileList="false"
-          isImport
-        />
       </el-col>
       <el-col :span="1.5">
         <module-help module="reservationReview" />
@@ -74,9 +48,7 @@
       :row-class-name="reservationReviewRowClassName"
       border
       @row-click="reservationReviewHandleRowClick"
-      @selection-change="reservationReviewHandleSelectionChange"
     >
-      <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="预约ID" align="center" prop="reservationId" />
       <el-table-column label="审核人ID" align="center" prop="reviewerId" />
       <el-table-column label="审核结果" align="center" prop="result">
@@ -88,12 +60,6 @@
       <el-table-column label="审核时间" align="center" prop="reviewTime" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.reviewTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column width="150" label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click.stop="reservationReviewHandleUpdate(scope.row)" v-hasPermi="['module:reservationReview:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click.stop="reservationReviewHandleDelete(scope.row)" v-hasPermi="['module:reservationReview:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -109,7 +75,7 @@
 </template>
 
 <script setup name="ReservationReviewList">
-import { listReservationReview, delReservationReview } from "@/api/module/reservationReview";
+import { listReservationReview } from "@/api/module/reservationReview";
 
 const dateRange = ref([]);
 const router = useRouter();
@@ -117,14 +83,9 @@ const { proxy } = getCurrentInstance();
 const { module_review_result } = proxy.useDict('module_review_result');
 
 const reservationReviewPageBase = "/business/module/reservationReview";
-const reservationReviewListPath = "/module/reservationReview";
-const importRes = ref(null);
 const reservationReviewList = ref([]);
 const reservationReviewLoading = ref(true);
 const reservationReviewShowSearch = ref(true);
-const reservationReviewIds = ref([]);
-const reservationReviewSingle = ref(true);
-const reservationReviewMultiple = ref(true);
 const reservationReviewTotal = ref(0);
 const reservationReviewData = reactive({
   reservationReviewQueryParams: {
@@ -137,12 +98,6 @@ const reservationReviewData = reactive({
   }
 });
 const { reservationReviewQueryParams } = toRefs(reservationReviewData);
-
-watch(() => importRes.value, (val) => {
-  if (val && val.code == 200) {
-    reservationReviewHandleQuery();
-  }
-}, { deep: true });
 
 onMounted(() => reservationReviewHandleQuery());
 
@@ -167,37 +122,6 @@ function reservationReviewResetQuery() {
   reservationReviewHandleQuery();
 }
 
-function reservationReviewHandleSelectionChange(selection) {
-  reservationReviewIds.value = selection.map(item => item.id);
-  reservationReviewSingle.value = selection.length != 1;
-  reservationReviewMultiple.value = !selection.length;
-}
-
-function reservationReviewHandleAdd() {
-  router.push(reservationReviewPageBase + "/add");
-}
-
-function reservationReviewHandleUpdate(row) {
-  const id = row?.id || reservationReviewIds.value?.[0];
-  if (!id) {
-    proxy.$modal.msgWarning("请先选择一条记录");
-    return;
-  }
-  router.push(reservationReviewPageBase + "/edit/" + id);
-}
-
-function reservationReviewHandleDelete(row) {
-  const ids = row?.id || reservationReviewIds.value;
-  if (!ids || (Array.isArray(ids) && ids.length === 0)) {
-    proxy.$modal.msgWarning("请先选择要删除的记录");
-    return;
-  }
-  proxy.$modal.confirm('是否确认删除编号为"' + ids + '"的数据项？').then(() => delReservationReview(ids)).then(() => {
-    reservationReviewGetList();
-    proxy.$modal.msgSuccess("删除成功");
-  }).catch(() => {});
-}
-
 function reservationReviewHandleRowClick(row, column) {
   if (!row || !row.id) return;
   if (column && (column.type === "selection" || column.label === "操作")) return;
@@ -210,10 +134,6 @@ function reservationReviewRowClassName() {
 
 function reservationReviewHandleExport() {
   proxy.download('module/reservationReview/export', { ...reservationReviewQueryParams.value }, `预约审核_${new Date().getTime()}.xlsx`);
-}
-
-function reservationReviewImportTemplate() {
-  proxy.download("module/reservationReview/importTemplate", {}, `预约审核_${new Date().getTime()}.xlsx`);
 }
 </script>
 

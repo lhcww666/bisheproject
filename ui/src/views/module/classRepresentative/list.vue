@@ -61,9 +61,7 @@
     <el-table
       v-loading="loading"
       :data="representativeList"
-      :row-class-name="rowClassName"
       border
-      @row-click="handleRowClick"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
@@ -115,7 +113,6 @@ const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable');
 const pageBase = "/business/module/classRepresentative";
-const listPath = "/module/classRepresentative";
 const representativeList = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -200,18 +197,8 @@ function handleDelete(row) {
   }).catch(() => {});
 }
 
-function handleRowClick(row, column) {
-  if (!row || !row.id) return;
-  if (column && (column.type === "selection" || column.label === "操作")) return;
-  router.push(pageBase + "/view/" + row.id);
-}
-
-function rowClassName() {
-  return "class-representative-clickable-row";
-}
 </script>
 
 <style lang="scss" scoped>
 .scope-tip { margin-bottom: 12px; }
-:deep(.class-representative-clickable-row) { cursor: pointer; }
 </style>

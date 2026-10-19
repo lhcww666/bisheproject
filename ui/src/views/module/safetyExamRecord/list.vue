@@ -54,15 +54,6 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="safetyExamRecordHandleAdd" v-hasPermi="['module:safetyExamRecord:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="safetyExamRecordSingle" @click="safetyExamRecordHandleUpdate" v-hasPermi="['module:safetyExamRecord:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="safetyExamRecordMultiple" @click="safetyExamRecordHandleDelete" v-hasPermi="['module:safetyExamRecord:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="safetyExamRecordHandleExport" v-hasPermi="['module:safetyExamRecord:export']">导出</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -94,9 +85,7 @@
       :row-class-name="safetyExamRecordRowClassName"
       border
       @row-click="safetyExamRecordHandleRowClick"
-      @selection-change="safetyExamRecordHandleSelectionChange"
     >
-      <el-table-column v-if="!isStudent && !isTeacher" type="selection" width="55" align="center" />
       <el-table-column v-if="!isStudent" label="学生ID" align="center" prop="studentId" />
       <el-table-column label="学生姓名" align="center" prop="nickName" min-width="120" />
       <el-table-column label="学生账号" align="center" prop="userName" min-width="110" />
@@ -117,12 +106,6 @@
           <span>{{ parseTime(scope.row.validUntil, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column width="150" label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click.stop="safetyExamRecordHandleUpdate(scope.row)" v-hasPermi="['module:safetyExamRecord:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click.stop="safetyExamRecordHandleDelete(scope.row)" v-hasPermi="['module:safetyExamRecord:remove']">删除</el-button>
-        </template>
-      </el-table-column>
     </el-table>
 
     <pagination
@@ -136,7 +119,7 @@
 </template>
 
 <script setup name="SafetyExamRecordList">
-import { listSafetyExamRecord, delSafetyExamRecord } from "@/api/module/safetyExamRecord";
+import { listSafetyExamRecord } from "@/api/module/safetyExamRecord";
 import useUserStore from "@/store/modules/user";
 
 const dateRange = ref([]);
@@ -155,14 +138,10 @@ const isTeacher = computed(() =>
 );
 
 const safetyExamRecordPageBase = "/business/module/safetyExamRecord";
-const safetyExamRecordListPath = "/module/safetyExamRecord";
 const importRes = ref(null);
 const safetyExamRecordList = ref([]);
 const safetyExamRecordLoading = ref(true);
 const safetyExamRecordShowSearch = ref(true);
-const safetyExamRecordIds = ref([]);
-const safetyExamRecordSingle = ref(true);
-const safetyExamRecordMultiple = ref(true);
 const safetyExamRecordTotal = ref(0);
 const safetyExamRecordData = reactive({
   safetyExamRecordQueryParams: {
@@ -204,37 +183,6 @@ function safetyExamRecordResetQuery() {
   dateRange.value = [];
   proxy.resetForm("safetyExamRecordQueryRef");
   safetyExamRecordHandleQuery();
-}
-
-function safetyExamRecordHandleSelectionChange(selection) {
-  safetyExamRecordIds.value = selection.map(item => item.id);
-  safetyExamRecordSingle.value = selection.length != 1;
-  safetyExamRecordMultiple.value = !selection.length;
-}
-
-function safetyExamRecordHandleAdd() {
-  router.push(safetyExamRecordPageBase + "/add");
-}
-
-function safetyExamRecordHandleUpdate(row) {
-  const id = row?.id || safetyExamRecordIds.value?.[0];
-  if (!id) {
-    proxy.$modal.msgWarning("请先选择一条记录");
-    return;
-  }
-  router.push(safetyExamRecordPageBase + "/edit/" + id);
-}
-
-function safetyExamRecordHandleDelete(row) {
-  const ids = row?.id || safetyExamRecordIds.value;
-  if (!ids || (Array.isArray(ids) && ids.length === 0)) {
-    proxy.$modal.msgWarning("请先选择要删除的记录");
-    return;
-  }
-  proxy.$modal.confirm('是否确认删除编号为"' + ids + '"的数据项？').then(() => delSafetyExamRecord(ids)).then(() => {
-    safetyExamRecordGetList();
-    proxy.$modal.msgSuccess("删除成功");
-  }).catch(() => {});
 }
 
 function safetyExamRecordHandleRowClick(row, column) {

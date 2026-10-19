@@ -4,16 +4,9 @@
       <el-col :span="1.5">
         <el-button icon="Back" @click="goList">返回列表</el-button>
       </el-col>
-      <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="goAdd" v-hasPermi="['module:creditRecord:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" @click="goEdit" v-hasPermi="['module:creditRecord:edit']">编辑</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" @click="handleDelete" v-hasPermi="['module:creditRecord:remove']">删除</el-button>
-      </el-col>
     </el-row>
+
+    <el-alert class="readonly-tip" type="info" :closable="false" show-icon title="信用分流水为只读记录，由业务动作生成，不支持手工新增、修改或删除。" />
 
     <el-card class="detail-card">
       <el-descriptions title="信用分流水" :column="2" border>
@@ -31,13 +24,12 @@
 </template>
 
 <script setup name="CreditRecordView">
-import { getCreditRecord, delCreditRecord } from "@/api/module/creditRecord";
+import { getCreditRecord } from "@/api/module/creditRecord";
 
 const route = useRoute();
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 
-const creditRecordPageBase = "/business/module/creditRecord";
 const creditRecordListPath = "/module/creditRecord";
 const loading = ref(true);
 const detail = ref({});
@@ -57,26 +49,12 @@ function goList() {
   router.push(creditRecordListPath);
 }
 
-function goAdd() {
-  router.push(creditRecordPageBase + "/add");
-}
-
-function goEdit() {
-  router.push(creditRecordPageBase + "/edit/" + detail.value.id);
-}
-
-function handleDelete() {
-  proxy.$modal.confirm('是否确认删除编号为"' + detail.value.id + '"的数据项？').then(() => delCreditRecord(detail.value.id)).then(() => {
-    proxy.$modal.msgSuccess("删除成功");
-    goList();
-  }).catch(() => {});
-}
-
 function formatDate(value) {
   return value ? proxy.parseTime(value, "{y}-{m}-{d} {h}:{i}:{s}") : "—";
 }
 </script>
 
 <style lang="scss" scoped>
+.readonly-tip { margin-bottom: 12px; }
 .detail-card { margin-top: 4px; }
 </style>

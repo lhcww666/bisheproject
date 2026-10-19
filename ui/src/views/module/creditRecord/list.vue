@@ -49,15 +49,6 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Plus" @click="creditRecordHandleAdd" v-hasPermi="['module:creditRecord:add']">新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="success" plain icon="Edit" :disabled="creditRecordSingle" @click="creditRecordHandleUpdate" v-hasPermi="['module:creditRecord:edit']">修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="danger" plain icon="Delete" :disabled="creditRecordMultiple" @click="creditRecordHandleDelete" v-hasPermi="['module:creditRecord:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="creditRecordHandleExport" v-hasPermi="['module:creditRecord:export']">导出</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -89,9 +80,7 @@
       :row-class-name="creditRecordRowClassName"
       border
       @row-click="creditRecordHandleRowClick"
-      @selection-change="creditRecordHandleSelectionChange"
     >
-      <el-table-column v-if="!isStudent && !isTeacher" type="selection" width="55" align="center" />
       <el-table-column v-if="!isStudent" label="用户ID" align="center" prop="userId" />
       <el-table-column label="学生姓名" align="center" prop="nickName" min-width="120" />
       <el-table-column label="学生账号" align="center" prop="userName" min-width="110" />
@@ -99,12 +88,6 @@
       <el-table-column label="变动分值" align="center" prop="changeScore" />
       <el-table-column label="变动后分值" align="center" prop="balanceScore" />
       <el-table-column label="变动原因" align="center" prop="reason" show-overflow-tooltip />
-      <el-table-column width="150" label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click.stop="creditRecordHandleUpdate(scope.row)" v-hasPermi="['module:creditRecord:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click.stop="creditRecordHandleDelete(scope.row)" v-hasPermi="['module:creditRecord:remove']">删除</el-button>
-        </template>
-      </el-table-column>
     </el-table>
 
     <pagination
@@ -118,7 +101,7 @@
 </template>
 
 <script setup name="CreditRecordList">
-import { listCreditRecord, delCreditRecord } from "@/api/module/creditRecord";
+import { listCreditRecord } from "@/api/module/creditRecord";
 import useUserStore from "@/store/modules/user";
 
 const dateRange = ref([]);
@@ -136,14 +119,10 @@ const isTeacher = computed(() =>
 );
 
 const creditRecordPageBase = "/business/module/creditRecord";
-const creditRecordListPath = "/module/creditRecord";
 const importRes = ref(null);
 const creditRecordList = ref([]);
 const creditRecordLoading = ref(true);
 const creditRecordShowSearch = ref(true);
-const creditRecordIds = ref([]);
-const creditRecordSingle = ref(true);
-const creditRecordMultiple = ref(true);
 const creditRecordTotal = ref(0);
 const creditRecordData = reactive({
   creditRecordQueryParams: {
@@ -184,37 +163,6 @@ function creditRecordResetQuery() {
   dateRange.value = [];
   proxy.resetForm("creditRecordQueryRef");
   creditRecordHandleQuery();
-}
-
-function creditRecordHandleSelectionChange(selection) {
-  creditRecordIds.value = selection.map(item => item.id);
-  creditRecordSingle.value = selection.length != 1;
-  creditRecordMultiple.value = !selection.length;
-}
-
-function creditRecordHandleAdd() {
-  router.push(creditRecordPageBase + "/add");
-}
-
-function creditRecordHandleUpdate(row) {
-  const id = row?.id || creditRecordIds.value?.[0];
-  if (!id) {
-    proxy.$modal.msgWarning("请先选择一条记录");
-    return;
-  }
-  router.push(creditRecordPageBase + "/edit/" + id);
-}
-
-function creditRecordHandleDelete(row) {
-  const ids = row?.id || creditRecordIds.value;
-  if (!ids || (Array.isArray(ids) && ids.length === 0)) {
-    proxy.$modal.msgWarning("请先选择要删除的记录");
-    return;
-  }
-  proxy.$modal.confirm('是否确认删除编号为"' + ids + '"的数据项？').then(() => delCreditRecord(ids)).then(() => {
-    creditRecordGetList();
-    proxy.$modal.msgSuccess("删除成功");
-  }).catch(() => {});
 }
 
 function creditRecordHandleRowClick(row, column) {
