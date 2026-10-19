@@ -85,3 +85,12 @@ export function getMyClassRepresentative() {
     method: 'get'
   })
 }
+
+// 教师审核预约（通过/驳回）
+export function reviewReservation(id, data) {
+  return request({
+    url: '/module/reservation/review/' + id,
+    method: 'post',
+    data: data
+  })
+}

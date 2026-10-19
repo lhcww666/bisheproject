@@ -246,8 +246,16 @@
           <span>{{ scope.row.reviewComment || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="isStudent || canManage" fixed="right" width="120" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="180" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button
+            v-if="canReview && scope.row.status === '0'"
+            link
+            type="warning"
+            icon="Check"
+            @click="openReviewDialog(scope.row)"
+            v-hasPermi="['module:reservation:review']"
+          >审核</el-button>
           <el-button
             v-if="isStudent && canCancel(scope.row)"
             link
@@ -373,6 +381,40 @@
       </template>
     </el-dialog>
 
+    <!-- 教师审核预约对话框 -->
+    <el-dialog title="审核预约" v-model="reviewOpen" width="520px" append-to-body destroy-on-close>
+      <el-form label-width="90px">
+        <el-form-item label="预约编号">
+          <span>{{ reviewForm.reservationNo }}</span>
+        </el-form-item>
+        <el-form-item label="申请人">
+          <span>{{ reviewForm.applicantName || reviewForm.applicantId }}</span>
+        </el-form-item>
+        <el-form-item label="预约类型">
+          <dict-tag :options="module_reservation_type" :value="reviewForm.reservationType || 'INDIVIDUAL'"/>
+          <span v-if="reviewForm.classDeptName" class="review-class">{{ reviewForm.classDeptName }}</span>
+        </el-form-item>
+        <el-form-item label="实验名称">
+          <span>{{ reviewForm.experimentName }}</span>
+        </el-form-item>
+        <el-form-item label="审核结果" required>
+          <el-radio-group v-model="reviewForm.result">
+            <el-radio label="1">通过</el-radio>
+            <el-radio label="2">驳回</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="审核意见" :required="reviewForm.result === '2'">
+          <el-input v-model="reviewForm.comment" type="textarea" :rows="3" placeholder="驳回时必须填写原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" :loading="reviewLoading" @click="submitReview">提交审核</el-button>
+          <el-button @click="reviewOpen = false">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 管理员添加或修改预约对话框 -->
     <el-dialog :title="reservationTitle" v-model="reservationOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="reservationRef" :model="reservationForm" :rules="reservationRules" label-width="auto">
@@ -453,7 +495,8 @@ import {
   cancelReservation,
   listAvailableRooms,
   listAvailableDevices,
-  getMyClassRepresentative
+  getMyClassRepresentative,
+  reviewReservation
 } from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 import xeUtils from "xe-utils";
@@ -471,6 +514,7 @@ const isStudent = computed(() =>
 );
 const isTeacher = computed(() => roleKeys.value.includes("teacher") && !roleKeys.value.includes("admin"));
 const canManage = computed(() => roleKeys.value.length > 0 && !isStudent.value && !isTeacher.value);
+const canReview = computed(() => isTeacher.value || canManage.value);
 
 onMounted(() => {
   reservationHandleQuery();
@@ -557,6 +601,9 @@ const { reservationQueryParams, reservationForm, reservationRules } = toRefs(res
 
 const applyOpen = ref(false);
 const applyLoading = ref(false);
+const reviewOpen = ref(false);
+const reviewLoading = ref(false);
+const reviewForm = ref({});
 const classReservationInfo = ref({
   representative: false,
   deptId: null,
@@ -661,6 +708,43 @@ function handleReservationTypeChange(type) {
     applyForm.value.participantCount = 1;
   }
   loadAvailableRooms();
+}
+
+function openReviewDialog(row) {
+  reviewForm.value = {
+    id: row.id,
+    reservationNo: row.reservationNo,
+    applicantId: row.applicantId,
+    applicantName: row.applicantName,
+    reservationType: row.reservationType || "INDIVIDUAL",
+    classDeptName: row.classDeptName,
+    experimentName: row.experimentName,
+    result: "1",
+    comment: ""
+  };
+  reviewOpen.value = true;
+}
+
+function submitReview() {
+  if (!reviewForm.value.result) {
+    proxy.$modal.msgError("请选择审核结果");
+    return;
+  }
+  if (reviewForm.value.result === "2" && !reviewForm.value.comment) {
+    proxy.$modal.msgError("驳回预约时必须填写审核意见");
+    return;
+  }
+  reviewLoading.value = true;
+  reviewReservation(reviewForm.value.id, {
+    result: reviewForm.value.result,
+    comment: reviewForm.value.comment
+  }).then(() => {
+    proxy.$modal.msgSuccess("审核成功");
+    reviewOpen.value = false;
+    reservationGetList();
+  }).finally(() => {
+    reviewLoading.value = false;
+  });
 }
 
 function loadAvailableRooms() {
@@ -854,5 +938,9 @@ function reservationImportTemplate() {
 <style lang="scss" scoped>
 .reservation-tip {
   margin-bottom: 12px;
+}
+.review-class {
+  margin-left: 8px;
+  color: #909399;
 }
 </style>
