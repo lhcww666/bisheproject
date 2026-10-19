@@ -24,9 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.mapper.ReservationDeviceMapper;
+import com.ruoyi.module.review.mapper.ReservationReviewMapper;
+import com.ruoyi.module.review.domain.ReservationReview;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationDevice;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
+import com.ruoyi.module.reservation.domain.ReservationCheckStatus;
 import com.ruoyi.module.reservation.domain.ReservationType;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
@@ -48,6 +51,7 @@ import jakarta.validation.Validator;
 public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reservation> implements IReservationService {
     private final ReservationMapper reservationMapper;
     private final ReservationDeviceMapper reservationDeviceMapper;
+    private final ReservationReviewMapper reservationReviewMapper;
     private final DeviceMapper deviceMapper;
     private final IReservationRuleService reservationRuleService;
     private final ReservationViewAssembler reservationViewAssembler;
@@ -75,9 +79,6 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
             reservation.setClassDeptId(null);
         }
         Room room = reservationRuleService.checkApply(userId, reservation);
-        boolean reviewRequired = reservationRuleService.isReviewRequired(room)
-                || ReservationType.CLASS.equals(reservationType);
-
         Reservation apply = new Reservation();
         apply.setReservationNo(generateReservationNo(reservation.getStartTime()));
         apply.setApplicantId(userId);
@@ -88,10 +89,13 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         apply.setParticipantCount(reservation.getParticipantCount());
         apply.setReservationType(reservationType);
         apply.setClassDeptId(reservation.getClassDeptId());
-        // 风险等级与是否需要审核由实验室安全等级决定，不接受前端传入
+        // 风险等级由实验室安全等级决定，不接受前端传入；新增单据统一先进入待审核
         apply.setRiskLevel(room.getSafetyLevel() == null ? 1L : room.getSafetyLevel());
-        apply.setReviewRequired(reviewRequired ? "1" : "0");
-        apply.setStatus(reviewRequired ? ReservationStatus.PENDING : ReservationStatus.APPROVED);
+        apply.setStatus(ReservationStatus.PENDING);
+        apply.setReviewRequired("1");
+        apply.setCheckStatus(ReservationCheckStatus.NO_CHECK);
+        apply.setCheckName(null);
+        apply.setCheckDate(null);
         apply.setRemark(reservation.getRemark());
         apply.setCreateBy(SecurityUtils.getUsername());
         apply.setCreateTime(DateUtils.getNowDate());
@@ -309,6 +313,11 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     @Override
     public int insertReservation(Reservation reservation) {
                 normalizeReservationType(reservation, true);
+                reservation.setStatus(ReservationStatus.PENDING);
+                reservation.setReviewRequired("1");
+                reservation.setCheckStatus(ReservationCheckStatus.NO_CHECK);
+                reservation.setCheckName(null);
+                reservation.setCheckDate(null);
                 reservation.setCreateBy(SecurityUtils.getUsername());
                 reservation.setCreateTime(DateUtils.getNowDate());
             return reservationMapper.insert(reservation);
@@ -322,7 +331,22 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
      */
     @Override
     public int updateReservation(Reservation reservation) {
+                Reservation existing = reservationMapper.selectById(reservation.getId());
+                if (existing == null) {
+                    throw new ServiceException("预约不存在");
+                }
+                if (ReservationStatus.APPROVED.equals(existing.getStatus())) {
+                    throw new ServiceException("审核通过的单据请先弃审再修改");
+                }
                 normalizeReservationType(reservation, false);
+                reservation.setStatus(ReservationStatus.PENDING);
+                reservation.setReviewRequired("1");
+                reservation.setCheckStatus(ReservationCheckStatus.NO_CHECK);
+                reservation.setCheckName(null);
+                reservation.setCheckDate(null);
+                QueryWrapper<ReservationReview> reviewQuery = new QueryWrapper<>();
+                reviewQuery.eq("reservation_id", reservation.getId());
+                reservationReviewMapper.delete(reviewQuery);
                 reservation.setUpdateTime(DateUtils.getNowDate());
                 reservation.setUpdateBy(SecurityUtils.getUsername());
         return reservationMapper.updateById(reservation);
@@ -336,6 +360,15 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
      */
     @Override
     public int deleteReservationByIds(Long[] ids) {
+        for (Long id : ids) {
+            Reservation existing = reservationMapper.selectById(id);
+            if (existing != null && ReservationStatus.APPROVED.equals(existing.getStatus())) {
+                throw new ServiceException("审核通过的单据请先弃审再删除");
+            }
+        }
+        QueryWrapper<ReservationReview> reviewQuery = new QueryWrapper<>();
+        reviewQuery.in("reservation_id", Arrays.asList(ids));
+        reservationReviewMapper.delete(reviewQuery);
         return reservationMapper.deleteByIds(Arrays.asList(ids));
     }
 

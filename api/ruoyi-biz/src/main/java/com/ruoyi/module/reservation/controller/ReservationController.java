@@ -32,6 +32,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationStatusRequest;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
@@ -231,6 +232,17 @@ public class ReservationController extends BaseController {
     @PostMapping("/review/{id}")
     public AjaxResult review(@PathVariable("id") Long id, @RequestBody ReservationReviewRequest request) {
         reservationReviewBizService.review(id, request);
+        return success();
+    }
+
+    /**
+     * 统一审核/弃审入口：APPROVE、REJECT、UNAUDIT
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:review')")
+    @Log(title = "实验室预约", businessType = BusinessType.UPDATE)
+    @PostMapping("/updateStatus")
+    public AjaxResult updateStatus(@Validated @RequestBody ReservationStatusRequest request) {
+        reservationReviewBizService.updateStatus(request.getId(), request.getAction(), request.getComment());
         return success();
     }
 

@@ -109,6 +109,25 @@ private static final long serialVersionUID = 1L;
             @NotBlank(message = "预约状态不能为空")
         private String status;
 
+            /** 审核状态：no_check/had_checked */
+                @Excel(name = "审核状态" , dictType = "module_check_status" )
+        public static final String CHECKSTATUS = "check_status";
+            @TableField(value = CHECKSTATUS)
+        private String checkStatus;
+
+            /** 审核人 */
+                @Excel(name = "审核人" )
+        public static final String CHECKNAME = "check_name";
+            @TableField(value = CHECKNAME, updateStrategy = FieldStrategy.ALWAYS)
+        private String checkName;
+
+            /** 审核时间 */
+                @Excel(name = "审核时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
+        public static final String CHECKDATE = "check_date";
+            @TableField(value = CHECKDATE, updateStrategy = FieldStrategy.ALWAYS)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+        private Date checkDate;
+
             /** 是否需要审核 */
                 @Excel(name = "是否需要审核" , dictType = "module_yes_no" )
         public static final String REVIEWREQUIRED = "review_required";

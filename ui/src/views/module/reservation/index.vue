@@ -241,12 +241,22 @@
           <dict-tag :options="module_reservation_status" :value="scope.row.status"/>
         </template>
       </el-table-column>
+      <el-table-column label="审核状态" align="center" width="100">
+        <template #default="scope">
+          <dict-tag :options="module_check_status" :value="scope.row.checkStatus || 'no_check'"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="审核人" align="center" prop="checkName" width="100">
+        <template #default="scope">
+          <span>{{ scope.row.checkName || '—' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="审核意见" align="center" prop="reviewComment" min-width="150">
         <template #default="scope">
           <span>{{ scope.row.reviewComment || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="180" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="240" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button
             v-if="canReview && scope.row.status === '0'"
@@ -256,6 +266,14 @@
             @click="openReviewDialog(scope.row)"
             v-hasPermi="['module:reservation:review']"
           >审核</el-button>
+          <el-button
+            v-if="canReview && scope.row.status === '1' && scope.row.checkStatus === 'had_checked'"
+            link
+            type="danger"
+            icon="RefreshLeft"
+            @click="openUnauditDialog(scope.row)"
+            v-hasPermi="['module:reservation:review']"
+          >弃审</el-button>
           <el-button
             v-if="isStudent && canCancel(scope.row)"
             link
@@ -415,6 +433,34 @@
       </template>
     </el-dialog>
 
+    <!-- 弃审预约对话框 -->
+    <el-dialog title="弃审预约" v-model="unauditOpen" width="520px" append-to-body destroy-on-close>
+      <el-alert
+        class="reservation-tip"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="弃审后预约会退回“待审核”，本次审核记录删除，预约单本身保留。只有未开始的已通过预约可以弃审。"
+      />
+      <el-form label-width="90px">
+        <el-form-item label="预约编号">
+          <span>{{ unauditForm.reservationNo }}</span>
+        </el-form-item>
+        <el-form-item label="申请人">
+          <span>{{ unauditForm.applicantName || unauditForm.applicantId }}</span>
+        </el-form-item>
+        <el-form-item label="弃审原因" required>
+          <el-input v-model="unauditForm.comment" type="textarea" :rows="3" placeholder="请填写弃审原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="danger" :loading="unauditLoading" @click="submitUnaudit">确认弃审</el-button>
+          <el-button @click="unauditOpen = false">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 管理员添加或修改预约对话框 -->
     <el-dialog :title="reservationTitle" v-model="reservationOpen" width="500px" append-to-body destroy-on-close>
       <el-form @submit.prevent ref="reservationRef" :model="reservationForm" :rules="reservationRules" label-width="auto">
@@ -452,24 +498,6 @@
         <el-form-item label="风险等级" prop="riskLevel">
           <el-input v-model="reservationForm.riskLevel" placeholder="请输入风险等级" />
         </el-form-item>
-        <el-form-item label="预约状态" prop="status">
-          <el-radio-group v-model="reservationForm.status">
-            <el-radio
-              v-for="dict in module_reservation_status"
-              :key="dict.value"
-              :label="dict.value"
-            >{{dict.label}}</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="是否需要审核" prop="reviewRequired">
-          <el-radio-group v-model="reservationForm.reviewRequired">
-            <el-radio
-              v-for="dict in module_yes_no"
-              :key="dict.value"
-              :label="dict.value"
-            >{{dict.label}}</el-radio>
-          </el-radio-group>
-        </el-form-item>
         <el-form-item label="实验说明" prop="remark">
           <el-input v-model="reservationForm.remark" type="textarea" placeholder="请输入内容" />
         </el-form-item>
@@ -496,7 +524,7 @@ import {
   listAvailableRooms,
   listAvailableDevices,
   getMyClassRepresentative,
-  reviewReservation
+  updateReservationStatus
 } from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 import xeUtils from "xe-utils";
@@ -524,7 +552,7 @@ onMounted(() => {
 });
 
 const { proxy } = getCurrentInstance();
-const { sys_common_status, module_reservation_status, module_yes_no, module_reservation_type } = proxy.useDict('sys_common_status', 'module_reservation_status', 'module_yes_no', 'module_reservation_type');
+  const { sys_common_status, module_reservation_status, module_yes_no, module_reservation_type, module_check_status } = proxy.useDict('sys_common_status', 'module_reservation_status', 'module_yes_no', 'module_reservation_type', 'module_check_status');
 
 const importRes = ref(null);
 watch(
@@ -604,6 +632,9 @@ const applyLoading = ref(false);
 const reviewOpen = ref(false);
 const reviewLoading = ref(false);
 const reviewForm = ref({});
+const unauditOpen = ref(false);
+const unauditLoading = ref(false);
+const unauditForm = ref({});
 const classReservationInfo = ref({
   representative: false,
   deptId: null,
@@ -735,8 +766,9 @@ function submitReview() {
     return;
   }
   reviewLoading.value = true;
-  reviewReservation(reviewForm.value.id, {
-    result: reviewForm.value.result,
+  updateReservationStatus({
+    id: reviewForm.value.id,
+    action: reviewForm.value.result === "1" ? "APPROVE" : "REJECT",
     comment: reviewForm.value.comment
   }).then(() => {
     proxy.$modal.msgSuccess("审核成功");
@@ -744,6 +776,36 @@ function submitReview() {
     reservationGetList();
   }).finally(() => {
     reviewLoading.value = false;
+  });
+}
+
+function openUnauditDialog(row) {
+  unauditForm.value = {
+    id: row.id,
+    reservationNo: row.reservationNo,
+    applicantId: row.applicantId,
+    applicantName: row.applicantName,
+    comment: ""
+  };
+  unauditOpen.value = true;
+}
+
+function submitUnaudit() {
+  if (!unauditForm.value.comment) {
+    proxy.$modal.msgError("弃审必须填写原因");
+    return;
+  }
+  unauditLoading.value = true;
+  updateReservationStatus({
+    id: unauditForm.value.id,
+    action: "UNAUDIT",
+    comment: unauditForm.value.comment
+  }).then(() => {
+    proxy.$modal.msgSuccess("弃审成功，预约已回到待审核");
+    unauditOpen.value = false;
+    reservationGetList();
+  }).finally(() => {
+    unauditLoading.value = false;
   });
 }
 
@@ -838,8 +900,8 @@ function reservationReset() {
     endTime: null,
     participantCount: null,
     riskLevel: null,
-    status: null,
-    reviewRequired: null,
+    status: "0",
+    reviewRequired: "1",
     remark: null,
     createBy: null,
     createTime: null,

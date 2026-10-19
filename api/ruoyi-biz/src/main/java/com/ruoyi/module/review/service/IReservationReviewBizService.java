@@ -29,4 +29,13 @@ public interface IReservationReviewBizService
      * @return 待审核预约
      */
     public IPage<ReservationView> pagePending(Page<Reservation> page);
+
+    /**
+     * 统一的审核/弃审入口。
+     *
+     * @param reservationId 预约ID
+     * @param action        APPROVE / REJECT / UNAUDIT
+     * @param comment       审核意见或弃审原因
+     */
+    public void updateStatus(Long reservationId, String action, String comment);
 }

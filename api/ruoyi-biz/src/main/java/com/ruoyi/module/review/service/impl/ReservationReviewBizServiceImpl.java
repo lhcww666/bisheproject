@@ -1,11 +1,13 @@
 package com.ruoyi.module.review.service.impl;
 
 import java.util.List;
+import java.util.Date;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
@@ -15,7 +17,9 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.common.service.ModuleDataScopeService;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationCheckStatus;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
+import com.ruoyi.module.reservation.domain.ReservationStatusAction;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
@@ -56,35 +60,82 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
     @Transactional(rollbackFor = Exception.class)
     public void review(Long reservationId, ReservationReviewRequest request)
     {
+        if (request == null || StringUtils.isEmpty(request.getResult()))
+        {
+            throw new ServiceException("请选择审核结果");
+        }
+        String action;
+        if (RESULT_APPROVED.equals(request.getResult()))
+        {
+            action = ReservationStatusAction.APPROVE;
+        }
+        else if (RESULT_REJECTED.equals(request.getResult()))
+        {
+            action = ReservationStatusAction.REJECT;
+        }
+        else
+        {
+            throw new ServiceException("审核结果只能是通过或驳回");
+        }
+        updateStatus(reservationId, action, request.getComment());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStatus(Long reservationId, String action, String comment)
+    {
+        if (reservationId == null)
+        {
+            throw new ServiceException("预约ID不能为空");
+        }
         Reservation reservation = reservationMapper.selectById(reservationId);
         if (reservation == null)
         {
             throw new ServiceException("预约不存在");
         }
-        if (!ReservationStatus.PENDING.equals(reservation.getStatus()))
+        moduleDataScopeService.checkStudentRecordAccess(reservation.getApplicantId());
+
+        if (ReservationStatusAction.UNAUDIT.equals(action))
+        {
+            if (!ReservationStatus.APPROVED.equals(reservation.getStatus())
+                    || !ReservationCheckStatus.HAD_CHECKED.equals(reservation.getCheckStatus()))
+            {
+                throw new ServiceException("只有已审核通过的预约可以弃审");
+            }
+            if (reservation.getStartTime() != null && !reservation.getStartTime().after(new Date()))
+            {
+                throw new ServiceException("预约已开始或已结束，不能弃审");
+            }
+            if (StringUtils.isEmpty(comment))
+            {
+                throw new ServiceException("弃审必须填写原因");
+            }
+            QueryWrapper<ReservationReview> reviewQuery = new QueryWrapper<>();
+            reviewQuery.eq("reservation_id", reservationId);
+            reservationReviewMapper.delete(reviewQuery);
+            updateReservationStatus(reservationId, ReservationStatus.PENDING, ReservationCheckStatus.NO_CHECK,
+                    null, null);
+            return;
+        }
+
+        if (!ReservationStatusAction.APPROVE.equals(action) && !ReservationStatusAction.REJECT.equals(action))
+        {
+            throw new ServiceException("审核动作不正确");
+        }
+        if (!ReservationStatus.PENDING.equals(reservation.getStatus())
+                || ReservationCheckStatus.HAD_CHECKED.equals(reservation.getCheckStatus()))
         {
             throw new ServiceException("该预约不是待审核状态，不能重复审核");
-        }
-        moduleDataScopeService.checkStudentRecordAccess(reservation.getApplicantId());
-        if (request == null || StringUtils.isEmpty(request.getResult()))
-        {
-            throw new ServiceException("请选择审核结果");
-        }
-        boolean approved = RESULT_APPROVED.equals(request.getResult());
-        boolean rejected = RESULT_REJECTED.equals(request.getResult());
-        if (!approved && !rejected)
-        {
-            throw new ServiceException("审核结果只能是通过或驳回");
-        }
-        if (rejected && StringUtils.isEmpty(request.getComment()))
-        {
-            throw new ServiceException("驳回预约时必须填写审核意见");
         }
         if (reservation.getApplicantId() != null && reservation.getApplicantId().equals(SecurityUtils.getUserId()))
         {
             throw new ServiceException("不能审核本人提交的预约，请由其他教师或管理员处理");
         }
-        if (approved)
+        if (ReservationStatusAction.REJECT.equals(action) && StringUtils.isEmpty(comment))
+        {
+            throw new ServiceException("驳回预约时必须填写审核意见");
+        }
+        if (ReservationStatusAction.APPROVE.equals(action))
         {
             // 等待审核期间时段可能已被其它已通过的预约占用，通过前必须再校验一次
             reservationRuleService.checkApprovedConflict(reservation.getRoomId(), reservation.getStartTime(),
@@ -94,15 +145,36 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
         ReservationReview review = new ReservationReview();
         review.setReservationId(reservationId);
         review.setReviewerId(SecurityUtils.getUserId());
-        review.setResult(request.getResult());
-        review.setReviewComment(request.getComment());
+        review.setResult(ReservationStatusAction.APPROVE.equals(action) ? RESULT_APPROVED : RESULT_REJECTED);
+        review.setReviewComment(comment);
         review.setReviewTime(DateUtils.getNowDate());
+        review.setCreateBy(SecurityUtils.getUsername());
+        review.setCreateTime(DateUtils.getNowDate());
         reservationReviewMapper.insert(review);
 
-        reservation.setStatus(approved ? ReservationStatus.APPROVED : ReservationStatus.REJECTED);
-        reservation.setUpdateBy(SecurityUtils.getUsername());
-        reservation.setUpdateTime(DateUtils.getNowDate());
-        reservationMapper.updateById(reservation);
+        String checkName = SecurityUtils.getLoginUser().getUser().getNickName();
+        if (StringUtils.isEmpty(checkName))
+        {
+            checkName = SecurityUtils.getUsername();
+        }
+        String newStatus = ReservationStatusAction.APPROVE.equals(action)
+                ? ReservationStatus.APPROVED : ReservationStatus.REJECTED;
+        updateReservationStatus(reservationId, newStatus, ReservationCheckStatus.HAD_CHECKED, checkName,
+                DateUtils.getNowDate());
+    }
+
+    private void updateReservationStatus(Long reservationId, String status, String checkStatus, String checkName,
+            Date checkDate)
+    {
+        LambdaUpdateWrapper<Reservation> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Reservation::getId, reservationId)
+                .set(Reservation::getStatus, status)
+                .set(Reservation::getCheckStatus, checkStatus)
+                .set(Reservation::getCheckName, checkName)
+                .set(Reservation::getCheckDate, checkDate)
+                .set(Reservation::getUpdateBy, SecurityUtils.getUsername())
+                .set(Reservation::getUpdateTime, DateUtils.getNowDate());
+        reservationMapper.update(null, updateWrapper);
     }
 
     @Override

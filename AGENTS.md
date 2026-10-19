@@ -152,7 +152,7 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 - `02` 必须在“导入表”之后执行，`01` 必须在“生成代码”之前执行，否则包路径、字典绑定会回到默认值。
 - 每次重新导入表后，`01` 和 `02` 都要重跑；菜单 SQL 生成后要再执行一次 `00-module-menu-directory.sql`，否则菜单会落回“系统工具”目录。
 - 生成器配置口径：模块名 `module`、包路径 `com.ruoyi.module`、模板类型 `element-plus`、作者 `itjialu`。
-- 实验室准入与班级预约相关脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`，两者均可重复执行。
+- 实验室准入、班级预约与审核状态脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`，均可重复执行。
 
 ## 七、编码约定
 

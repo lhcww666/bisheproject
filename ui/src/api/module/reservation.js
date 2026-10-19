@@ -86,10 +86,10 @@ export function getMyClassRepresentative() {
   })
 }
 
-// 教师审核预约（通过/驳回）
-export function reviewReservation(id, data) {
+// 统一审核/弃审：action=APPROVE / REJECT / UNAUDIT
+export function updateReservationStatus(data) {
   return request({
-    url: '/module/reservation/review/' + id,
+    url: '/module/reservation/updateStatus',
     method: 'post',
     data: data
   })

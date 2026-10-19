@@ -164,6 +164,9 @@ public class ReservationViewAssembler
             view.setClassDeptName(classDeptNameMap.get(reservation.getClassDeptId()));
             view.setRiskLevel(reservation.getRiskLevel());
             view.setStatus(reservation.getStatus());
+            view.setCheckStatus(reservation.getCheckStatus());
+            view.setCheckName(reservation.getCheckName());
+            view.setCheckDate(reservation.getCheckDate());
             view.setReviewRequired(reservation.getReviewRequired());
             view.setRemark(reservation.getRemark());
             view.setCreateBy(reservation.getCreateBy());
