@@ -1,5 +1,5 @@
 <template>
-  <component v-if="pageComponent" :is="pageComponent" />
+  <component v-if="pageComponent" :is="pageComponent" :key="route.fullPath" />
   <el-result
     v-else
     icon="warning"
