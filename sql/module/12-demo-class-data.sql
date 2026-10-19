@@ -5,6 +5,20 @@
 USE bishe_schema;
 SET NAMES utf8mb4 COLLATE utf8mb4_general_ci;
 
+-- 兼容旧演示账号：把 stu201... 改成按班级顺序的 101...
+UPDATE IGNORE sys_user SET user_name = '101' WHERE user_name = 'stu201';
+UPDATE IGNORE sys_user SET user_name = '102' WHERE user_name = 'stu202';
+UPDATE IGNORE sys_user SET user_name = '103' WHERE user_name = 'stu203';
+UPDATE IGNORE sys_user SET user_name = '201' WHERE user_name = 'stu301';
+UPDATE IGNORE sys_user SET user_name = '202' WHERE user_name = 'stu302';
+UPDATE IGNORE sys_user SET user_name = '203' WHERE user_name = 'stu303';
+UPDATE IGNORE sys_user SET user_name = '301' WHERE user_name = 'stu311';
+UPDATE IGNORE sys_user SET user_name = '302' WHERE user_name = 'stu312';
+UPDATE IGNORE sys_user SET user_name = '303' WHERE user_name = 'stu313';
+UPDATE IGNORE sys_user SET user_name = 't101' WHERE user_name = 'teacher201';
+UPDATE IGNORE sys_user SET user_name = 't201' WHERE user_name = 'teacher301';
+UPDATE IGNORE sys_user SET user_name = 't301' WHERE user_name = 'teacher302';
+
 -- 1. 部门/班级
 DROP PROCEDURE IF EXISTS db_demo_add_dept;
 DELIMITER $$
@@ -23,11 +37,11 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL db_demo_add_dept(200, 100, '0,100', '化学与材料学院', 1, 'teacher201');
-CALL db_demo_add_dept(201, 200, '0,100,200', '化学2401班', 1, 'teacher201');
-CALL db_demo_add_dept(300, 100, '0,100', '信息工程学院', 2, 'teacher301');
-CALL db_demo_add_dept(301, 300, '0,100,300', '计算机2401班', 1, 'teacher301');
-CALL db_demo_add_dept(302, 300, '0,100,300', '软件2401班', 2, 'teacher302');
+CALL db_demo_add_dept(200, 100, '0,100', '化学与材料学院', 1, 't101');
+CALL db_demo_add_dept(201, 200, '0,100,200', '化学2401班', 1, 't101');
+CALL db_demo_add_dept(300, 100, '0,100', '信息工程学院', 2, 't201');
+CALL db_demo_add_dept(301, 300, '0,100,300', '计算机2401班', 1, 't201');
+CALL db_demo_add_dept(302, 300, '0,100,300', '软件2401班', 2, 't301');
 CALL db_demo_add_dept(400, 100, '0,100', '生命科学学院', 3, 'teacher401');
 
 DROP PROCEDURE IF EXISTS db_demo_add_dept;
@@ -53,31 +67,31 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL db_demo_add_user(201, 'stu201', '化学2401张三', @demo_password, '演示学生：化学2401班');
-CALL db_demo_add_user(201, 'stu202', '化学2401李四', @demo_password, '演示学生：化学2401班');
-CALL db_demo_add_user(201, 'stu203', '化学2401王五', @demo_password, '演示学生：化学2401班');
-CALL db_demo_add_user(301, 'stu301', '计算机2401张三', @demo_password, '演示学生：计算机2401班');
-CALL db_demo_add_user(301, 'stu302', '计算机2401李四', @demo_password, '演示学生：计算机2401班');
-CALL db_demo_add_user(301, 'stu303', '计算机2401王五', @demo_password, '演示学生：计算机2401班');
-CALL db_demo_add_user(302, 'stu311', '软件2401张三', @demo_password, '演示学生：软件2401班');
-CALL db_demo_add_user(302, 'stu312', '软件2401李四', @demo_password, '演示学生：软件2401班');
-CALL db_demo_add_user(302, 'stu313', '软件2401王五', @demo_password, '演示学生：软件2401班');
+CALL db_demo_add_user(201, '101', '化学2401张三', @demo_password, '演示学生：化学2401班');
+CALL db_demo_add_user(201, '102', '化学2401李四', @demo_password, '演示学生：化学2401班');
+CALL db_demo_add_user(201, '103', '化学2401王五', @demo_password, '演示学生：化学2401班');
+CALL db_demo_add_user(301, '201', '计算机2401张三', @demo_password, '演示学生：计算机2401班');
+CALL db_demo_add_user(301, '202', '计算机2401李四', @demo_password, '演示学生：计算机2401班');
+CALL db_demo_add_user(301, '203', '计算机2401王五', @demo_password, '演示学生：计算机2401班');
+CALL db_demo_add_user(302, '301', '软件2401张三', @demo_password, '演示学生：软件2401班');
+CALL db_demo_add_user(302, '302', '软件2401李四', @demo_password, '演示学生：软件2401班');
+CALL db_demo_add_user(302, '303', '软件2401王五', @demo_password, '演示学生：软件2401班');
 
-CALL db_demo_add_user(201, 'teacher201', '化学2401教师', @demo_password, '演示教师：化学2401班');
-CALL db_demo_add_user(301, 'teacher301', '计算机2401教师', @demo_password, '演示教师：计算机2401班');
-CALL db_demo_add_user(302, 'teacher302', '软件2401教师', @demo_password, '演示教师：软件2401班');
+CALL db_demo_add_user(201, 't101', '化学2401教师', @demo_password, '演示教师：化学2401班');
+CALL db_demo_add_user(301, 't201', '计算机2401教师', @demo_password, '演示教师：计算机2401班');
+CALL db_demo_add_user(302, 't301', '软件2401教师', @demo_password, '演示教师：软件2401班');
 
 DROP PROCEDURE IF EXISTS db_demo_add_user;
 
 INSERT IGNORE INTO sys_user_role (user_id, role_id)
 SELECT u.user_id, r.role_id
 FROM sys_user u JOIN sys_role r ON r.role_key = 'student'
-WHERE u.user_name IN ('stu201', 'stu202', 'stu203', 'stu301', 'stu302', 'stu303', 'stu311', 'stu312', 'stu313');
+WHERE u.user_name IN ('101', '102', '103', '201', '202', '203', '301', '302', '303');
 
 INSERT IGNORE INTO sys_user_role (user_id, role_id)
 SELECT u.user_id, r.role_id
 FROM sys_user u JOIN sys_role r ON r.role_key = 'teacher'
-WHERE u.user_name IN ('teacher201', 'teacher301', 'teacher302');
+WHERE u.user_name IN ('t101', 't201', 't301');
 
 -- 3. 实验室归属和预约模式
 UPDATE room SET dept_id = 200, reservation_mode = 'RESTRICTED' WHERE room_code = 'A101';
@@ -108,33 +122,33 @@ DELETE FROM class_representative WHERE dept_id = 100 AND remark LIKE '演示%';
 
 INSERT IGNORE INTO class_representative (dept_id, student_id, status, create_by, create_time, remark)
 SELECT 201, u.user_id, '0', 'admin', sysdate(), '演示：化学2401班负责人'
-FROM sys_user u WHERE u.user_name = 'stu201';
+FROM sys_user u WHERE u.user_name = '101';
 
 INSERT IGNORE INTO class_representative (dept_id, student_id, status, create_by, create_time, remark)
 SELECT 301, u.user_id, '0', 'admin', sysdate(), '演示：计算机2401班负责人'
-FROM sys_user u WHERE u.user_name = 'stu301';
+FROM sys_user u WHERE u.user_name = '201';
 
 INSERT IGNORE INTO class_representative (dept_id, student_id, status, create_by, create_time, remark)
 SELECT 302, u.user_id, '0', 'admin', sysdate(), '演示：软件2401班负责人'
-FROM sys_user u WHERE u.user_name = 'stu311';
+FROM sys_user u WHERE u.user_name = '301';
 
 -- 5. 安全考试与初始信用分，保证高风险实验室也能演示
 INSERT INTO safety_exam_record (student_id, score, passed, exam_time, valid_until, create_by, create_time, remark)
 SELECT u.user_id, 92.00, '1', sysdate(), DATE_ADD(sysdate(), INTERVAL 365 DAY), 'demo', sysdate(), 'demo-class-seed'
 FROM sys_user u
-WHERE u.user_name IN ('stu201', 'stu202', 'stu203', 'stu301', 'stu302', 'stu303', 'stu311', 'stu312', 'stu313')
+WHERE u.user_name IN ('101', '102', '103', '201', '202', '203', '301', '302', '303')
   AND NOT EXISTS (SELECT 1 FROM safety_exam_record s WHERE s.student_id = u.user_id AND s.remark = 'demo-class-seed');
 
 INSERT INTO credit_record (user_id, change_score, balance_score, reason, create_by, create_time, remark)
 SELECT u.user_id, 100, 100, '初始信用分', 'demo', sysdate(), 'demo-class-seed'
 FROM sys_user u
-WHERE u.user_name IN ('stu201', 'stu202', 'stu203', 'stu301', 'stu302', 'stu303', 'stu311', 'stu312', 'stu313')
+WHERE u.user_name IN ('101', '102', '103', '201', '202', '203', '301', '302', '303')
   AND NOT EXISTS (SELECT 1 FROM credit_record c WHERE c.user_id = u.user_id);
 
 -- 6. 自检
 SELECT d.dept_id, d.dept_name,
-       SUM(u.user_name LIKE 'stu%') AS student_count,
-       SUM(r.role_key = 'teacher') AS teacher_count
+       COUNT(DISTINCT CASE WHEN r.role_key = 'student' THEN u.user_id END) AS student_count,
+       COUNT(DISTINCT CASE WHEN r.role_key = 'teacher' THEN u.user_id END) AS teacher_count
 FROM sys_dept d
 LEFT JOIN sys_user u ON u.dept_id = d.dept_id
 LEFT JOIN sys_user_role ur ON ur.user_id = u.user_id
