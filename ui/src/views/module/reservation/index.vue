@@ -196,7 +196,14 @@
       <right-toolbar v-model:showSearch="reservationShowSearch" @queryTable="reservationGetList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="reservationLoading" :data="reservationList" @selection-change="reservationHandleSelectionChange" border>
+    <el-table
+      v-loading="reservationLoading"
+      :data="reservationList"
+      :row-class-name="reservationRowClassName"
+      @row-click="handleReservationRowClick"
+      @selection-change="reservationHandleSelectionChange"
+      border
+    >
       <el-table-column v-if="canManage" type="selection" width="55" align="center" />
       <el-table-column label="预约编号" align="center" prop="reservationNo" min-width="170" />
       <el-table-column label="申请人" align="center" min-width="110">
@@ -256,15 +263,8 @@
           <span>{{ scope.row.reviewComment || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="300" label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column v-if="isStudent || canManage || isTeacher" fixed="right" width="260" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button
-            link
-            type="primary"
-            icon="View"
-            @click="openDetail(scope.row)"
-            v-hasPermi="['module:reservation:query']"
-          >详情</el-button>
           <el-button
             v-if="canReview && scope.row.status === '0'"
             link
@@ -829,6 +829,17 @@ function openDetail(row) {
   });
 }
 
+function handleReservationRowClick(row, column) {
+  if (column && (column.type === "selection" || column.label === "操作")) {
+    return;
+  }
+  openDetail(row);
+}
+
+function reservationRowClassName() {
+  return "reservation-clickable-row";
+}
+
 function submitReview() {
   if (!reviewForm.value.result) {
     proxy.$modal.msgError("请选择审核结果");
@@ -1085,5 +1096,8 @@ function reservationImportTemplate() {
   margin: 20px 0 10px;
   font-size: 14px;
   color: #409eff;
+}
+:deep(.reservation-clickable-row) {
+  cursor: pointer;
 }
 </style>
