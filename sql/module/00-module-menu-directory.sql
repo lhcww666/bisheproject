@@ -12,4 +12,5 @@ WHERE NOT EXISTS (SELECT 1 FROM (SELECT * FROM sys_menu) t WHERE t.menu_name = '
 SET @parentMenuId := (SELECT menu_id FROM sys_menu WHERE menu_name = '实验室业务' AND menu_type = 'M' LIMIT 1);
 
 UPDATE sys_menu SET parent_id = @parentMenuId
-WHERE menu_type = 'C' AND (perms LIKE 'module:%:list' OR perms LIKE 'module:%:my');
+WHERE menu_type = 'C' AND (perms LIKE 'module:%:list' OR perms LIKE 'module:%:my')
+  AND perms NOT IN ('module:reservationDevice:list', 'module:reservationReview:list');
