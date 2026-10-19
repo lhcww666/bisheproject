@@ -157,6 +157,48 @@ export const dynamicRoutes = [
         meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
       }
     ]
+  },
+  {
+    path: '/reservationView',
+    component: Layout,
+    hidden: true,
+    permissions: ['module:reservation:query'],
+    children: [
+      {
+        path: ':id',
+        component: () => import('@/views/module/reservation/view'),
+        name: 'ReservationView',
+        meta: { title: '预约详情', activeMenu: '/module/reservation' }
+      }
+    ]
+  },
+  {
+    path: '/reservationAdd',
+    component: Layout,
+    hidden: true,
+    permissions: ['module:reservation:apply', 'module:reservation:add'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/module/reservation/add'),
+        name: 'ReservationAdd',
+        meta: { title: '申请预约', activeMenu: '/module/reservation' }
+      }
+    ]
+  },
+  {
+    path: '/reservationEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['module:reservation:edit'],
+    children: [
+      {
+        path: ':id',
+        component: () => import('@/views/module/reservation/edit'),
+        name: 'ReservationEdit',
+        meta: { title: '修改预约', activeMenu: '/module/reservation' }
+      }
+    ]
   }
 ]
 
