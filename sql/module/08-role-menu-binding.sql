@@ -41,6 +41,7 @@ WHERE m.perms IN (
  'module:reservation:my', 'module:reservation:cancel', 'module:reservation:available',
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
  'module:safetyExam:status', 'module:safetyExam:start', 'module:safetyExam:submit',
+ 'module:stats:view',
  'module:creditRecord:list', 'module:creditRecord:query',
  'module:violationRecord:list', 'module:violationRecord:query'
 );
@@ -59,6 +60,7 @@ WHERE m.perms IN (
  'module:device:list', 'module:device:query',
  'module:reservation:list', 'module:reservation:query', 'module:reservation:review',
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
+ 'module:stats:view',
  'module:creditRecord:list', 'module:creditRecord:query',
  'module:violationRecord:list', 'module:violationRecord:query'
 );
