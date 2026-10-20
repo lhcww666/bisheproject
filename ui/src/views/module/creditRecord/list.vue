@@ -17,7 +17,7 @@
       title="教师视图：只展示本人班级学生的信用分流水。"
     />
 
-    <el-card v-if="summary" class="credit-summary" shadow="never">
+    <el-card v-if="summary && isStudent" class="credit-summary" shadow="never">
       <el-row :gutter="20" align="middle">
         <el-col :span="6">
           <div class="summary-label">当前信用分</div>
@@ -195,9 +195,11 @@ watch(() => importRes.value, (val) => {
 
 onMounted(() => {
   creditRecordHandleQuery();
-  getCreditSummary().then(response => {
-    summary.value = response.data || null;
-  });
+  if (isStudent.value) {
+    getCreditSummary().then(response => {
+      summary.value = response.data || null;
+    });
+  }
 });
 
 function creditRecordGetList() {
@@ -256,9 +258,11 @@ function submitAdjust() {
       proxy.$modal.msgSuccess("信用分已调整");
       adjustOpen.value = false;
       creditRecordGetList();
-      getCreditSummary().then(response => {
-        summary.value = response.data || null;
-      });
+      if (isStudent.value) {
+        getCreditSummary().then(response => {
+          summary.value = response.data || null;
+        });
+      }
     }).finally(() => {
       adjustLoading.value = false;
     });
