@@ -56,6 +56,18 @@ private static final long serialVersionUID = 1L;
             @Size(min = 0, max = 200, message = "变动原因长度不能超过200个字符")
         private String reason;
 
+            /** 关联业务类型：RESERVATION/VIOLATION/EXAM */
+                @Excel(name = "业务类型" )
+        public static final String BIZTYPE = "biz_type";
+            @TableField(value = BIZTYPE)
+        private String bizType;
+
+            /** 关联业务主键 */
+                @Excel(name = "业务ID" )
+        public static final String BIZID = "biz_id";
+            @TableField(value = BIZID)
+        private Long bizId;
+
             /** 学生姓名/账号/班级，仅用于列表展示 */
             @Excel(name = "学生姓名" )
             @TableField(exist = false)

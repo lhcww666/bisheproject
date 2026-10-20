@@ -20,8 +20,10 @@ import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationCheckStatus;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.domain.ReservationStatusAction;
+import com.ruoyi.module.reservation.domain.ReservationStatusLog;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
+import com.ruoyi.module.reservation.mapper.ReservationStatusLogMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.reservation.service.impl.ReservationViewAssembler;
 import com.ruoyi.module.review.domain.ReservationReview;
@@ -49,6 +51,8 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
     private final ReservationMapper reservationMapper;
 
     private final ReservationReviewMapper reservationReviewMapper;
+
+    private final ReservationStatusLogMapper reservationStatusLogMapper;
 
     private final IReservationRuleService reservationRuleService;
 
@@ -110,11 +114,10 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
             {
                 throw new ServiceException("弃审必须填写原因");
             }
-            QueryWrapper<ReservationReview> reviewQuery = new QueryWrapper<>();
-            reviewQuery.eq("reservation_id", reservationId);
-            reservationReviewMapper.delete(reviewQuery);
             updateReservationStatus(reservationId, ReservationStatus.PENDING, ReservationCheckStatus.NO_CHECK,
                     null, null);
+            logStatus(reservationId, ReservationStatus.APPROVED, ReservationStatus.PENDING,
+                    ReservationStatusAction.UNAUDIT, comment);
             return;
         }
 
@@ -137,6 +140,10 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
         }
         if (ReservationStatusAction.APPROVE.equals(action))
         {
+            if (reservation.getStartTime() != null && !reservation.getStartTime().after(new Date()))
+            {
+                throw new ServiceException("预约已开始或已结束，不能审核通过");
+            }
             // 等待审核期间时段可能已被其它已通过的预约占用，通过前必须再校验一次
             reservationRuleService.checkApprovedConflict(reservation.getRoomId(), reservation.getStartTime(),
                     reservation.getEndTime(), reservation.getId());
@@ -161,6 +168,7 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
                 ? ReservationStatus.APPROVED : ReservationStatus.REJECTED;
         updateReservationStatus(reservationId, newStatus, ReservationCheckStatus.HAD_CHECKED, checkName,
                 DateUtils.getNowDate());
+        logStatus(reservationId, ReservationStatus.PENDING, newStatus, action, comment);
     }
 
     private void updateReservationStatus(Long reservationId, String status, String checkStatus, String checkName,
@@ -188,5 +196,19 @@ public class ReservationReviewBizServiceImpl implements IReservationReviewBizSer
         Page<ReservationView> viewPage = new Page<>(pageData.getCurrent(), pageData.getSize(), pageData.getTotal());
         viewPage.setRecords(reservationViewAssembler.assemble(pageData.getRecords()));
         return viewPage;
+    }
+
+    private void logStatus(Long reservationId, String fromStatus, String toStatus, String action, String reason)
+    {
+        ReservationStatusLog log = new ReservationStatusLog();
+        log.setReservationId(reservationId);
+        log.setFromStatus(fromStatus);
+        log.setToStatus(toStatus);
+        log.setAction(action);
+        log.setOperatorId(SecurityUtils.getUserId());
+        log.setOperatorName(SecurityUtils.getUsername());
+        log.setReason(reason);
+        log.setCreateTime(DateUtils.getNowDate());
+        reservationStatusLogMapper.insert(log);
     }
 }

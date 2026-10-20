@@ -15,7 +15,7 @@
 
 实施节奏是“业务系统先行，AI 后接入”：先把实验室、设备、预约、审核、安全考试、信用分的业务闭环做通，再把已有后端能力封装成受控工具交给 Agent 调用。不要为了演示 AI 而跳过业务规则。
 
-当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、资格校验、Agent 工具层与 RAG 知识库尚未实现，属于后续需求。
+当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录已实现；安全考试题库与在线答题、统计看板、Agent 工具层与 RAG 知识库尚未实现，属于后续需求。
 
 ## 二、技术栈与版本
 

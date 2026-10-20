@@ -17,6 +17,25 @@
       title="教师视图：只展示本人班级学生的信用分流水。"
     />
 
+    <el-card v-if="summary" class="credit-summary" shadow="never">
+      <el-row :gutter="20" align="middle">
+        <el-col :span="6">
+          <div class="summary-label">当前信用分</div>
+          <div class="summary-value" :class="{ danger: !summary.canBook }">{{ summary.score }}</div>
+        </el-col>
+        <el-col :span="6">
+          <div class="summary-label">预约门槛</div>
+          <div class="summary-value">{{ summary.minScore }} 分</div>
+        </el-col>
+        <el-col :span="12">
+          <div class="summary-label">预约资格</div>
+          <el-tag :type="summary.canBook ? 'success' : 'danger'">
+            {{ summary.canBook ? '可以提交预约' : '信用分不足，暂不能预约' }}
+          </el-tag>
+        </el-col>
+      </el-row>
+    </el-card>
+
     <el-form @submit.prevent :model="creditRecordQueryParams" ref="creditRecordQueryRef" :inline="true" v-show="creditRecordShowSearch" label-width="auto">
       <el-form-item label="创建时间">
         <el-date-picker
@@ -48,6 +67,9 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
+      <el-col v-if="canManage" :span="1.5">
+        <el-button type="primary" plain icon="Edit" @click="openAdjust" v-hasPermi="['module:creditRecord:adjust']">调整信用分</el-button>
+      </el-col>
       <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="creditRecordHandleExport" v-hasPermi="['module:creditRecord:export']">导出</el-button>
       </el-col>
@@ -97,11 +119,29 @@
       v-model:limit="creditRecordQueryParams.pageSize"
       @pagination="creditRecordGetList"
     />
+
+    <el-dialog title="调整信用分" v-model="adjustOpen" width="520px" append-to-body destroy-on-close>
+      <el-form ref="adjustRef" :model="adjustForm" :rules="adjustRules" label-width="90px">
+        <el-form-item label="学生ID" prop="userId">
+          <el-input v-model="adjustForm.userId" placeholder="请输入 sys_user.user_id" />
+        </el-form-item>
+        <el-form-item label="变动分值" prop="changeScore">
+          <el-input-number v-model="adjustForm.changeScore" :min="-20" :max="20" :step="1" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="调整原因" prop="reason">
+          <el-input v-model="adjustForm.reason" type="textarea" :rows="3" placeholder="请填写调整依据" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button type="primary" :loading="adjustLoading" @click="submitAdjust">确定</el-button>
+        <el-button @click="adjustOpen = false">取消</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="CreditRecordList">
-import { listCreditRecord } from "@/api/module/creditRecord";
+import { listCreditRecord, getCreditSummary, adjustCredit } from "@/api/module/creditRecord";
 import useUserStore from "@/store/modules/user";
 
 const dateRange = ref([]);
@@ -117,6 +157,7 @@ const isTeacher = computed(() =>
   (userStore.roles || []).includes("teacher") &&
   !(userStore.roles || []).includes("admin")
 );
+const canManage = computed(() => !isStudent.value && !isTeacher.value);
 
 const creditRecordPageBase = "/business/module/creditRecord";
 const importRes = ref(null);
@@ -124,6 +165,16 @@ const creditRecordList = ref([]);
 const creditRecordLoading = ref(true);
 const creditRecordShowSearch = ref(true);
 const creditRecordTotal = ref(0);
+const summary = ref(null);
+const adjustOpen = ref(false);
+const adjustLoading = ref(false);
+const adjustRef = ref(null);
+const adjustForm = reactive({ userId: null, changeScore: -5, reason: null });
+const adjustRules = {
+  userId: [{ required: true, message: "学生ID不能为空", trigger: "blur" }],
+  changeScore: [{ required: true, message: "变动分值不能为空", trigger: "change" }],
+  reason: [{ required: true, message: "调整原因不能为空", trigger: "blur" }]
+};
 const creditRecordData = reactive({
   creditRecordQueryParams: {
     pageNum: 1,
@@ -142,7 +193,12 @@ watch(() => importRes.value, (val) => {
   }
 }, { deep: true });
 
-onMounted(() => creditRecordHandleQuery());
+onMounted(() => {
+  creditRecordHandleQuery();
+  getCreditSummary().then(response => {
+    summary.value = response.data || null;
+  });
+});
 
 function creditRecordGetList() {
   creditRecordLoading.value = true;
@@ -182,9 +238,39 @@ function creditRecordHandleExport() {
 function creditRecordImportTemplate() {
   proxy.download("module/creditRecord/importTemplate", {}, `信用分流水_${new Date().getTime()}.xlsx`);
 }
+
+function openAdjust() {
+  Object.assign(adjustForm, { userId: null, changeScore: -5, reason: null });
+  adjustOpen.value = true;
+}
+
+function submitAdjust() {
+  adjustRef.value.validate(valid => {
+    if (!valid) return;
+    adjustLoading.value = true;
+    adjustCredit({
+      userId: Number(adjustForm.userId),
+      changeScore: adjustForm.changeScore,
+      reason: adjustForm.reason
+    }).then(() => {
+      proxy.$modal.msgSuccess("信用分已调整");
+      adjustOpen.value = false;
+      creditRecordGetList();
+      getCreditSummary().then(response => {
+        summary.value = response.data || null;
+      });
+    }).finally(() => {
+      adjustLoading.value = false;
+    });
+  });
+}
 </script>
 
 <style lang="scss" scoped>
 .scope-tip { margin-bottom: 12px; }
+.credit-summary { margin-bottom: 12px; }
+.summary-label { color: #909399; font-size: 13px; margin-bottom: 4px; }
+.summary-value { font-size: 22px; font-weight: 600; color: #303133; }
+.summary-value.danger { color: #f56c6c; }
 :deep(.credit-record-clickable-row) { cursor: pointer; }
 </style>

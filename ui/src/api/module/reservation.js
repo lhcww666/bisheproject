@@ -68,6 +68,31 @@ export function cancelReservation(id) {
   })
 }
 
+// 学生签到
+export function checkInReservation(id) {
+  return request({
+    url: '/module/reservation/' + id + '/check-in',
+    method: 'post'
+  })
+}
+
+// 结束实验
+export function finishReservation(id, data) {
+  return request({
+    url: '/module/reservation/' + id + '/finish',
+    method: 'post',
+    data: data || {}
+  })
+}
+
+// 查询预约状态变更历史
+export function getReservationStatusLog(id) {
+  return request({
+    url: '/module/reservation/' + id + '/status-log',
+    method: 'get'
+  })
+}
+
 // 查询指定时段可用实验室
 export function listAvailableRooms(params) {
   return request({

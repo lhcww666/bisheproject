@@ -33,7 +33,9 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationStatusRequest;
+import com.ruoyi.module.reservation.domain.ReservationFinishRequest;
 import com.ruoyi.module.reservation.domain.ReservationView;
+import com.ruoyi.module.reservation.service.IReservationLifecycleService;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.common.service.ModuleDataScopeService;
@@ -54,6 +56,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 @RequiredArgsConstructor
 public class ReservationController extends BaseController {
     private final IReservationService reservationService;
+    private final IReservationLifecycleService reservationLifecycleService;
     private final IReservationReviewBizService reservationReviewBizService;
     private final ModuleDataScopeService moduleDataScopeService;
     private final IClassRepresentativeService classRepresentativeService;
@@ -205,6 +208,51 @@ public class ReservationController extends BaseController {
     @PostMapping("/{id}/cancel")
     public AjaxResult cancel(@PathVariable("id") Long id) {
         return toAjax(reservationService.cancelReservation(id));
+    }
+
+    /**
+     * 学生签到。后端校验预约状态和签到时间窗口。
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:apply')")
+    @Log(title = "实验室预约", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/check-in")
+    public AjaxResult checkIn(@PathVariable("id") Long id) {
+        reservationLifecycleService.checkIn(id);
+        return success();
+    }
+
+    /**
+     * 结束实验。只有已签到的预约可以结束。
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:apply')")
+    @Log(title = "实验室预约", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/finish")
+    public AjaxResult finish(@PathVariable("id") Long id,
+            @RequestBody(required = false) ReservationFinishRequest request) {
+        Long actualCount = request == null ? null : request.getActualParticipantCount();
+        String remark = request == null ? null : request.getRemark();
+        reservationLifecycleService.finish(id, actualCount, remark);
+        return success();
+    }
+
+    /**
+     * 管理员手动标记爽约，定时任务也会自动处理。
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:review')")
+    @Log(title = "实验室预约", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/no-show")
+    public AjaxResult noShow(@PathVariable("id") Long id) {
+        reservationLifecycleService.markNoShow(id);
+        return success();
+    }
+
+    /**
+     * 预约状态变更历史。
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:query')")
+    @GetMapping("/{id}/status-log")
+    public AjaxResult statusLog(@PathVariable("id") Long id) {
+        return success(reservationLifecycleService.listStatusLogs(id));
     }
 
     /**

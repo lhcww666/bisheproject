@@ -17,6 +17,23 @@ export function getCreditRecord(id) {
   })
 }
 
+// 当前用户信用分摘要
+export function getCreditSummary() {
+  return request({
+    url: '/module/creditRecord/summary',
+    method: 'get'
+  })
+}
+
+// 管理员调整信用分
+export function adjustCredit(data) {
+  return request({
+    url: '/module/creditRecord/adjust',
+    method: 'post',
+    data: data
+  })
+}
+
 // 新增信用分流水
 export function addCreditRecord(data) {
   return request({

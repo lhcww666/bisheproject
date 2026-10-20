@@ -25,9 +25,12 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.module.credit.domain.CreditRecord;
+import com.ruoyi.module.credit.domain.CreditAdjustRequest;
+import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.credit.service.ICreditRecordService;
 import com.ruoyi.module.credit.mapper.CreditRecordMapper;
 import com.ruoyi.module.common.service.ModuleDataScopeService;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
@@ -42,6 +45,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 @RequiredArgsConstructor
 public class CreditRecordController extends BaseController {
     private final ICreditRecordService creditRecordService;
+    private final ICreditService creditService;
     private final ModuleDataScopeService moduleDataScopeService;
     // private final CreditRecordMapper creditRecordMapper;
 
@@ -55,6 +59,29 @@ public class CreditRecordController extends BaseController {
         moduleDataScopeService.applyStudentRecordScope(queryWrapper, "user_id");
         IPage<CreditRecord> page = creditRecordService.pageCreditRecord(getPage(), queryWrapper);
         return getDataTableByPage(page);
+    }
+
+    /**
+     * 当前用户信用分摘要，供学生端信用分页面和预约页使用。
+     */
+    @PreAuthorize("@ss.hasPermi('module:creditRecord:list')")
+    @GetMapping("/summary")
+    public AjaxResult summary() {
+        return success(creditService.getSummary(SecurityUtils.getUserId()));
+    }
+
+    /**
+     * 管理员手工调整信用分。
+     */
+    @PreAuthorize("@ss.hasPermi('module:creditRecord:adjust')")
+    @Log(title = "信用分", businessType = BusinessType.UPDATE)
+    @PostMapping("/adjust")
+    public AjaxResult adjust(@Validated @RequestBody CreditAdjustRequest request) {
+        int score = creditService.changeScore(request.getUserId(), request.getChangeScore(), request.getReason(),
+                "ADJUST", null);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.putOpt("score", score);
+        return success(jsonObject);
     }
 
     /**

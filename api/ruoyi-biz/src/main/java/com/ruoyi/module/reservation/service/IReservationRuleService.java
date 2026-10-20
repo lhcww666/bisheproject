@@ -26,6 +26,14 @@ public interface IReservationRuleService
     public Room checkApply(Long userId, Reservation reservation);
 
     /**
+     * 管理员新增/修改预约时的核心校验：时间、实验室状态、容量、开放时段和冲突。
+     * 不校验学生准入、信用分和考试，因为管理员是在代学生维护数据。
+     *
+     * @param reservation 预约
+     */
+    public void checkAdminReservation(Reservation reservation);
+
+    /**
      * 校验预约是否可以取消
      *
      * @param reservation 预约

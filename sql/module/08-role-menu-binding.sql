@@ -40,7 +40,8 @@ WHERE m.perms IN (
  'module:reservation:list', 'module:reservation:query', 'module:reservation:apply',
  'module:reservation:my', 'module:reservation:cancel', 'module:reservation:available',
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
- 'module:creditRecord:list', 'module:creditRecord:query'
+ 'module:creditRecord:list', 'module:creditRecord:query',
+ 'module:violationRecord:list', 'module:violationRecord:query'
 );
 
 -- 3. 教师菜单授权：审核 + 相关资源与资质查看
@@ -57,7 +58,8 @@ WHERE m.perms IN (
  'module:device:list', 'module:device:query',
  'module:reservation:list', 'module:reservation:query', 'module:reservation:review',
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
- 'module:creditRecord:list', 'module:creditRecord:query'
+ 'module:creditRecord:list', 'module:creditRecord:query',
+ 'module:violationRecord:list', 'module:violationRecord:query'
 );
 
 SELECT r.role_id, r.role_name, r.role_key, COUNT(rm.menu_id) AS menu_count

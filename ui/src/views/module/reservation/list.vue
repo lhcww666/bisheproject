@@ -155,6 +155,8 @@
       </el-table-column>
       <el-table-column v-if="isStudent || canManage" fixed="right" width="260" label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button v-if="isStudent && scope.row.status === '1'" link type="success" icon="Checked" @click="handleCheckIn(scope.row)" v-hasPermi="['module:reservation:apply']">签到</el-button>
+          <el-button v-if="isStudent && scope.row.status === '5'" link type="primary" icon="Finished" @click="handleFinish(scope.row)" v-hasPermi="['module:reservation:apply']">结束实验</el-button>
           <el-button v-if="isStudent && canCancel(scope.row)" link type="danger" icon="CircleClose" @click="handleCancel(scope.row)" v-hasPermi="['module:reservation:cancel']">取消预约</el-button>
           <el-button v-if="canManage" link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['module:reservation:edit']">修改</el-button>
           <el-button v-if="canManage" link type="primary" icon="Delete" @click="reservationHandleDelete(scope.row)" v-hasPermi="['module:reservation:remove']">删除</el-button>
@@ -173,7 +175,7 @@
 </template>
 
 <script setup name="ReservationList">
-import { listReservation, delReservation, cancelReservation } from "@/api/module/reservation";
+import { listReservation, delReservation, cancelReservation, checkInReservation, finishReservation } from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 
 const dateRange = ref([]);
@@ -250,6 +252,27 @@ function handleUpdate(row) {
 function handleCancel(row) {
   proxy.$modal.confirm('是否确认取消预约“' + row.reservationNo + '”？').then(() => cancelReservation(row.id)).then(() => {
     proxy.$modal.msgSuccess("预约已取消");
+    reservationGetList();
+  }).catch(() => {});
+}
+
+function handleCheckIn(row) {
+  proxy.$modal.confirm('确认签到实验室预约“' + row.reservationNo + '”吗？').then(() => checkInReservation(row.id)).then(() => {
+    proxy.$modal.msgSuccess("签到成功");
+    reservationGetList();
+  }).catch(() => {});
+}
+
+function handleFinish(row) {
+  proxy.$modal.prompt('请输入实际参与人数', '结束实验').then(({ value }) => {
+    const actualCount = Number(value);
+    if (!actualCount || actualCount < 1) {
+      proxy.$modal.msgError("实际参与人数必须大于 0");
+      return Promise.reject();
+    }
+    return finishReservation(row.id, { actualParticipantCount: actualCount });
+  }).then(() => {
+    proxy.$modal.msgSuccess("实验已结束，信用分已按规则更新");
     reservationGetList();
   }).catch(() => {});
 }

@@ -128,6 +128,40 @@ private static final long serialVersionUID = 1L;
             @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
         private Date checkDate;
 
+            /** 签到时间 */
+                @Excel(name = "签到时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
+        public static final String CHECKINTIME = "check_in_time";
+            @TableField(value = CHECKINTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+        private Date checkInTime;
+
+            /** 实验完成时间 */
+                @Excel(name = "完成时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
+        public static final String FINISHTIME = "finish_time";
+            @TableField(value = FINISHTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+        private Date finishTime;
+
+            /** 实际参与人数 */
+                @Excel(name = "实际参与人数" )
+        public static final String ACTUALPARTICIPANTCOUNT = "actual_participant_count";
+            @TableField(value = ACTUALPARTICIPANTCOUNT)
+        private Long actualParticipantCount;
+
+            /** 取消时间 */
+                @Excel(name = "取消时间" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
+        public static final String CANCELTIME = "cancel_time";
+            @TableField(value = CANCELTIME)
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss" )
+        private Date cancelTime;
+
+            /** 取消原因 */
+                @Excel(name = "取消原因" )
+        public static final String CANCELREASON = "cancel_reason";
+            @TableField(value = CANCELREASON)
+            @Size(min = 0, max = 500, message = "取消原因长度不能超过500个字符")
+        private String cancelReason;
+
             /** 是否需要审核 */
                 @Excel(name = "是否需要审核" , dictType = "module_yes_no" )
         public static final String REVIEWREQUIRED = "review_required";

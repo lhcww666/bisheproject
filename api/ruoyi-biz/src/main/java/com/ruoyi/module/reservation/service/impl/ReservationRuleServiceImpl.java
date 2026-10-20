@@ -15,8 +15,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.classrep.service.IClassRepresentativeService;
-import com.ruoyi.module.credit.domain.CreditRecord;
-import com.ruoyi.module.credit.mapper.CreditRecordMapper;
+import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.domain.ReservationType;
@@ -49,9 +48,6 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
     /** 允许预约的最低信用分 */
     private static final long MIN_CREDIT_SCORE = 60L;
 
-    /** 没有信用分流水时使用的初始信用分 */
-    private static final long DEFAULT_CREDIT_SCORE = 100L;
-
     /** 达到该安全等级（含）的实验室需要安全考试与教师审核 */
     private static final long REVIEW_SAFETY_LEVEL = 2L;
 
@@ -69,7 +65,7 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
 
     private final SafetyExamRecordMapper safetyExamRecordMapper;
 
-    private final CreditRecordMapper creditRecordMapper;
+    private final ICreditService creditService;
 
     @Override
     public Room checkApply(Long userId, Reservation reservation)
@@ -124,22 +120,67 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
         {
             throw new ServiceException("只能取消本人提交的预约");
         }
-        if (!ReservationStatus.isOccupied(reservation.getStatus()))
+        if (!ReservationStatus.PENDING.equals(reservation.getStatus())
+                && !ReservationStatus.APPROVED.equals(reservation.getStatus()))
         {
             throw new ServiceException("当前状态不允许取消，只有待审核或已通过的预约可以取消");
         }
+        if (reservation.getStartTime() != null && !reservation.getStartTime().after(new Date()))
+        {
+            throw new ServiceException("预约已开始，不能取消");
+        }
+    }
+
+    @Override
+    public void checkAdminReservation(Reservation reservation)
+    {
+        if (reservation == null)
+        {
+            throw new ServiceException("预约信息不能为空");
+        }
+        if (reservation.getRoomId() == null)
+        {
+            throw new ServiceException("请选择实验室");
+        }
+        if (reservation.getApplicantId() == null)
+        {
+            throw new ServiceException("请选择申请人");
+        }
+        if (StringUtils.isEmpty(reservation.getExperimentName()))
+        {
+            throw new ServiceException("请填写实验名称");
+        }
+        if (reservation.getParticipantCount() == null || reservation.getParticipantCount() < 1L)
+        {
+            throw new ServiceException("参与人数必须大于 0");
+        }
+        checkTimeRange(reservation.getStartTime(), reservation.getEndTime());
+        Room room = roomMapper.selectById(reservation.getRoomId());
+        if (room == null)
+        {
+            throw new ServiceException("实验室不存在");
+        }
+        if (!ROOM_STATUS_NORMAL.equals(room.getStatus()))
+        {
+            throw new ServiceException("实验室当前不可预约（维护中或已停用）");
+        }
+        checkCapacity(room, reservation.getParticipantCount());
+        checkOpenTime(room, reservation.getStartTime(), reservation.getEndTime());
+        checkConflict(room.getId(), reservation.getStartTime(), reservation.getEndTime(), reservation.getId());
     }
 
     @Override
     public void checkConflict(Long roomId, Date startTime, Date endTime, Long excludeId)
     {
-        checkConflict(roomId, startTime, endTime, excludeId, ReservationStatus.PENDING, ReservationStatus.APPROVED);
+        checkConflict(roomId, startTime, endTime, excludeId, ReservationStatus.PENDING, ReservationStatus.APPROVED,
+                ReservationStatus.CHECKED_IN);
     }
 
     @Override
     public void checkApprovedConflict(Long roomId, Date startTime, Date endTime, Long excludeId)
     {
-        checkConflict(roomId, startTime, endTime, excludeId, ReservationStatus.APPROVED);
+        checkConflict(roomId, startTime, endTime, excludeId, ReservationStatus.APPROVED,
+                ReservationStatus.CHECKED_IN);
     }
 
     private void checkConflict(Long roomId, Date startTime, Date endTime, Long excludeId, String... statuses)
@@ -240,16 +281,7 @@ public class ReservationRuleServiceImpl implements IReservationRuleService
      */
     public long currentCreditScore(Long userId)
     {
-        QueryWrapper<CreditRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_id", userId);
-        queryWrapper.orderByDesc("id");
-        queryWrapper.last("limit 1");
-        List<CreditRecord> records = creditRecordMapper.selectList(queryWrapper);
-        if (records.isEmpty() || records.get(0).getBalanceScore() == null)
-        {
-            return DEFAULT_CREDIT_SCORE;
-        }
-        return records.get(0).getBalanceScore();
+        return creditService.currentScore(userId);
     }
 
     private void checkTimeRange(Date startTime, Date endTime)

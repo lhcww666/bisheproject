@@ -13,11 +13,14 @@ import org.springframework.stereotype.Component;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationCheckStatus;
 import com.ruoyi.module.reservation.domain.ReservationDevice;
 import com.ruoyi.module.reservation.domain.ReservationDeviceView;
 import com.ruoyi.module.reservation.domain.ReservationReviewView;
+import com.ruoyi.module.reservation.domain.ReservationStatusLog;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.mapper.ReservationDeviceMapper;
+import com.ruoyi.module.reservation.mapper.ReservationStatusLogMapper;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.review.domain.ReservationReview;
 import com.ruoyi.module.review.mapper.ReservationReviewMapper;
@@ -46,6 +49,8 @@ public class ReservationViewAssembler
     private final ReservationReviewMapper reservationReviewMapper;
 
     private final ReservationDeviceMapper reservationDeviceMapper;
+
+    private final ReservationStatusLogMapper reservationStatusLogMapper;
 
     private final DeviceMapper deviceMapper;
 
@@ -169,6 +174,11 @@ public class ReservationViewAssembler
             view.setCheckStatus(reservation.getCheckStatus());
             view.setCheckName(reservation.getCheckName());
             view.setCheckDate(reservation.getCheckDate());
+            view.setCheckInTime(reservation.getCheckInTime());
+            view.setFinishTime(reservation.getFinishTime());
+            view.setActualParticipantCount(reservation.getActualParticipantCount());
+            view.setCancelTime(reservation.getCancelTime());
+            view.setCancelReason(reservation.getCancelReason());
             view.setReviewRequired(reservation.getReviewRequired());
             view.setRemark(reservation.getRemark());
             view.setCreateBy(reservation.getCreateBy());
@@ -187,7 +197,7 @@ public class ReservationViewAssembler
                 view.setCreditScore(reservationRuleService.currentCreditScore(reservation.getApplicantId()));
             }
             ReservationReview review = reviewMap.get(reservation.getId());
-            if (review != null)
+            if (review != null && ReservationCheckStatus.HAD_CHECKED.equals(reservation.getCheckStatus()))
             {
                 view.setReviewResult(review.getResult());
                 view.setReviewComment(review.getReviewComment());
@@ -261,6 +271,10 @@ public class ReservationViewAssembler
             reviewViews.add(reviewView);
         }
         view.setReviewList(reviewViews);
+
+        QueryWrapper<ReservationStatusLog> statusLogQuery = new QueryWrapper<>();
+        statusLogQuery.eq("reservation_id", reservation.getId()).orderByAsc("id");
+        view.setStatusLogList(reservationStatusLogMapper.selectList(statusLogQuery));
         return view;
     }
 }

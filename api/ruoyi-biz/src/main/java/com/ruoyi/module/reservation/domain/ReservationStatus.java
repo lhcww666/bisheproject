@@ -22,15 +22,21 @@ public final class ReservationStatus
     /** 已完成 */
     public static final String COMPLETED = "4";
 
+    /** 已签到 */
+    public static final String CHECKED_IN = "5";
+
+    /** 已爽约 */
+    public static final String NO_SHOW = "6";
+
     private ReservationStatus()
     {
     }
 
     /**
-     * 是否为占用实验室时段的有效预约（待审核、已通过）
+     * 是否为占用实验室时段的有效预约（待审核、已通过、已签到）
      */
     public static boolean isOccupied(String status)
     {
-        return PENDING.equals(status) || APPROVED.equals(status);
+        return PENDING.equals(status) || APPROVED.equals(status) || CHECKED_IN.equals(status);
     }
 }

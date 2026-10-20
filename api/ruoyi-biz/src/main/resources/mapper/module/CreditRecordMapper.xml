@@ -10,6 +10,8 @@
             <result property="changeScore" column="change_score"/>
             <result property="balanceScore" column="balance_score"/>
             <result property="reason" column="reason"/>
+            <result property="bizType" column="biz_type"/>
+            <result property="bizId" column="biz_id"/>
             <result property="createTime" column="create_time"/>
     </resultMap>
 </mapper>

@@ -92,7 +92,12 @@
       >
         <el-form-item label="预约编号" prop="reservationNo"><el-input v-model="adminForm.reservationNo" placeholder="请输入预约编号" /></el-form-item>
         <el-form-item label="申请人ID" prop="applicantId"><el-input v-model="adminForm.applicantId" placeholder="请输入申请人用户ID" /></el-form-item>
-        <el-form-item label="实验室ID" prop="roomId"><el-input v-model="adminForm.roomId" placeholder="请输入实验室ID" /></el-form-item>
+        <el-form-item label="实验室ID" prop="roomId"><el-input v-model="adminForm.roomId" placeholder="请输入实验室ID" @change="loadAdminDevices(adminForm.roomId)" /></el-form-item>
+        <el-form-item label="使用设备" prop="deviceIds">
+          <el-select v-model="adminForm.deviceIds" multiple filterable clearable style="width: 100%;" :disabled="!adminForm.roomId" :loading="devicesLoading" placeholder="选择实验室后可挑设备">
+            <el-option v-for="device in availableDevices" :key="device.id" :label="device.deviceName + '（' + device.deviceCode + '）'" :value="device.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="实验名称" prop="experimentName"><el-input v-model="adminForm.experimentName" placeholder="请输入实验名称" /></el-form-item>
         <el-form-item label="开始时间" prop="startTime"><el-date-picker v-model="adminForm.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择开始时间" style="width: 100%;" /></el-form-item>
         <el-form-item label="结束时间" prop="endTime"><el-date-picker v-model="adminForm.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择结束时间" style="width: 100%;" /></el-form-item>
@@ -110,7 +115,7 @@
 </template>
 
 <script setup name="ReservationDetail">
-import { applyReservation, addReservation, getReservation, updateReservation, listAvailableRooms, listAvailableDevices, getMyClassRepresentative } from "@/api/module/reservation";
+import { applyReservation, addReservation, getReservationDetail, updateReservation, listAvailableRooms, listAvailableDevices, getMyClassRepresentative } from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 
 const props = defineProps({
@@ -167,6 +172,7 @@ const adminForm = reactive({
   endTime: null,
   participantCount: null,
   riskLevel: null,
+  deviceIds: [],
   remark: null
 });
 const adminRules = {
@@ -192,8 +198,14 @@ onMounted(() => {
 
 function loadReservation() {
   loading.value = true;
-  getReservation(route.params.id).then(response => {
-    Object.assign(adminForm, response.data || {});
+  getReservationDetail(route.params.id).then(response => {
+    const detail = response.data || {};
+    const selectedDeviceIds = (detail.deviceList || []).map(item => item.deviceId);
+    Object.assign(adminForm, detail);
+    adminForm.deviceIds = selectedDeviceIds;
+    if (adminForm.roomId) {
+      loadAdminDevices(adminForm.roomId, selectedDeviceIds);
+    }
     if (adminForm.status === "1") {
       proxy.$modal.msgError("该预约已审核通过，请先弃审再修改");
       router.replace("/reservationView/" + adminForm.id);
@@ -237,6 +249,22 @@ function loadDevices(roomId) {
   devicesLoading.value = true;
   listAvailableDevices({ roomId }).then(response => {
     availableDevices.value = response.data || [];
+  }).finally(() => {
+    devicesLoading.value = false;
+  });
+}
+
+function loadAdminDevices(roomId, selectedIds = []) {
+  if (!roomId) {
+    availableDevices.value = [];
+    adminForm.deviceIds = [];
+    return;
+  }
+  devicesLoading.value = true;
+  listAvailableDevices({ roomId }).then(response => {
+    availableDevices.value = response.data || [];
+    const availableIds = new Set(availableDevices.value.map(item => item.id));
+    adminForm.deviceIds = (selectedIds || []).filter(id => availableIds.has(id));
   }).finally(() => {
     devicesLoading.value = false;
   });

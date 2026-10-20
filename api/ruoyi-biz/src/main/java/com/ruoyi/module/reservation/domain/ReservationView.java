@@ -52,4 +52,7 @@ public class ReservationView extends Reservation
 
     /** 审核历史 */
     private List<ReservationReviewView> reviewList;
+
+    /** 预约状态变更历史 */
+    private List<ReservationStatusLog> statusLogList;
 }

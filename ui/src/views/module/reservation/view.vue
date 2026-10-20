@@ -16,6 +16,12 @@
       <el-col v-if="canReview && detail.status === '1' && detail.checkStatus === 'had_checked'" :span="1.5">
         <el-button type="danger" plain icon="RefreshLeft" @click="unauditOpen = true" v-hasPermi="['module:reservation:review']">弃审</el-button>
       </el-col>
+      <el-col v-if="isStudent && detail.status === '1'" :span="1.5">
+        <el-button type="success" plain icon="Checked" @click="handleCheckIn" v-hasPermi="['module:reservation:apply']">签到</el-button>
+      </el-col>
+      <el-col v-if="isStudent && detail.status === '5'" :span="1.5">
+        <el-button type="primary" plain icon="Finished" @click="handleFinish" v-hasPermi="['module:reservation:apply']">结束实验</el-button>
+      </el-col>
       <el-col v-if="canManage && detail.status !== '1'" :span="1.5">
         <el-button type="danger" plain icon="Delete" @click="removeReservation" v-hasPermi="['module:reservation:remove']">删除</el-button>
       </el-col>
@@ -52,6 +58,11 @@
         </el-descriptions-item>
         <el-descriptions-item label="审核人">{{ detail.checkName || '—' }}</el-descriptions-item>
         <el-descriptions-item label="审核时间">{{ formatDate(detail.checkDate) }}</el-descriptions-item>
+        <el-descriptions-item label="签到时间">{{ formatDate(detail.checkInTime) }}</el-descriptions-item>
+        <el-descriptions-item label="完成时间">{{ formatDate(detail.finishTime) }}</el-descriptions-item>
+        <el-descriptions-item label="实际参与人数">{{ detail.actualParticipantCount || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="取消时间">{{ formatDate(detail.cancelTime) }}</el-descriptions-item>
+        <el-descriptions-item label="取消原因">{{ detail.cancelReason || '—' }}</el-descriptions-item>
         <el-descriptions-item label="实验说明" :span="2">{{ detail.remark || '—' }}</el-descriptions-item>
       </el-descriptions>
 
@@ -73,6 +84,19 @@
         <el-table-column label="审核意见" align="center" prop="reviewComment" show-overflow-tooltip />
         <el-table-column label="审核时间" align="center" width="170">
           <template #default="scope">{{ formatDate(scope.row.reviewTime) }}</template>
+        </el-table-column>
+      </el-table>
+
+      <h4 class="detail-section-title">状态变更历史</h4>
+      <el-table :data="detail.statusLogList || []" border size="small" empty-text="暂无状态记录">
+        <el-table-column label="动作" align="center" prop="action" width="140" />
+        <el-table-column label="状态变化" align="center" width="150">
+          <template #default="scope">{{ statusLabel(scope.row.fromStatus) }} → {{ statusLabel(scope.row.toStatus) }}</template>
+        </el-table-column>
+        <el-table-column label="操作人" align="center" prop="operatorName" width="120" />
+        <el-table-column label="说明" align="center" prop="reason" show-overflow-tooltip />
+        <el-table-column label="时间" align="center" width="170">
+          <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
         </el-table-column>
       </el-table>
     </el-card>
@@ -120,7 +144,7 @@
 </template>
 
 <script setup name="ReservationView">
-import { getReservationDetail, updateReservationStatus, delReservation } from "@/api/module/reservation";
+import { getReservationDetail, updateReservationStatus, delReservation, checkInReservation, finishReservation } from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 
 const route = useRoute();
@@ -214,6 +238,32 @@ function removeReservation() {
     proxy.$modal.msgSuccess("删除成功");
     goList();
   }).catch(() => {});
+}
+
+function handleCheckIn() {
+  proxy.$modal.confirm('确认签到实验室预约“' + detail.value.reservationNo + '”吗？').then(() => checkInReservation(detail.value.id)).then(() => {
+    proxy.$modal.msgSuccess("签到成功");
+    loadDetail();
+  }).catch(() => {});
+}
+
+function handleFinish() {
+  proxy.$modal.prompt('请输入实际参与人数', '结束实验').then(({ value }) => {
+    const actualCount = Number(value);
+    if (!actualCount || actualCount < 1) {
+      proxy.$modal.msgError("实际参与人数必须大于 0");
+      return Promise.reject();
+    }
+    return finishReservation(detail.value.id, { actualParticipantCount: actualCount });
+  }).then(() => {
+    proxy.$modal.msgSuccess("实验已结束，信用分已按规则更新");
+    loadDetail();
+  }).catch(() => {});
+}
+
+function statusLabel(value) {
+  const labels = { "0": "待审核", "1": "已通过", "2": "已驳回", "3": "已取消", "4": "已完成", "5": "已签到", "6": "已爽约" };
+  return labels[value] || "—";
 }
 
 function formatDate(value) {
