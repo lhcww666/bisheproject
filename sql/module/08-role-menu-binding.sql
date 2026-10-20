@@ -40,6 +40,7 @@ WHERE m.perms IN (
  'module:reservation:list', 'module:reservation:query', 'module:reservation:apply',
  'module:reservation:my', 'module:reservation:cancel', 'module:reservation:available',
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
+ 'module:safetyExam:status', 'module:safetyExam:start', 'module:safetyExam:submit',
  'module:creditRecord:list', 'module:creditRecord:query',
  'module:violationRecord:list', 'module:violationRecord:query'
 );

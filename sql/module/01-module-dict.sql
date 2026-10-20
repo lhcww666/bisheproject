@@ -29,6 +29,8 @@ INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_cla
  (3, '已驳回', '2', 'module_reservation_status', '', 'danger', 'N', '0', 'admin', sysdate(), ''),
  (4, '已取消', '3', 'module_reservation_status', '', 'info', 'N', '0', 'admin', sysdate(), ''),
  (5, '已完成', '4', 'module_reservation_status', '', 'success', 'N', '0', 'admin', sysdate(), ''),
+ (6, '已签到', '5', 'module_reservation_status', '', 'primary', 'N', '0', 'admin', sysdate(), ''),
+ (7, '已爽约', '6', 'module_reservation_status', '', 'danger', 'N', '0', 'admin', sysdate(), ''),
  (1, '化学实验室', 'CHEMISTRY', 'module_room_type', '', 'primary', 'Y', '0', 'admin', sysdate(), ''),
  (2, '生物实验室', 'BIOLOGY', 'module_room_type', '', 'success', 'N', '0', 'admin', sysdate(), ''),
  (3, '材料实验室', 'MATERIAL', 'module_room_type', '', 'warning', 'N', '0', 'admin', sysdate(), ''),

@@ -67,6 +67,27 @@ private static final long serialVersionUID = 1L;
                 @Excel(name = "有效期至" , width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss" )
         private Date validUntil;
 
+            /** 试卷配置ID */
+            @TableField("config_id")
+        private Long configId;
+
+            /** 试卷编号 */
+            @TableField("paper_no")
+        private String paperNo;
+
+            /** 交卷时间 */
+            @TableField("submit_time")
+            @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        private Date submitTime;
+
+            /** 0进行中，1已提交，2已过期 */
+            @TableField("status")
+        private String status;
+
+            /** 答对题数 */
+            @TableField("correct_count")
+        private Integer correctCount;
+
             /** 学生姓名/账号/班级，仅用于列表展示 */
             @Excel(name = "学生姓名" )
             @TableField(exist = false)
