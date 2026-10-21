@@ -237,6 +237,7 @@ function categoryLabel(value) {
   return {
     EXAM: "安全考试",
     CREDIT: "信用分",
+    ELIGIBILITY: "预约资格",
     MY_RESERVATION: "我的预约",
     REVIEW: "审核解释",
     ROOMS: "实验室查询",
@@ -252,6 +253,7 @@ function categoryTag(value) {
   return {
     EXAM: "success",
     CREDIT: "warning",
+    ELIGIBILITY: "success",
     MY_RESERVATION: "info",
     REVIEW: "danger",
     ROOMS: "primary",

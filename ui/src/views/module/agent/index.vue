@@ -90,7 +90,43 @@
         <div v-for="(message, index) in messages" :key="index" class="message-row" :class="message.role.toLowerCase()">
           <div class="avatar">{{ message.role === 'USER' ? '我' : 'AI' }}</div>
           <div class="message-content">
-            <div class="bubble">{{ message.content }}</div>
+            <div v-if="message.role === 'ASSISTANT'" class="bubble markdown-bubble">
+              <template v-for="(block, blockIndex) in parseMarkdown(message.content)" :key="blockIndex">
+                <h4 v-if="block.type === 'heading'" class="md-heading">
+                  <template v-for="(segment, segmentIndex) in block.segments" :key="segmentIndex">
+                    <strong v-if="segment.type === 'strong'">{{ segment.text }}</strong>
+                    <code v-else-if="segment.type === 'code'">{{ segment.text }}</code>
+                    <span v-else>{{ segment.text }}</span>
+                  </template>
+                </h4>
+                <ul v-else-if="block.type === 'list' && !block.ordered" class="md-list">
+                  <li v-for="(item, itemIndex) in block.items" :key="itemIndex">
+                    <template v-for="(segment, segmentIndex) in item" :key="segmentIndex">
+                      <strong v-if="segment.type === 'strong'">{{ segment.text }}</strong>
+                      <code v-else-if="segment.type === 'code'">{{ segment.text }}</code>
+                      <span v-else>{{ segment.text }}</span>
+                    </template>
+                  </li>
+                </ul>
+                <ol v-else-if="block.type === 'list'" class="md-list">
+                  <li v-for="(item, itemIndex) in block.items" :key="itemIndex">
+                    <template v-for="(segment, segmentIndex) in item" :key="segmentIndex">
+                      <strong v-if="segment.type === 'strong'">{{ segment.text }}</strong>
+                      <code v-else-if="segment.type === 'code'">{{ segment.text }}</code>
+                      <span v-else>{{ segment.text }}</span>
+                    </template>
+                  </li>
+                </ol>
+                <p v-else class="md-paragraph">
+                  <template v-for="(segment, segmentIndex) in block.segments" :key="segmentIndex">
+                    <strong v-if="segment.type === 'strong'">{{ segment.text }}</strong>
+                    <code v-else-if="segment.type === 'code'">{{ segment.text }}</code>
+                    <span v-else>{{ segment.text }}</span>
+                  </template>
+                </p>
+              </template>
+            </div>
+            <div v-else class="bubble">{{ message.content }}</div>
             <!-- 预约草稿卡片：只有用户点击确认后，才调用后端提交接口。 -->
             <el-card v-if="message.draft" shadow="never" class="draft-card">
               <div class="draft-title">
@@ -241,6 +277,7 @@ const draftLoading = ref(null);
 const examples = [
   "我通过安全考试了吗？",
   "我的信用分够预约吗？",
+  "我信用分够但没通过安全考试还能预约吗？",
   "查看我最近的预约",
   "我的预约为什么被驳回？"
 ];
@@ -465,6 +502,67 @@ function formatDateTime(value) {
   return value ? proxy.parseTime(value, "{y}-{m}-{d} {h}:{i}") : "";
 }
 
+/**
+ * 轻量 Markdown 渲染：只支持标题、列表、粗体和行内代码。
+ * 返回结构化片段，不使用 v-html，避免模型输出被当作 HTML 执行。
+ */
+function parseMarkdown(content) {
+  const blocks = [];
+  let currentList = null;
+  const lines = String(content || "").replace(/\r/g, "").split("\n");
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      currentList = null;
+      continue;
+    }
+    const heading = line.match(/^#{1,6}\s+(.+)$/) || line.match(/^\*\*(.+)\*\*$/);
+    if (heading) {
+      currentList = null;
+      blocks.push({ type: "heading", segments: parseInlineMarkdown(heading[1]) });
+      continue;
+    }
+    const unordered = line.match(/^[-*+]\s+(.+)$/);
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (unordered || ordered) {
+      const isOrdered = Boolean(ordered);
+      if (!currentList || currentList.ordered !== isOrdered) {
+        currentList = { type: "list", ordered: isOrdered, items: [] };
+        blocks.push(currentList);
+      }
+      currentList.items.push(parseInlineMarkdown((ordered || unordered)[1]));
+      continue;
+    }
+    currentList = null;
+    blocks.push({ type: "paragraph", segments: parseInlineMarkdown(line) });
+  }
+  return blocks.length ? blocks : [{ type: "paragraph", segments: parseInlineMarkdown(content) }];
+}
+
+function parseInlineMarkdown(text) {
+  const segments = [];
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let cursor = 0;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > cursor) {
+      segments.push({ type: "text", text: text.slice(cursor, match.index) });
+    }
+    const token = match[0];
+    if (token.startsWith("**")) {
+      segments.push({ type: "strong", text: token.slice(2, -2) });
+    } else {
+      segments.push({ type: "code", text: token.slice(1, -1) });
+    }
+    cursor = match.index + token.length;
+  }
+  if (cursor < text.length) {
+    segments.push({ type: "text", text: text.slice(cursor) });
+  }
+  return segments.length ? segments : [{ type: "text", text: "" }];
+}
+
 // 直接调用知识库检索接口，不需要模型参与，便于演示和排查 RAG 召回。
 function searchKnowledge() {
   const query = knowledgeQuery.value.trim();
@@ -573,6 +671,16 @@ function searchKnowledge() {
 }
 .message-row.user .bubble { background: #409eff; color: #fff; }
 .bubble.typing { color: #909399; }
+.markdown-bubble { width: 100%; }
+.md-heading { margin: 12px 0 6px; color: #303133; font-size: 15px; line-height: 1.5; }
+.md-heading:first-child { margin-top: 0; }
+.md-paragraph { margin: 5px 0; line-height: 1.7; }
+.md-list { margin: 5px 0; padding-left: 20px; }
+.md-list li { margin: 3px 0; line-height: 1.7; }
+.markdown-bubble code {
+  padding: 1px 4px; border-radius: 3px; background: #f0f2f5;
+  color: #c7254e; font-family: Consolas, monospace; font-size: 12px;
+}
 .message-meta { color: #c0c4cc; font-size: 11px; margin-top: 4px; }
 .tool-collapse { margin-top: 8px; text-align: left; }
 .tool-item { margin-bottom: 12px; }

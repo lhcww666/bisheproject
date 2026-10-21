@@ -1,6 +1,7 @@
 package com.ruoyi.module.agent.tool;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Supplier;
@@ -26,7 +27,10 @@ import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.mapper.ReservationMapper;
 import com.ruoyi.module.reservation.service.IReservationService;
+import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.room.domain.Room;
+import com.ruoyi.module.room.mapper.RoomMapper;
+import com.ruoyi.module.roomaccess.service.IRoomAccessService;
 import com.ruoyi.module.safety.domain.SafetyExamStatusView;
 import com.ruoyi.module.safety.service.ISafetyExamService;
 
@@ -52,9 +56,15 @@ public class LabAgentTools
 
     private final ReservationMapper reservationMapper;
 
+    private final RoomMapper roomMapper;
+
     private final ISafetyExamService safetyExamService;
 
     private final ICreditService creditService;
+
+    private final IReservationRuleService reservationRuleService;
+
+    private final IRoomAccessService roomAccessService;
 
     private final ToolAuditService toolAuditService;
 
@@ -146,6 +156,101 @@ public class LabAgentTools
             CreditSummary summary = creditService.getSummary(AgentContext.require().getUserId());
             return "当前信用分 " + summary.getScore() + " 分，预约门槛 " + summary.getMinScore()
                     + " 分，" + (summary.getCanBook() ? "当前可以提交预约。" : "当前信用分不足，不能提交预约。");
+        });
+    }
+
+    /**
+     * 综合检查预约资格。
+     *
+     * <p>不传实验室时返回通用条件及当前可进入的实验室；传实验室 ID 时，
+     * 会同时检查信用分、准入范围、实验室状态和是否需要安全考试。</p>
+     */
+    @Tool(name = "checkMyReservationEligibility",
+            description = "综合检查当前用户的预约资格。可传实验室ID；不传时返回信用、考试通用规则和当前有权预约的实验室。")
+    public String checkMyReservationEligibility(
+            @ToolParam(required = false, description = "目标实验室ID，可为空；为空时只做通用资格检查") Long roomId)
+    {
+        return execute("checkMyReservationEligibility", "roomId=" + roomId, () -> {
+            Long userId = AgentContext.require().getUserId();
+            CreditSummary credit = creditService.getSummary(userId);
+            SafetyExamStatusView exam = safetyExamService.getStatus(userId);
+            boolean examValid = exam.getHasValidPass();
+
+            if (roomId != null)
+            {
+                Room room = roomMapper.selectById(roomId);
+                if (room == null)
+                {
+                    throw new IllegalArgumentException("实验室不存在：" + roomId);
+                }
+                boolean active = "0".equals(room.getStatus());
+                boolean access = roomAccessService.canBook(userId, room);
+                boolean examRequired = reservationRuleService.requiresSafetyExam(room);
+                boolean eligible = active && access && credit.getCanBook() && (!examRequired || examValid);
+
+                StringBuilder result = new StringBuilder("指定实验室预约资格：\n");
+                result.append("- 实验室：").append(room.getRoomCode()).append(" ").append(room.getRoomName())
+                        .append("，安全等级 ").append(room.getSafetyLevel())
+                        .append("，预约模式 ").append(room.getReservationMode()).append("\n")
+                        .append("- 信用分：").append(credit.getScore()).append("，门槛 ").append(credit.getMinScore())
+                        .append("，").append(credit.getCanBook() ? "满足" : "不满足").append("\n")
+                        .append("- 实验室准入：").append(access ? "满足" : "不满足").append("\n")
+                        .append("- 安全考试：").append(examRequired ? "该实验室要求" : "该实验室不要求")
+                        .append("，当前").append(examValid ? "有效通过" : "无有效通过记录").append("\n");
+                appendExamDetail(result, exam);
+                result.append("- 静态结论：")
+                        .append(eligible ? "满足该实验室的预约资格" : "不满足该实验室的预约资格")
+                        .append("。此结论不含具体时段的容量、开放时间和预约冲突校验。");
+                return result.toString();
+            }
+
+            QueryWrapper<Room> roomQuery = new QueryWrapper<>();
+            roomQuery.eq("status", "0").orderByAsc("room_code");
+            List<Room> accessibleRooms = roomAccessService.filterBookableRooms(userId, roomMapper.selectList(roomQuery));
+            List<String> roomsWithoutExam = new ArrayList<>();
+            List<String> roomsWithExam = new ArrayList<>();
+            for (Room room : accessibleRooms)
+            {
+                String label = room.getRoomCode() + " " + room.getRoomName();
+                if (reservationRuleService.requiresSafetyExam(room))
+                {
+                    roomsWithExam.add(label);
+                }
+                else
+                {
+                    roomsWithoutExam.add(label);
+                }
+            }
+
+            StringBuilder result = new StringBuilder("通用预约资格：\n");
+            result.append("- 信用分：").append(credit.getScore()).append("，门槛 ").append(credit.getMinScore())
+                    .append("，").append(credit.getCanBook() ? "满足" : "不满足").append("\n")
+                    .append("- 安全考试：").append(examValid ? "有效通过" : "无有效通过记录").append("\n");
+            appendExamDetail(result, exam);
+            result.append("- 规则：中高风险实验室要求有效安全考试，低风险实验室是否要求以实验室安全等级为准。\n")
+                    .append("- 当前可进入的低风险实验室：")
+                    .append(roomsWithoutExam.isEmpty() ? "暂无" : String.join("、", limit(roomsWithoutExam, 6))).append("\n")
+                    .append("- 当前可进入但要求安全考试的实验室：")
+                    .append(roomsWithExam.isEmpty() ? "暂无" : String.join("、", limit(roomsWithExam, 6))).append("\n")
+                    .append("- 结论：");
+            if (!credit.getCanBook())
+            {
+                result.append("信用分不足，当前不能提交预约。");
+            }
+            else if (examValid)
+            {
+                result.append("信用分和考试条件满足，可以进入具体实验室与时段预约。");
+            }
+            else if (!roomsWithoutExam.isEmpty())
+            {
+                result.append("信用分满足；不能预约要求安全考试的实验室，但上述低风险实验室可继续选择时段预约。");
+            }
+            else
+            {
+                result.append("信用分满足，但当前可进入的实验室都要求安全考试，因此暂不能预约。");
+            }
+            result.append(" 如需精确判断，请提供目标实验室名称或ID；时段冲突仍需在提交时校验。");
+            return result.toString();
         });
     }
 
@@ -367,5 +472,18 @@ public class LabAgentTools
         if (ReservationStatus.CHECKED_IN.equals(status)) return "已签到";
         if (ReservationStatus.NO_SHOW.equals(status)) return "已爽约";
         return "未知";
+    }
+
+    private void appendExamDetail(StringBuilder result, SafetyExamStatusView exam)
+    {
+        result.append("  - 最近成绩：").append(exam.getLatestScore() == null ? "暂无" : exam.getLatestScore())
+                .append("，最近结果：")
+                .append(exam.getLatestPassed() == null ? "暂无" : (exam.getLatestPassed() ? "通过" : "未通过"))
+                .append("，有效期至：").append(formatDate(exam.getLatestValidUntil())).append("\n");
+    }
+
+    private List<String> limit(List<String> values, int max)
+    {
+        return values.size() <= max ? values : values.subList(0, max);
     }
 }

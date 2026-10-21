@@ -11,6 +11,7 @@ package com.ruoyi.module.agent.eval.domain;
 public final class LocalIntentRouter
 {
     public static final String REVIEW = "REVIEW";
+    public static final String ELIGIBILITY = "ELIGIBILITY";
     public static final String EXAM_STATUS = "EXAM_STATUS";
     public static final String CREDIT = "CREDIT";
     public static final String CREATE_DRAFT = "CREATE_DRAFT";
@@ -31,6 +32,12 @@ public final class LocalIntentRouter
                 || (text.contains("为什么") && containsAny(text, "预约", "审核")))
         {
             return REVIEW;
+        }
+        if (containsAny(text, "可以预约", "能预约", "能否预约", "能不能预约", "预约资格",
+                "没通过安全考试", "没有通过安全考试", "没有安全考试", "安全考试不合格",
+                "考试不合格", "考试没过"))
+        {
+            return ELIGIBILITY;
         }
         if (containsAny(text, "安全考试", "考试"))
         {
@@ -71,6 +78,7 @@ public final class LocalIntentRouter
         return switch (intent)
         {
             case REVIEW -> "queryReservationReview";
+            case ELIGIBILITY -> "checkMyReservationEligibility";
             case EXAM_STATUS -> "checkSafetyExamStatus";
             case CREDIT -> "queryMyCredit";
             case CREATE_DRAFT -> "createReservationDraft";

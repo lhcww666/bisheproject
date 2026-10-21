@@ -28,6 +28,15 @@ class LocalIntentRouterTest
     }
 
     @Test
+    void eligibilityTakesPriorityOverSingleConditionQueries()
+    {
+        assertEquals(LocalIntentRouter.ELIGIBILITY,
+                LocalIntentRouter.route("我信用分够，但没有通过安全考试，还可以预约实验室吗？"));
+        assertEquals("checkMyReservationEligibility",
+                LocalIntentRouter.toolFor(LocalIntentRouter.ELIGIBILITY));
+    }
+
+    @Test
     void routesEquipmentAndReservationDraft()
     {
         assertEquals(LocalIntentRouter.DEVICES, LocalIntentRouter.route("离心机现在可以用吗？"));
