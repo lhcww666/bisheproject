@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.module.agent.domain.ChatRequest;
+import com.ruoyi.module.agent.role.AgentRole;
+import com.ruoyi.module.agent.role.AgentRoleService;
 import com.ruoyi.module.agent.service.IAgentService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,8 @@ import lombok.RequiredArgsConstructor;
 public class AgentController extends BaseController
 {
     private final IAgentService agentService;
+
+    private final AgentRoleService agentRoleService;
 
     /**
      * 只用于检查模型是否配置，不返回真实 Key。
@@ -56,7 +60,15 @@ public class AgentController extends BaseController
     {
         // 只返回布尔值，绝不把 apiKey 返回给前端。
         boolean configured = apiKey != null && !apiKey.isBlank() && !"not-configured".equals(apiKey.trim());
-        return success(Map.of("configured", configured, "model", modelName));
+        AgentRole role = agentRoleService.currentRole();
+        return success(Map.of(
+                "configured", configured,
+                "model", modelName,
+                "role", role.getCode(),
+                "roleLabel", role.getLabel(),
+                "assistantTitle", role.getTitle(),
+                "assistantDescription", role.getDescription(),
+                "examples", role.getExamples()));
     }
 
     /**

@@ -25,10 +25,11 @@
     <section class="chat-panel">
       <header class="chat-header">
         <div>
-          <h3>实验室智能助手</h3>
-          <p>查询实验室、设备、考试、信用和预约审核结果</p>
+          <h3>{{ assistantTitle }}</h3>
+          <p>{{ assistantDescription }}</p>
         </div>
         <div class="chat-header-actions">
+          <el-tag v-if="roleLabel" type="info">{{ roleLabel }}</el-tag>
           <el-button size="small" icon="Search" @click="knowledgeOpen = true">安全知识库</el-button>
           <el-button
             v-if="!modelStatusLoading && modelConfigured"
@@ -73,7 +74,7 @@
       <div ref="messageBoxRef" class="message-box" v-loading="loading">
         <div v-if="messages.length === 0" class="welcome">
           <div class="welcome-icon">AI</div>
-          <h2>你好，我是实验室智能助手</h2>
+          <h2>你好，我是{{ assistantTitle }}</h2>
           <p>我只会根据系统里的真实数据回答，不会编造实验室和预约信息。</p>
           <div class="example-list">
             <el-tag
@@ -267,6 +268,10 @@ const modelStatusLoading = ref(true);
 const modelName = ref("");
 const checkingModel = ref(false);
 const configOpen = ref(false);
+const assistantRole = ref("");
+const roleLabel = ref("");
+const assistantTitle = ref("实验室智能助手");
+const assistantDescription = ref("查询实验室、设备、考试、信用和预约审核结果");
 const knowledgeOpen = ref(false);
 const knowledgeQuery = ref("");
 const knowledgeLoading = ref(false);
@@ -274,19 +279,27 @@ const knowledgeSearched = ref(false);
 const knowledgeResults = ref([]);
 const draftLoading = ref(null);
 
-const examples = [
+const examples = ref([
   "我通过安全考试了吗？",
   "我的信用分够预约吗？",
   "我信用分够但没通过安全考试还能预约吗？",
   "查看我最近的预约",
   "我的预约为什么被驳回？"
-];
+]);
 
 // 页面初始化：先查询模型状态，再加载当前用户的会话。
 onMounted(() => {
   getAgentStatus().then(response => {
-    modelConfigured.value = response.data?.configured === true;
-    modelName.value = response.data?.model || "";
+    const status = response.data || {};
+    modelConfigured.value = status.configured === true;
+    modelName.value = status.model || "";
+    assistantRole.value = status.role || "";
+    roleLabel.value = status.roleLabel || "";
+    assistantTitle.value = status.assistantTitle || "实验室智能助手";
+    assistantDescription.value = status.assistantDescription || "查询实验室、设备、考试、信用和预约审核结果";
+    if (Array.isArray(status.examples) && status.examples.length) {
+      examples.value = status.examples;
+    }
   }).finally(() => {
     modelStatusLoading.value = false;
   });

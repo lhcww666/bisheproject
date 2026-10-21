@@ -6,7 +6,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -29,6 +28,7 @@ import com.ruoyi.module.agent.mapper.ChatMessageMapper;
 import com.ruoyi.module.agent.mapper.ChatSessionMapper;
 import com.ruoyi.module.agent.mapper.ToolCallLogMapper;
 import com.ruoyi.module.agent.service.AgentContext;
+import com.ruoyi.module.agent.service.AgentChatClientRouter;
 import com.ruoyi.module.agent.service.IAgentService;
 
 import lombok.RequiredArgsConstructor;
@@ -60,7 +60,7 @@ public class AgentServiceImpl implements IAgentService
 
     private final ToolCallLogMapper toolCallLogMapper;
 
-    private final ChatClient chatClient;
+    private final AgentChatClientRouter chatClientRouter;
 
     /**
      * 真实 Key 由环境变量注入；not-configured 只用于本地无 Key 启动。
@@ -212,7 +212,7 @@ public class AgentServiceImpl implements IAgentService
         long started = System.currentTimeMillis();
         try
         {
-            String content = chatClient.prompt()
+            String content = chatClientRouter.current().prompt()
                     .system("这是模型连通性检测。不得调用工具，只回复一个单词：OK")
                     .user("请回复 OK")
                     .call()
@@ -265,7 +265,7 @@ public class AgentServiceImpl implements IAgentService
             }
         }
         // ChatClient 已配置系统提示词和只读工具，模型会在需要时自动选择工具。
-        String content = chatClient.prompt().messages(history).call().content();
+        String content = chatClientRouter.current().prompt().messages(history).call().content();
         return StringUtils.isEmpty(content) ? "模型没有返回内容，请稍后重试。" : content;
     }
 

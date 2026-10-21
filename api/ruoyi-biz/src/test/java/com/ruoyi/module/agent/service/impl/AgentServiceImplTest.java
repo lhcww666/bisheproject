@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.ruoyi.module.agent.service.AgentChatClientRouter;
+
 /**
  * 智能助手模型连接测试。
  *
@@ -40,7 +42,9 @@ class AgentServiceImplTest
     {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         when(chatClient.prompt().system(anyString()).user(anyString()).call().content()).thenReturn("OK");
-        AgentServiceImpl service = new AgentServiceImpl(null, null, null, chatClient);
+        AgentChatClientRouter router = mock(AgentChatClientRouter.class);
+        when(router.current()).thenReturn(chatClient);
+        AgentServiceImpl service = new AgentServiceImpl(null, null, null, router);
         ReflectionTestUtils.setField(service, "apiKey", "sk-test");
         ReflectionTestUtils.setField(service, "modelName", "deepseek-chat");
 

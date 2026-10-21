@@ -15,7 +15,7 @@
 
 实施节奏是“业务系统先行，AI 后接入”：先把实验室、设备、预约、审核、安全考试、信用分的业务闭环做通，再把已有后端能力封装成受控工具交给 Agent 调用。不要为了演示 AI 而跳过业务规则。
 
-当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板已实现；`springai` 分支已接入 Spring AI 会话、7 个只读工具、综合预约资格校验、工具调用审计、MySQL 关键词/TF-IDF 的 RAG 检索基线、受控预约草稿确认、管理员 Agent 审计页、40 篇/100 片段的实验室安全知识库、55 条 Agent 离线评测基线和 DeepSeek 连接自检，向量 embedding 与 LangChain4j 对比分支尚未实现。
+当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板已实现；`springai` 分支已接入 Spring AI 会话、学生/教师/管理员三套角色助手、按角色隔离的工具白名单、综合预约资格校验、工具调用审计、MySQL 关键词/TF-IDF 的 RAG 检索基线、受控预约草稿确认、管理员 Agent 审计页、40 篇/100 片段的实验室安全知识库、55 条 Agent 离线评测基线和 DeepSeek 连接自检，向量 embedding 与 LangChain4j 对比分支尚未实现。
 
 ## 二、技术栈与版本
 
