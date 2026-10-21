@@ -9,7 +9,11 @@ ruoyi:
 spring:
   # 本地私密配置：该文件已被 .gitignore 忽略，用于保存 DeepSeek Key 等本机参数
   config:
-    import: optional:file:./application-local.yml
+    # 兼容 IDEA 从仓库根目录、api 目录或 ruoyi-admin 目录启动
+    import:
+      - optional:file:./application-local.yml
+      - optional:file:./ruoyi-admin/application-local.yml
+      - optional:file:./api/ruoyi-admin/application-local.yml
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driverClassName: com.mysql.cj.jdbc.Driver
