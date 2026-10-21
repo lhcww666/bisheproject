@@ -56,19 +56,27 @@
           :title="'将代表 ' + (classInfo.deptName || '本班') + ' 提交班级预约，参与人数按班级学生数 ' + (classInfo.studentCount || 0) + ' 人计算。'"
         />
         <el-form-item label="开始时间" prop="startTime">
-          <el-date-picker v-model="applyForm.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择开始时间" style="width: 100%;" @change="loadAvailableRooms" />
+          <el-date-picker v-model="applyForm.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择开始时间" style="width: 100%;" :disabled-date="disabledPastDate" @change="loadAvailableRooms" />
         </el-form-item>
         <el-form-item label="结束时间" prop="endTime">
-          <el-date-picker v-model="applyForm.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择结束时间" style="width: 100%;" @change="loadAvailableRooms" />
+          <el-date-picker v-model="applyForm.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择结束时间" style="width: 100%;" :disabled-date="disabledPastDate" @change="loadAvailableRooms" />
         </el-form-item>
         <el-form-item label="参与人数" prop="participantCount">
           <el-input-number v-model="applyForm.participantCount" :min="1" :max="1000" :disabled="applyForm.reservationType === 'CLASS'" style="width: 100%;" @change="loadAvailableRooms" />
         </el-form-item>
         <el-form-item label="实验室" prop="roomId">
-          <el-select v-model="applyForm.roomId" filterable clearable style="width: 100%;" :loading="roomsLoading" placeholder="请先选择时间，再选择可用实验室" no-data-text="该时段没有你可预约的实验室" @change="loadDevices">
+          <el-select v-model="applyForm.roomId" filterable clearable style="width: 100%;" :loading="roomsLoading" placeholder="请先选择时间，再选择可用实验室" :no-data-text="roomAvailabilityNoDataText" @change="loadDevices">
             <el-option v-for="room in availableRooms" :key="room.id" :label="room.roomCode + ' ' + room.roomName + '（容量 ' + room.capacity + ' 人）'" :value="room.id" />
           </el-select>
         </el-form-item>
+        <el-alert
+          v-if="roomAvailabilityMessage"
+          class="room-availability-alert"
+          :type="roomAvailabilityType"
+          :title="roomAvailabilityMessage"
+          :closable="false"
+          show-icon
+        />
         <el-form-item label="实验名称" prop="experimentName">
           <el-input v-model="applyForm.experimentName" placeholder="例如：有机溶剂萃取实验" />
         </el-form-item>
@@ -139,6 +147,12 @@ const roomsLoading = ref(false);
 const devicesLoading = ref(false);
 const availableRooms = ref([]);
 const availableDevices = ref([]);
+const roomAvailabilityMessage = ref("");
+const roomAvailabilityType = ref("info");
+const roomAvailabilityNoDataText = computed(() => {
+  if (roomsLoading.value) return "正在查询可用实验室";
+  return roomAvailabilityMessage.value || "该时段没有符合容量、开放时间和准入范围的实验室";
+});
 const classInfo = ref({ representative: false, deptName: null, studentCount: 0 });
 const isClassRepresentative = computed(() => classInfo.value.representative === true);
 const applyRef = ref(null);
@@ -229,17 +243,60 @@ function loadAvailableRooms() {
   applyForm.deviceIds = [];
   availableRooms.value = [];
   availableDevices.value = [];
+  roomAvailabilityMessage.value = "";
+  roomAvailabilityType.value = "info";
   if (!applyForm.startTime || !applyForm.endTime) return;
+  const start = parseDateTime(applyForm.startTime);
+  const end = parseDateTime(applyForm.endTime);
+  if (!start || !end || end <= start) {
+    roomAvailabilityType.value = "warning";
+    roomAvailabilityMessage.value = "结束时间必须晚于开始时间，请重新选择预约时段。";
+    return;
+  }
+  if (start < new Date()) {
+    roomAvailabilityType.value = "warning";
+    roomAvailabilityMessage.value = "开始时间已早于当前时间，不能查询过去时段。请选择当前时间之后的时段。";
+    return;
+  }
+  if (!applyForm.participantCount || applyForm.participantCount < 1) {
+    roomAvailabilityType.value = "warning";
+    roomAvailabilityMessage.value = "参与人数必须大于 0。";
+    return;
+  }
   roomsLoading.value = true;
+  roomAvailabilityMessage.value = "正在查询该时段可预约的实验室...";
+  roomAvailabilityType.value = "info";
   listAvailableRooms({
     startTime: applyForm.startTime,
     endTime: applyForm.endTime,
     participantCount: applyForm.participantCount
   }).then(response => {
     availableRooms.value = response.data || [];
+    if (availableRooms.value.length) {
+      roomAvailabilityType.value = "success";
+      roomAvailabilityMessage.value = "已找到 " + availableRooms.value.length + " 个可预约实验室，请选择目标实验室。";
+    } else {
+      roomAvailabilityType.value = "warning";
+      roomAvailabilityMessage.value = "该时段没有可预约实验室，可能因为容量不足、不在开放时段、已有预约冲突或未获得实验室准入。请调整时间或人数后重试。";
+    }
+  }).catch(error => {
+    roomAvailabilityType.value = "error";
+    roomAvailabilityMessage.value = "查询可用实验室失败：" + (error?.message || "请稍后重试");
   }).finally(() => {
     roomsLoading.value = false;
   });
+}
+
+function disabledPastDate(date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date.getTime() < today.getTime();
+}
+
+function parseDateTime(value) {
+  if (!value) return null;
+  const date = new Date(String(value).replace(/-/g, "/"));
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function loadDevices(roomId) {
@@ -331,6 +388,7 @@ function goBack() {
 
 <style lang="scss" scoped>
 .reservation-tip { margin-bottom: 12px; }
+.room-availability-alert { margin: -4px 0 16px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; }
 .form-footer { margin-top: 20px; padding-left: 110px; }
 </style>
