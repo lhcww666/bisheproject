@@ -1,6 +1,7 @@
 package com.ruoyi.module.agent.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.ruoyi.module.agent.domain.ChatMessage;
 import com.ruoyi.module.agent.domain.ChatReply;
@@ -36,6 +37,11 @@ public interface IAgentService
      * 发送一条消息并获取 Agent 回复。
      */
     ChatReply chat(ChatRequest request);
+
+    /**
+     * 发起一次最小模型请求，验证 Key、网络和模型接口是否可用。
+     */
+    Map<String, Object> checkModelConnection();
 
     /**
      * 删除当前用户自己的会话。

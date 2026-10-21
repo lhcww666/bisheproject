@@ -13,6 +13,14 @@ export function getAgentStatus() {
   })
 }
 
+// 发起一次最小模型请求，检查 Key、网络和 DeepSeek 接口是否可用
+export function checkAgentModel() {
+  return request({
+    url: '/module/agent/model-check',
+    method: 'post'
+  })
+}
+
 // 当前用户的会话列表
 export function listAgentSessions() {
   return request({

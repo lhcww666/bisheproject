@@ -15,7 +15,7 @@
 
 实施节奏是“业务系统先行，AI 后接入”：先把实验室、设备、预约、审核、安全考试、信用分的业务闭环做通，再把已有后端能力封装成受控工具交给 Agent 调用。不要为了演示 AI 而跳过业务规则。
 
-当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板已实现；`springai` 分支已接入 Spring AI 会话、6 个只读工具、工具调用审计、MySQL 关键词/TF-IDF 的 RAG 检索基线、受控预约草稿确认、管理员 Agent 审计页、40 篇/100 片段的实验室安全知识库和 50 条 Agent 离线评测基线，向量 embedding 与 LangChain4j 对比分支尚未实现。
+当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板已实现；`springai` 分支已接入 Spring AI 会话、6 个只读工具、工具调用审计、MySQL 关键词/TF-IDF 的 RAG 检索基线、受控预约草稿确认、管理员 Agent 审计页、40 篇/100 片段的实验室安全知识库、50 条 Agent 离线评测基线和 DeepSeek 连接自检，向量 embedding 与 LangChain4j 对比分支尚未实现。
 
 ## 二、技术栈与版本
 
@@ -98,6 +98,8 @@ api
 | 前端地址 | http://127.0.0.1:8090/admin/ |
 
 后端激活的 profile 是 `devmy`，配置文件为 `api/ruoyi-admin/src/main/resources/application-devmy.yml`。
+
+DeepSeek Key 的推荐填写位置是已被 Git 忽略的 `api/ruoyi-admin/application-local.yml`，填写 `bishe.ai.deepseek-api-key` 后重启后端。也可以在 IDEA 启动配置中设置环境变量 `DEEPSEEK_API_KEY`，环境变量优先于本地文件；真实 Key 不得写入源码或提交记录。
 
 启动命令：
 

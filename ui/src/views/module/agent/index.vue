@@ -30,9 +30,45 @@
         </div>
         <div class="chat-header-actions">
           <el-button size="small" icon="Search" @click="knowledgeOpen = true">安全知识库</el-button>
-          <el-tag v-if="!modelConfigured" type="warning">未配置模型密钥</el-tag>
+          <el-button
+            v-if="!modelStatusLoading && modelConfigured"
+            size="small"
+            type="success"
+            plain
+            icon="Connection"
+            :loading="checkingModel"
+            @click="testModel"
+          >
+            测试模型连接
+          </el-button>
+          <el-button
+            v-if="!modelStatusLoading && !modelConfigured"
+            size="small"
+            type="warning"
+            plain
+            icon="Setting"
+            @click="configOpen = true"
+          >
+            配置模型 Key
+          </el-button>
+          <el-tag v-if="!modelStatusLoading" :type="modelConfigured ? 'success' : 'warning'">
+            {{ modelConfigured ? (modelName || 'DeepSeek') + ' 已配置' : '未配置模型密钥' }}
+          </el-tag>
         </div>
       </header>
+
+      <el-alert
+        v-if="!modelStatusLoading && !modelConfigured"
+        class="model-alert"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="当前只能使用会话、知识库检索和审计功能；填写 DeepSeek Key 并重启后端后即可进行真实对话。"
+      >
+        <template #default>
+          <el-button link type="primary" @click="configOpen = true">查看填写位置</el-button>
+        </template>
+      </el-alert>
 
       <div ref="messageBoxRef" class="message-box" v-loading="loading">
         <div v-if="messages.length === 0" class="welcome">
@@ -144,11 +180,36 @@
       </div>
       <el-empty v-else-if="knowledgeSearched" description="未检索到相关资料" />
     </el-dialog>
+
+    <el-dialog title="配置 DeepSeek API Key" v-model="configOpen" width="700px" append-to-body>
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="Key 只保存在本机，配置文件已被 .gitignore 忽略，不会提交到 Git。"
+      />
+      <div class="config-guide">
+        <h4>方式一：编辑本地配置文件（推荐）</h4>
+        <p>打开下面这个文件：</p>
+        <pre>D:\bishe_project\api\ruoyi-admin\application-local.yml</pre>
+        <p>将 Key 填在引号内：</p>
+        <pre>bishe:
+  ai:
+    deepseek-api-key: "sk-你的DeepSeekKey"</pre>
+        <h4>方式二：IDEA 环境变量</h4>
+        <p>在 Spring Boot 启动配置的 Environment variables 中填写：</p>
+        <pre>DEEPSEEK_API_KEY=sk-你的DeepSeekKey</pre>
+        <p class="config-tip">两种方式修改后都需要重启后端。回到本页面刷新，再点击“测试模型连接”。</p>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="configOpen = false">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Agent">
-import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
+import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
 
 /**
  * 页面状态：
@@ -165,7 +226,11 @@ const input = ref("");
 const loading = ref(false);
 const sending = ref(false);
 const messageBoxRef = ref(null);
-const modelConfigured = ref(true);
+const modelConfigured = ref(false);
+const modelStatusLoading = ref(true);
+const modelName = ref("");
+const checkingModel = ref(false);
+const configOpen = ref(false);
 const knowledgeOpen = ref(false);
 const knowledgeQuery = ref("");
 const knowledgeLoading = ref(false);
@@ -183,7 +248,10 @@ const examples = [
 // 页面初始化：先查询模型状态，再加载当前用户的会话。
 onMounted(() => {
   getAgentStatus().then(response => {
-    modelConfigured.value = response.data?.configured !== false;
+    modelConfigured.value = response.data?.configured === true;
+    modelName.value = response.data?.model || "";
+  }).finally(() => {
+    modelStatusLoading.value = false;
   });
   loadSessions();
 });
@@ -272,6 +340,20 @@ function removeSession(session) {
 // 点击示例问题只填入输入框，由用户确认后发送。
 function useExample(example) {
   input.value = example;
+}
+
+function testModel() {
+  checkingModel.value = true;
+  checkAgentModel().then(response => {
+    const result = response.data || {};
+    if (result.ok) {
+      proxy.$modal.msgSuccess("模型连接成功，" + (result.costMs || 0) + " ms");
+    } else {
+      proxy.$modal.msgError(result.message || "模型连接失败，请检查 Key、网络和模型配置");
+    }
+  }).finally(() => {
+    checkingModel.value = false;
+  });
 }
 
 /**
@@ -456,6 +538,7 @@ function searchKnowledge() {
 .chat-header h3 { margin: 0 0 4px; }
 .chat-header p { margin: 0; color: #909399; font-size: 12px; }
 .chat-header-actions { display: flex; align-items: center; gap: 10px; }
+.model-alert { margin: 10px 14px 0; }
 .message-box { flex: 1; overflow-y: auto; padding: 18px; background: #f7f8fa; }
 .welcome { text-align: center; padding: 50px 20px; color: #606266; }
 .welcome-icon {
@@ -507,6 +590,14 @@ function searchKnowledge() {
 .knowledge-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .knowledge-content { margin: 0; line-height: 1.8; white-space: pre-wrap; }
 .knowledge-source { margin-top: 8px; color: #909399; font-size: 12px; }
+.config-guide { margin-top: 16px; line-height: 1.8; color: #606266; }
+.config-guide h4 { margin: 16px 0 6px; color: #303133; }
+.config-guide p { margin: 6px 0; }
+.config-guide pre {
+  margin: 8px 0; padding: 10px 12px; border-radius: 4px;
+  background: #f5f7fa; color: #303133; white-space: pre-wrap; word-break: break-all;
+}
+.config-tip { color: #e6a23c; }
 .draft-card { margin-top: 10px; border-color: #b3d8ff; background: #f4f9ff; }
 .draft-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 600; color: #303133; }
 .draft-line { display: flex; gap: 10px; margin: 4px 0; color: #606266; font-size: 13px; }

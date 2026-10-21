@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -66,6 +67,9 @@ public class AgentServiceImpl implements IAgentService
      */
     @Value("${spring.ai.openai.api-key:}")
     private String apiKey;
+
+    @Value("${spring.ai.openai.chat.options.model:deepseek-chat}")
+    private String modelName;
 
     /**
      * 新建空会话，标题只用于左侧会话列表展示。
@@ -189,6 +193,43 @@ public class AgentServiceImpl implements IAgentService
         session.setUpdateTime(new Date());
         chatSessionMapper.updateById(session);
         return reply;
+    }
+
+    /**
+     * 用一次最小提示词检查真实模型连接。
+     *
+     * <p>这里不会执行业务工具，也不会写入会话数据；仅用于部署后确认
+     * Key、base-url、模型名和网络是否可用。</p>
+     */
+    @Override
+    public Map<String, Object> checkModelConnection()
+    {
+        if (!isConfigured())
+        {
+            return Map.of("ok", false, "configured", false, "model", modelName,
+                    "message", missingKeyMessage());
+        }
+        long started = System.currentTimeMillis();
+        try
+        {
+            String content = chatClient.prompt()
+                    .system("这是模型连通性检测。不得调用工具，只回复一个单词：OK")
+                    .user("请回复 OK")
+                    .call()
+                    .content();
+            long costMs = System.currentTimeMillis() - started;
+            return Map.of("ok", true, "configured", true, "model", modelName, "costMs", costMs,
+                    "message", StringUtils.isEmpty(content) ? "模型已响应，但没有返回文本" : truncate(content.trim(), 100));
+        }
+        catch (Exception e)
+        {
+            long costMs = System.currentTimeMillis() - started;
+            String message = StringUtils.isEmpty(e.getMessage()) ? e.getClass().getSimpleName() : e.getMessage();
+            // 极端情况下第三方错误可能回显请求内容，避免把 Key 暴露到前端。
+            message = message.replace(apiKey, "***");
+            return Map.of("ok", false, "configured", true, "model", modelName, "costMs", costMs,
+                    "message", truncate(message, 300));
+        }
     }
 
     /**

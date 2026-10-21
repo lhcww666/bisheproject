@@ -44,6 +44,9 @@ public class AgentController extends BaseController
     @Value("${spring.ai.openai.api-key:}")
     private String apiKey;
 
+    @Value("${spring.ai.openai.chat.options.model:deepseek-chat}")
+    private String modelName;
+
     /**
      * 返回前端展示所需的模型配置状态。
      */
@@ -53,7 +56,17 @@ public class AgentController extends BaseController
     {
         // 只返回布尔值，绝不把 apiKey 返回给前端。
         boolean configured = apiKey != null && !apiKey.isBlank() && !"not-configured".equals(apiKey.trim());
-        return success(Map.of("configured", configured));
+        return success(Map.of("configured", configured, "model", modelName));
+    }
+
+    /**
+     * 使用最小提示词验证真实模型接口，不写业务数据。
+     */
+    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @PostMapping("/model-check")
+    public AjaxResult modelCheck()
+    {
+        return success(agentService.checkModelConnection());
     }
 
     /**

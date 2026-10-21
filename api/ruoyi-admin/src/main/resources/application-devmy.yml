@@ -7,6 +7,9 @@ ruoyi:
 
 # 数据源配置
 spring:
+  # 本地私密配置：该文件已被 .gitignore 忽略，用于保存 DeepSeek Key 等本机参数
+  config:
+    import: optional:file:./application-local.yml
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driverClassName: com.mysql.cj.jdbc.Driver
@@ -93,7 +96,8 @@ spring:
   # 智能助手模型配置：本地通过环境变量提供密钥，仓库不保存真实 Key
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY:not-configured}
+      # 优先读取环境变量；未设置时读取 application-local.yml 中的 bishe.ai.deepseek-api-key
+      api-key: ${DEEPSEEK_API_KEY:${bishe.ai.deepseek-api-key:not-configured}}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       chat:
         options:
