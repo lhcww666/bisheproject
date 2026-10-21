@@ -154,7 +154,7 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 - `02` 必须在“导入表”之后执行，`01` 必须在“生成代码”之前执行，否则包路径、字典绑定会回到默认值。
 - 每次重新导入表后，`01` 和 `02` 都要重跑；菜单 SQL 生成后要再执行一次 `00-module-menu-directory.sql`，否则菜单会落回“系统工具”目录。
 - 生成器配置口径：模块名 `module`、包路径 `com.ruoyi.module`、模板类型 `element-plus`、作者 `itjialu`。
-- 实验室准入、班级预约、审核状态、数据维护菜单与预约页面结构脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`、`sql/module/14-menu-data-maintenance.sql`、`sql/module/15-reservation-page-structure.sql`；预约生命周期、信用违规、安全考试、数据看板和智能助手脚本继续执行 `sql/module/20-reservation-lifecycle.sql`、`sql/module/21-credit-violation.sql`、`sql/module/22-safety-exam.sql`、`sql/module/23-stats-dashboard.sql`、`sql/module/24-ai-assistant.sql`、`sql/module/25-agent-menu-rename.sql`。以上脚本均可重复执行。
+- 实验室准入、班级预约、审核状态、数据维护菜单与预约页面结构脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`、`sql/module/14-menu-data-maintenance.sql`、`sql/module/15-reservation-page-structure.sql`；预约生命周期、信用违规、安全考试、数据看板和智能助手脚本继续执行 `sql/module/20-reservation-lifecycle.sql`、`sql/module/21-credit-violation.sql`、`sql/module/22-safety-exam.sql`、`sql/module/23-stats-dashboard.sql`、`sql/module/24-agent.sql`、`sql/module/25-agent-menu-rename.sql`。以上脚本均可重复执行。
 
 ## 七、编码约定
 
