@@ -133,6 +133,7 @@ mvn -q -pl ruoyi-admin -am process-resources
 ```powershell
 Test-Path ruoyi-admin\target\classes\application.yml
 Test-Path ruoyi-admin\target\classes\mybatis\mybatis-config.xml
+Test-Path ruoyi-admin\target\classes\i18n\messages.properties
 Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 ```
 
@@ -199,6 +200,7 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 | `Public Key Retrieval is not allowed` | JDBC 地址缺 `allowPublicKeyRetrieval=true` |
 | `Unable to connect to Redis` | Redis 未启动或不在 6379 |
 | 登录接口 401/500 | 密码没做 RSA 加密，或验证码 uuid 与 Redis 中 `captcha_codes:<uuid>` 不匹配 |
+| 登录/退出报 `No message found under code 'user.xxx'` | IDEA/JRebel 未复制 `i18n/messages.properties`；先执行 `process-resources`，项目已提供源码目录兜底但正常构建仍应复制资源 |
 | 表单里某个字段整项不渲染 | 枚举列配了 select 但字典类型没绑定到 `gen_table_column`，需补 `01-module-dict.sql` |
 | 保存报 `No validator could be found for constraint NotBlank` | 非字符串必填字段错用 `@NotBlank`，应为 `@NotNull` |
 | 业务表编译报 `setUserId` / `setDeptId` 找不到 | 模板假定存在 `user_id` / `dept_id` 列，业务表没有时需要按列存在与否回填 |
