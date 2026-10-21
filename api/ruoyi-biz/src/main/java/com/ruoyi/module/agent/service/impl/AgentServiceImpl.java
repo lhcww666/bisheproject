@@ -1,4 +1,4 @@
-package com.ruoyi.module.assistant.service.impl;
+package com.ruoyi.module.agent.service.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,28 +17,40 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.module.assistant.domain.ChatMessage;
-import com.ruoyi.module.assistant.domain.ChatReply;
-import com.ruoyi.module.assistant.domain.ChatRequest;
-import com.ruoyi.module.assistant.domain.ChatSession;
-import com.ruoyi.module.assistant.domain.ChatSessionView;
-import com.ruoyi.module.assistant.domain.ToolCallView;
-import com.ruoyi.module.assistant.mapper.ChatMessageMapper;
-import com.ruoyi.module.assistant.mapper.ChatSessionMapper;
-import com.ruoyi.module.assistant.mapper.ToolCallLogMapper;
-import com.ruoyi.module.assistant.service.AssistantContext;
-import com.ruoyi.module.assistant.service.IAssistantService;
+import com.ruoyi.module.agent.domain.ChatMessage;
+import com.ruoyi.module.agent.domain.ChatReply;
+import com.ruoyi.module.agent.domain.ChatRequest;
+import com.ruoyi.module.agent.domain.ChatSession;
+import com.ruoyi.module.agent.domain.ChatSessionView;
+import com.ruoyi.module.agent.domain.ToolCallView;
+import com.ruoyi.module.agent.mapper.ChatMessageMapper;
+import com.ruoyi.module.agent.mapper.ChatSessionMapper;
+import com.ruoyi.module.agent.mapper.ToolCallLogMapper;
+import com.ruoyi.module.agent.service.AgentContext;
+import com.ruoyi.module.agent.service.IAgentService;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * 智能助手Service实现。
+ * 智能助手核心服务。
+ *
+ * <p>一次聊天大致经过以下步骤：</p>
+ * <ol>
+ *   <li>校验会话是否属于当前登录用户；</li>
+ *   <li>保存用户消息；</li>
+ *   <li>把 sessionId、userId 放入 AgentContext，供工具调用和审计使用；</li>
+ *   <li>读取最近 20 条历史消息，交给 Spring AI ChatClient；</li>
+ *   <li>模型选择并执行只读工具，工具内部再调用现有业务 Service；</li>
+ *   <li>保存助手回复和工具调用摘要，返回前端。</li>
+ * </ol>
+ *
+ * <p>AI 不直接访问数据库，也不负责最终的权限、冲突和业务规则判断。</p>
  *
  * @author itjialu
  */
 @Service
 @RequiredArgsConstructor
-public class AssistantServiceImpl implements IAssistantService
+public class AgentServiceImpl implements IAgentService
 {
     private final ChatSessionMapper chatSessionMapper;
 
@@ -48,9 +60,15 @@ public class AssistantServiceImpl implements IAssistantService
 
     private final ChatClient chatClient;
 
+    /**
+     * 真实 Key 由环境变量注入；not-configured 只用于本地无 Key 启动。
+     */
     @Value("${spring.ai.openai.api-key:}")
     private String apiKey;
 
+    /**
+     * 新建空会话，标题只用于左侧会话列表展示。
+     */
     @Override
     public ChatSessionView createSession(String title)
     {
@@ -65,6 +83,9 @@ public class AssistantServiceImpl implements IAssistantService
         return toView(session);
     }
 
+    /**
+     * 查询当前用户自己的会话，其他用户的数据不会出现在结果中。
+     */
     @Override
     public List<ChatSessionView> listSessions()
     {
@@ -78,6 +99,9 @@ public class AssistantServiceImpl implements IAssistantService
         return result;
     }
 
+    /**
+     * 查询会话消息，先校验会话归属，再按时间正序返回。
+     */
     @Override
     public List<ChatMessage> listMessages(Long sessionId)
     {
@@ -87,6 +111,12 @@ public class AssistantServiceImpl implements IAssistantService
         return chatMessageMapper.selectList(query);
     }
 
+    /**
+     * 发送消息并获取 Agent 回复。
+     *
+     * <p>事务覆盖“保存用户消息、调用模型、保存助手消息”三个步骤；
+     * 模型失败时也会写入可读错误，避免页面没有反馈。</p>
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatReply chat(ChatRequest request)
@@ -95,10 +125,13 @@ public class AssistantServiceImpl implements IAssistantService
         {
             throw new ServiceException("消息不能为空");
         }
+        // 用户身份只从登录上下文获取，不能使用请求体中的任何用户字段。
         Long userId = SecurityUtils.getUserId();
+        // sessionId 为空表示新会话；否则必须验证当前用户拥有该会话。
         ChatSession session = request.getSessionId() == null ? createSessionEntity(userId, request.getMessage())
                 : requireSession(request.getSessionId());
 
+        // 先保存用户消息，保证模型超时或失败时仍能看到用户输入。
         ChatMessage userMessage = new ChatMessage();
         userMessage.setSessionId(session.getId());
         userMessage.setRole(ChatMessage.ROLE_USER);
@@ -111,27 +144,31 @@ public class AssistantServiceImpl implements IAssistantService
             session.setTitle(truncate(request.getMessage().trim(), 30));
         }
 
-        AssistantContext.open(session.getId(), userId);
+        // 工具通过 ThreadLocal 读取会话和用户身份，模型无法伪造 userId。
+        AgentContext.open(session.getId(), userId);
         String answer;
         List<ToolCallView> toolCalls;
         try
         {
             answer = isConfigured() ? askModel(session.getId()) : missingKeyMessage();
-            AssistantContext.Context context = AssistantContext.current();
+            // 工具执行过程中会把调用摘要放进 Context，这里复制给前端展示。
+            AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
         }
         catch (Exception e)
         {
             answer = "智能助手暂时不可用：" + (StringUtils.isEmpty(e.getMessage()) ? e.getClass().getSimpleName()
                     : e.getMessage());
-            AssistantContext.Context context = AssistantContext.current();
+            AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
         }
         finally
         {
-            AssistantContext.close();
+            // 及时清理 ThreadLocal，避免线程池复用造成用户身份串线。
+            AgentContext.close();
         }
 
+        // 模型成功或失败都保存助手消息，保证会话记录完整。
         ChatMessage assistantMessage = new ChatMessage();
         assistantMessage.setSessionId(session.getId());
         assistantMessage.setRole(ChatMessage.ROLE_ASSISTANT);
@@ -149,17 +186,23 @@ public class AssistantServiceImpl implements IAssistantService
         return reply;
     }
 
+    /**
+     * 删除会话及其消息、工具调用审计。
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteSession(Long sessionId)
     {
         ChatSession session = requireSession(sessionId);
         chatMessageMapper.delete(new QueryWrapper<ChatMessage>().eq("session_id", session.getId()));
-        toolCallLogMapper.delete(new QueryWrapper<com.ruoyi.module.assistant.domain.ToolCallLog>()
+        toolCallLogMapper.delete(new QueryWrapper<com.ruoyi.module.agent.domain.ToolCallLog>()
                 .eq("session_id", session.getId()));
         chatSessionMapper.deleteById(session.getId());
     }
 
+    /**
+     * 把数据库消息转换为 Spring AI 的消息格式，最多带入最近 20 条。
+     */
     private String askModel(Long sessionId)
     {
         List<ChatMessage> messages = history(sessionId);
@@ -175,10 +218,14 @@ public class AssistantServiceImpl implements IAssistantService
                 history.add(new AssistantMessage(message.getContent()));
             }
         }
+        // ChatClient 已配置系统提示词和只读工具，模型会在需要时自动选择工具。
         String content = chatClient.prompt().messages(history).call().content();
         return StringUtils.isEmpty(content) ? "模型没有返回内容，请稍后重试。" : content;
     }
 
+    /**
+     * 读取最近消息：先倒序取 20 条，再反转成正序，避免把倒序上下文交给模型。
+     */
     private List<ChatMessage> history(Long sessionId)
     {
         QueryWrapper<ChatMessage> query = new QueryWrapper<>();
@@ -188,6 +235,9 @@ public class AssistantServiceImpl implements IAssistantService
         return messages;
     }
 
+    /**
+     * 校验会话存在且属于当前登录用户。
+     */
     private ChatSession requireSession(Long sessionId)
     {
         if (sessionId == null)
@@ -202,6 +252,9 @@ public class AssistantServiceImpl implements IAssistantService
         return session;
     }
 
+    /**
+     * 创建首次对话使用的会话实体。
+     */
     private ChatSession createSessionEntity(Long userId, String message)
     {
         ChatSession session = new ChatSession();
@@ -214,6 +267,9 @@ public class AssistantServiceImpl implements IAssistantService
         return session;
     }
 
+    /**
+     * 本地没有真实 Key 时不让应用启动失败，而是返回可操作的提示。
+     */
     private boolean isConfigured()
     {
         return StringUtils.isNotEmpty(apiKey) && !"not-configured".equals(apiKey.trim());

@@ -43,18 +43,18 @@ CREATE TABLE IF NOT EXISTS tool_call_log (
 SET @moduleMenuId := (SELECT menu_id FROM sys_menu WHERE menu_name = '实验室业务' AND menu_type = 'M' LIMIT 1);
 
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
-SELECT '智能助手', @moduleMenuId, 12, 'assistant', 'module/assistant/index', 1, 0, 'C', '0', '0',
-       'module:assistant:use', 'message', 'admin', sysdate(), '受控的实验室智能助手'
+SELECT '智能助手', @moduleMenuId, 12, 'agent', 'module/agent/index', 1, 0, 'C', '0', '0',
+       'module:agent:use', 'message', 'admin', sysdate(), '受控的实验室智能助手'
 FROM (SELECT 1) t
 WHERE @moduleMenuId IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM (SELECT * FROM sys_menu) m WHERE m.perms = 'module:assistant:use');
+  AND NOT EXISTS (SELECT 1 FROM (SELECT * FROM sys_menu) m WHERE m.perms = 'module:agent:use');
 
 INSERT IGNORE INTO sys_role_menu (role_id, menu_id)
 SELECT r.role_id, m.menu_id
 FROM sys_role r
-JOIN sys_menu m ON m.perms = 'module:assistant:use'
+JOIN sys_menu m ON m.perms = 'module:agent:use'
 WHERE r.role_key IN ('student', 'teacher', 'admin');
 
 SELECT menu_name, path, component, perms
 FROM sys_menu
-WHERE perms = 'module:assistant:use';
+WHERE perms = 'module:agent:use';

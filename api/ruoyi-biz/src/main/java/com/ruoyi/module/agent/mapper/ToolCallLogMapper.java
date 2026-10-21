@@ -1,7 +1,7 @@
-package com.ruoyi.module.assistant.mapper;
+package com.ruoyi.module.agent.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ruoyi.module.assistant.domain.ToolCallLog;
+import com.ruoyi.module.agent.domain.ToolCallLog;
 
 /**
  * 工具调用审计Mapper。

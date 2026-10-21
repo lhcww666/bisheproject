@@ -1,5 +1,6 @@
 <template>
-  <div class="app-container assistant-page">
+  <div class="app-container agent-page">
+    <!-- 左侧：会话列表。所有会话都属于当前登录用户。 -->
     <aside class="session-panel">
       <div class="session-header">
         <span>智能助手</span>
@@ -20,6 +21,7 @@
       </div>
     </aside>
 
+    <!-- 右侧：当前会话的消息、工具调用和输入框。 -->
     <section class="chat-panel">
       <header class="chat-header">
         <div>
@@ -51,6 +53,7 @@
           <div class="message-content">
             <div class="bubble">{{ message.content }}</div>
             <div class="message-meta">{{ formatTime(message.createTime) }}</div>
+            <!-- 工具调用详情：让用户看到 Agent 实际查了哪些数据。 -->
             <el-collapse v-if="message.toolCalls && message.toolCalls.length" class="tool-collapse">
               <el-collapse-item :title="'工具调用（' + message.toolCalls.length + ' 次）'">
                 <div v-for="(tool, toolIndex) in message.toolCalls" :key="toolIndex" class="tool-item">
@@ -92,9 +95,16 @@
   </div>
 </template>
 
-<script setup name="Assistant">
-import { getAssistantStatus, listAssistantSessions, createAssistantSession, listAssistantMessages, chatWithAssistant, deleteAssistantSession } from "@/api/module/assistant";
+<script setup name="Agent">
+import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession } from "@/api/module/agent";
 
+/**
+ * 页面状态：
+ * - sessions/currentSession：左侧会话和当前选中的会话；
+ * - messages：当前会话的消息，toolCalls 只对本次新回复保留；
+ * - sending/loading：请求和加载状态；
+ * - modelConfigured：后端是否配置了 DEEPSEEK_API_KEY。
+ */
 const { proxy } = getCurrentInstance();
 const sessions = ref([]);
 const currentSession = ref(null);
@@ -112,15 +122,16 @@ const examples = [
   "我的预约为什么被驳回？"
 ];
 
+// 页面初始化：先查询模型状态，再加载当前用户的会话。
 onMounted(() => {
-  getAssistantStatus().then(response => {
+  getAgentStatus().then(response => {
     modelConfigured.value = response.data?.configured !== false;
   });
   loadSessions();
 });
 
 function loadSessions() {
-  return listAssistantSessions().then(response => {
+  return listAgentSessions().then(response => {
     sessions.value = response.data || [];
     if (!sessions.value.length) {
       currentSession.value = null;
@@ -136,8 +147,9 @@ function loadSessions() {
   });
 }
 
+// 只刷新左侧会话标题和时间，不重新拉取消息，避免把本次工具调用详情覆盖掉。
 function refreshSessionsOnly() {
-  return listAssistantSessions().then(response => {
+  return listAgentSessions().then(response => {
     sessions.value = response.data || [];
     if (currentSession.value) {
       const refreshed = sessions.value.find(item => item.id === currentSession.value.id);
@@ -151,7 +163,7 @@ function refreshSessionsOnly() {
 function selectSession(session) {
   currentSession.value = session;
   loading.value = true;
-  listAssistantMessages(session.id).then(response => {
+  listAgentMessages(session.id).then(response => {
     messages.value = (response.data || []).map(item => ({
       role: item.role,
       content: item.content,
@@ -164,8 +176,9 @@ function selectSession(session) {
   });
 }
 
+// 新建空会话，登录用户第一次发送消息时由后端自动补标题。
 function newSession() {
-  createAssistantSession("新对话").then(response => {
+  createAgentSession("新对话").then(response => {
     const session = response.data;
     sessions.value.unshift(session);
     currentSession.value = session;
@@ -175,7 +188,7 @@ function newSession() {
 }
 
 function removeSession(session) {
-  proxy.$modal.confirm('确认删除对话“' + session.title + '”吗？').then(() => deleteAssistantSession(session.id)).then(() => {
+  proxy.$modal.confirm('确认删除对话“' + session.title + '”吗？').then(() => deleteAgentSession(session.id)).then(() => {
     sessions.value = sessions.value.filter(item => item.id !== session.id);
     if (currentSession.value && currentSession.value.id === session.id) {
       currentSession.value = null;
@@ -186,10 +199,19 @@ function removeSession(session) {
   }).catch(() => {});
 }
 
+// 点击示例问题只填入输入框，由用户确认后发送。
 function useExample(example) {
   input.value = example;
 }
 
+/**
+ * 发送流程：
+ * 1. 先乐观渲染用户消息；
+ * 2. 没有会话时先创建会话；
+ * 3. 调用 /module/agent/chat；
+ * 4. 把助手回复和工具调用摘要追加到消息列表；
+ * 5. 只刷新会话列表，不重新拉取消息。
+ */
 function send() {
   const content = input.value.trim();
   if (!content || sending.value) return;
@@ -200,13 +222,13 @@ function send() {
 
   const request = currentSession.value
     ? Promise.resolve(currentSession.value)
-    : createAssistantSession(content).then(response => {
+    : createAgentSession(content).then(response => {
         currentSession.value = response.data;
         sessions.value.unshift(response.data);
         return response.data;
       });
 
-  request.then(session => chatWithAssistant({ sessionId: session.id, message: content })).then(response => {
+  request.then(session => chatWithAgent({ sessionId: session.id, message: content })).then(response => {
     const data = response.data || {};
     if (data.sessionId && (!currentSession.value || currentSession.value.id !== data.sessionId)) {
       currentSession.value = { id: data.sessionId, title: content.slice(0, 30) };
@@ -249,7 +271,7 @@ function formatTime(value) {
 </script>
 
 <style lang="scss" scoped>
-.assistant-page {
+.agent-page {
   display: flex;
   gap: 14px;
   height: calc(100vh - 110px);
@@ -351,7 +373,7 @@ function formatTime(value) {
 .composer { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid #ebeef5; }
 .composer .el-textarea { flex: 1; }
 @media (max-width: 900px) {
-  .assistant-page { flex-direction: column; height: auto; }
+  .agent-page { flex-direction: column; height: auto; }
   .session-panel { width: 100%; max-height: 180px; }
   .chat-panel { min-height: 600px; }
   .message-content { max-width: 88%; }

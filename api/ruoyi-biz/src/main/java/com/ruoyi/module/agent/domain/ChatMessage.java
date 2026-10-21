@@ -1,4 +1,4 @@
-package com.ruoyi.module.assistant.domain;
+package com.ruoyi.module.agent.domain;
 
 import java.util.Date;
 
@@ -10,7 +10,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 /**
- * 智能助手消息。
+ * 智能助手消息实体。
+ *
+ * <p>只保存 USER 和 ASSISTANT 两类对话内容；工具调用明细单独存审计表，
+ * 避免一条消息里混入大量工具参数。</p>
  *
  * @author itjialu
  */
@@ -18,19 +21,29 @@ import lombok.Data;
 @TableName("chat_message")
 public class ChatMessage
 {
+    /** 用户消息角色。 */
     public static final String ROLE_USER = "USER";
+
+    /** 助手消息角色。 */
     public static final String ROLE_ASSISTANT = "ASSISTANT";
+
+    /** 预留的系统消息角色。 */
     public static final String ROLE_SYSTEM = "SYSTEM";
 
+    /** 消息主键。 */
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 所属会话。 */
     private Long sessionId;
 
+    /** 消息角色：USER/ASSISTANT/SYSTEM。 */
     private String role;
 
+    /** 消息正文。 */
     private String content;
 
+    /** 消息时间。 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
 }

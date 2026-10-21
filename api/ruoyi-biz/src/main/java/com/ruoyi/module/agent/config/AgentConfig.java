@@ -1,19 +1,33 @@
-package com.ruoyi.module.assistant.config;
+package com.ruoyi.module.agent.config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.ruoyi.module.assistant.tool.LabAssistantTools;
+import com.ruoyi.module.agent.tool.LabAgentTools;
 
 /**
- * Spring AI 智能助手配置。
+ * Spring AI Agent 配置。
+ *
+ * <p>这里集中做两件事：
+ * 1. 定义 Agent 的系统边界和行为约束；
+ * 2. 把 Spring AI 自动装配的 {@link ChatClient.Builder} 与当前项目的
+ *    {@link LabAgentTools} 绑定，后续聊天请求统一复用这个 ChatClient。</p>
+ *
+ * <p>业务规则不写在提示词里，提示词只负责约束模型行为；真正的权限、冲突、
+ * 考试和信用校验仍由 Java Service 完成。</p>
  *
  * @author itjialu
  */
 @Configuration
-public class AiConfig
+public class AgentConfig
 {
+    /**
+     * 系统提示词。
+     *
+     * <p>提示词只约束“如何表达”和“不能做什么”，不替代后端校验。
+     * 模型即使生成错误参数，工具和业务 Service 仍会再次校验。</p>
+     */
     private static final String SYSTEM_PROMPT = """
             你是“校园实验室智能助手”，服务于实验室预约与安全管理平台。
             必须遵守以下规则：
@@ -25,8 +39,15 @@ public class AiConfig
             6. 不回答与实验室预约、设备、安全考试、信用分和实验室管理无关的问题。
             """;
 
+    /**
+     * 创建项目统一的 Agent ChatClient。
+     *
+     * <p>Spring AI 根据 spring-ai-starter-model-openai 自动创建 Builder；
+     * 这里通过 defaultTools 注册 @Tool 方法，模型只能调用这些白名单工具，
+     * 不能直接访问数据库或执行 SQL。</p>
+     */
     @Bean
-    public ChatClient labAssistantChatClient(ChatClient.Builder builder, LabAssistantTools tools)
+    public ChatClient labAgentChatClient(ChatClient.Builder builder, LabAgentTools tools)
     {
         return builder.defaultSystem(SYSTEM_PROMPT).defaultTools(tools).build();
     }

@@ -1,4 +1,4 @@
-package com.ruoyi.module.assistant.tool;
+package com.ruoyi.module.agent.tool;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ruoyi.module.assistant.service.AssistantContext;
-import com.ruoyi.module.assistant.service.ToolAuditService;
+import com.ruoyi.module.agent.service.AgentContext;
+import com.ruoyi.module.agent.service.ToolAuditService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.device.domain.Device;
@@ -28,16 +28,20 @@ import com.ruoyi.module.safety.service.ISafetyExamService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 智能助手只读工具。
+ * 实验室 Agent 的只读工具集合。
  *
- * <p>所有工具都从当前登录用户上下文取身份，模型不能传入 userId；
- * 工具调用统一写入 tool_call_log，便于追溯。</p>
+ * <p>工具是模型和业务 Service 之间唯一的桥：
+ * 模型负责决定“要查什么”，工具负责用当前 JWT 用户身份调用现有 Service。
+ * 工具不会接收 userId，也不允许模型直接写 SQL。</p>
+ *
+ * <p>每个工具都通过 {@link #execute(String, String, Supplier)} 包装，
+ * 自动记录调用参数、返回结果、成功状态和耗时。</p>
  *
  * @author itjialu
  */
 @Component
 @RequiredArgsConstructor
-public class LabAssistantTools
+public class LabAgentTools
 {
     private final IReservationService reservationService;
 
@@ -49,6 +53,9 @@ public class LabAssistantTools
 
     private final ToolAuditService toolAuditService;
 
+    /**
+     * 查询当前用户在某时段可预约的实验室。
+     */
     @Tool(name = "queryAvailableRooms",
             description = "查询指定时间段内当前用户可以预约的实验室，返回实验室编号、名称、容量、预约模式和安全等级。")
     public String queryAvailableRooms(
@@ -57,7 +64,7 @@ public class LabAssistantTools
             @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount)
     {
         return execute("queryAvailableRooms", startTime + "~" + endTime + ", people=" + participantCount, () -> {
-            Long userId = AssistantContext.require().getUserId();
+            Long userId = AgentContext.require().getUserId();
             List<Room> rooms = reservationService.selectAvailableRooms(userId, parse(startTime, false),
                     parse(endTime, true), participantCount == null ? null : participantCount.longValue());
             if (rooms.isEmpty())
@@ -77,6 +84,9 @@ public class LabAssistantTools
         });
     }
 
+    /**
+     * 查询实验室的设备。返回 ID，便于模型继续调用设备相关工具。
+     */
     @Tool(name = "queryAvailableDevices",
             description = "查询指定实验室当前可预约的设备，返回设备编号、名称、数量和是否需要培训。")
     public String queryAvailableDevices(
@@ -100,12 +110,15 @@ public class LabAssistantTools
         });
     }
 
+    /**
+     * 查询当前学生的考试资格，不返回其他学生的成绩。
+     */
     @Tool(name = "checkSafetyExamStatus",
             description = "查询当前学生的安全考试状态，包括是否有效通过、最近成绩和有效期。")
     public String checkSafetyExamStatus()
     {
         return execute("checkSafetyExamStatus", "currentUser", () -> {
-            SafetyExamStatusView status = safetyExamService.getStatus(AssistantContext.require().getUserId());
+            SafetyExamStatusView status = safetyExamService.getStatus(AgentContext.require().getUserId());
             return "安全考试：" + (status.getHasValidPass() ? "有效通过" : "没有有效通过记录")
                     + "；最近成绩 " + (status.getLatestScore() == null ? "暂无" : status.getLatestScore())
                     + "；最近结果 " + (status.getLatestPassed() == null ? "暂无" : (status.getLatestPassed() ? "通过" : "未通过"))
@@ -113,24 +126,30 @@ public class LabAssistantTools
         });
     }
 
+    /**
+     * 查询当前学生信用分和是否能预约。
+     */
     @Tool(name = "queryMyCredit",
             description = "查询当前学生的信用分、预约门槛以及当前是否可以提交预约。")
     public String queryMyCredit()
     {
         return execute("queryMyCredit", "currentUser", () -> {
-            CreditSummary summary = creditService.getSummary(AssistantContext.require().getUserId());
+            CreditSummary summary = creditService.getSummary(AgentContext.require().getUserId());
             return "当前信用分 " + summary.getScore() + " 分，预约门槛 " + summary.getMinScore()
                     + " 分，" + (summary.getCanBook() ? "当前可以提交预约。" : "当前信用分不足，不能提交预约。");
         });
     }
 
+    /**
+     * 查询当前用户最近 10 条预约，可按状态过滤。
+     */
     @Tool(name = "queryMyReservations",
             description = "查询当前用户最近的预约记录，可按状态筛选：0待审核，1已通过，2已驳回，3已取消，4已完成，5已签到，6已爽约。")
     public String queryMyReservations(
             @ToolParam(required = false, description = "预约状态，可为空") String status)
     {
         return execute("queryMyReservations", "status=" + status, () -> {
-            Long userId = AssistantContext.require().getUserId();
+            Long userId = AgentContext.require().getUserId();
             Page<Reservation> page = new Page<>(1, 10);
             List<ReservationView> records = reservationService.pageMyReservation(page, status, null, null)
                     .getRecords();
@@ -150,13 +169,16 @@ public class LabAssistantTools
         });
     }
 
+    /**
+     * 按预约编号查询当前用户自己的审核结果和驳回原因。
+     */
     @Tool(name = "queryReservationReview",
             description = "按预约编号查询当前用户自己的预约审核结果和驳回原因。")
     public String queryReservationReview(
             @ToolParam(description = "预约编号，例如 RES20261021-001") String reservationNo)
     {
         return execute("queryReservationReview", "reservationNo=" + reservationNo, () -> {
-            Long userId = AssistantContext.require().getUserId();
+            Long userId = AgentContext.require().getUserId();
             QueryWrapper<Reservation> query = new QueryWrapper<>();
             query.eq("applicant_id", userId).eq("reservation_no", reservationNo).last("limit 1");
             Reservation reservation = reservationMapper.selectOne(query);
@@ -181,6 +203,9 @@ public class LabAssistantTools
         });
     }
 
+    /**
+     * 工具执行模板：统一处理成功、失败和审计日志。
+     */
     private String execute(String toolName, String arguments, Supplier<String> action)
     {
         long started = System.currentTimeMillis();
@@ -198,6 +223,9 @@ public class LabAssistantTools
         }
     }
 
+    /**
+     * 解析模型传入的时间字符串，兼容带秒、不带秒和纯日期三种格式。
+     */
     private Date parse(String text, boolean endOfDay)
     {
         if (text == null || text.trim().isEmpty())
@@ -227,11 +255,17 @@ public class LabAssistantTools
         throw new IllegalArgumentException("时间格式应为 yyyy-MM-dd HH:mm:ss：" + text);
     }
 
+    /**
+     * 工具返回给模型的简短日期格式，避免响应过长。
+     */
     private String formatDate(Date date)
     {
         return date == null ? "暂无" : new SimpleDateFormat("yyyy-MM-dd HH:mm").format(date);
     }
 
+    /**
+     * 把数据库状态码翻译成自然语言，降低模型误解状态的概率。
+     */
     private String statusLabel(String status)
     {
         if (ReservationStatus.PENDING.equals(status)) return "待审核";
