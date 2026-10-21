@@ -27,6 +27,14 @@ public class CommonAgentTools
         return delegate.queryAvailableRooms(startTime, endTime, participantCount);
     }
 
+    @Tool(name = "queryAvailableRoomsNow",
+            description = "使用服务器当前时间查询未来1小时的可预约实验室，适合用户说现在、当前时间或今天还能约什么。")
+    public String queryAvailableRoomsNow(
+            @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount)
+    {
+        return delegate.queryAvailableRoomsNow(participantCount);
+    }
+
     @Tool(name = "queryAvailableDevices",
             description = "查询指定实验室当前可预约的设备，返回设备编号、名称、数量和是否需要培训。")
     public String queryAvailableDevices(

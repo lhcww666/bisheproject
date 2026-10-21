@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Date;
 
 import org.junit.jupiter.api.Test;
 
@@ -16,6 +17,7 @@ import com.ruoyi.module.agent.service.ToolAuditService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
+import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.module.room.mapper.RoomMapper;
 import com.ruoyi.module.roomaccess.service.IRoomAccessService;
@@ -29,6 +31,31 @@ import com.ruoyi.module.safety.service.ISafetyExamService;
  */
 class LabAgentToolsTest
 {
+    @Test
+    void currentAvailabilityUsesServerTimeWindow()
+    {
+        IReservationService reservationService = mock(IReservationService.class);
+        ToolAuditService auditService = mock(ToolAuditService.class);
+        Room room = room(12L, "R301", "分析实验室");
+        when(reservationService.selectAvailableRooms(eq(1L), any(Date.class), any(Date.class), eq(2L)))
+                .thenReturn(List.of(room));
+
+        LabAgentTools tools = new LabAgentTools(reservationService, null, null, null, null,
+                null, null, auditService, null, null);
+        AgentContext.open(100L, 1L);
+        try
+        {
+            String result = tools.queryAvailableRoomsNow(2);
+            assertTrue(result.contains("服务器当前时间"));
+            assertTrue(result.contains("查询区间"));
+            assertTrue(result.contains("R301 分析实验室"));
+        }
+        finally
+        {
+            AgentContext.close();
+        }
+    }
+
     @Test
     void eligibilityExplainsLowRiskAndExamRequiredRooms()
     {

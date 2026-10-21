@@ -37,6 +37,16 @@ class LocalIntentRouterTest
     }
 
     @Test
+    void currentTimeAvailabilityUsesNowTool()
+    {
+        assertEquals(LocalIntentRouter.ROOMS_NOW,
+                LocalIntentRouter.route("你帮我看我现在还能预约哪个实验室"));
+        assertEquals("queryAvailableRoomsNow", LocalIntentRouter.toolFor(LocalIntentRouter.ROOMS_NOW));
+        assertEquals(LocalIntentRouter.ELIGIBILITY,
+                LocalIntentRouter.route("我现在能不能预约实验室？"));
+    }
+
+    @Test
     void routesEquipmentAndReservationDraft()
     {
         assertEquals(LocalIntentRouter.DEVICES, LocalIntentRouter.route("离心机现在可以用吗？"));

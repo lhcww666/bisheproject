@@ -18,6 +18,7 @@ public final class LocalIntentRouter
     public static final String SAFETY = "SAFETY";
     public static final String DEVICES = "DEVICES";
     public static final String MY_RESERVATIONS = "MY_RESERVATIONS";
+    public static final String ROOMS_NOW = "ROOMS_NOW";
     public static final String QUERY_ROOMS = "QUERY_ROOMS";
     public static final String UNKNOWN = "UNKNOWN";
 
@@ -32,6 +33,11 @@ public final class LocalIntentRouter
                 || (text.contains("为什么") && containsAny(text, "预约", "审核")))
         {
             return REVIEW;
+        }
+        if (containsAny(text, "现在还能预约", "现在可以预约", "现在能预约", "当前时间",
+                "现在哪个", "现在哪些", "当前还有", "现在还有", "现在可用"))
+        {
+            return ROOMS_NOW;
         }
         if (containsAny(text, "可以预约", "能预约", "能否预约", "能不能预约", "预约资格",
                 "没通过安全考试", "没有通过安全考试", "没有安全考试", "安全考试不合格",
@@ -85,6 +91,7 @@ public final class LocalIntentRouter
             case SAFETY -> "searchSafetyKnowledge";
             case DEVICES -> "queryAvailableDevices";
             case MY_RESERVATIONS -> "queryMyReservations";
+            case ROOMS_NOW -> "queryAvailableRoomsNow";
             case QUERY_ROOMS -> "queryAvailableRooms";
             default -> "unknown";
         };

@@ -1,6 +1,8 @@
 package com.ruoyi.module.agent.tool;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -98,6 +100,50 @@ public class LabAgentTools
                         .append("，容量 ").append(room.getCapacity()).append(" 人")
                         .append("，预约模式 ").append(room.getReservationMode())
                         .append("，安全等级 ").append(room.getSafetyLevel()).append("\n");
+            }
+            return result.toString();
+        });
+    }
+
+    /**
+     * 按服务器当前时间查询未来一小时的可预约实验室。
+     */
+    @Tool(name = "queryAvailableRoomsNow",
+            description = "使用服务器当前时间查询未来1小时的实验室，不要求用户提供起止时间。")
+    public String queryAvailableRoomsNow(
+            @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount)
+    {
+        return execute("queryAvailableRoomsNow", "participantCount=" + participantCount, () -> {
+            Long userId = AgentContext.require().getUserId();
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime start = now.withSecond(0).withNano(0);
+            int addMinutes = (5 - start.getMinute() % 5) % 5;
+            if (addMinutes == 0)
+            {
+                addMinutes = 5;
+            }
+            start = start.plusMinutes(addMinutes);
+            LocalDateTime end = start.plusHours(1);
+            Date startTime = Date.from(start.atZone(ZoneId.systemDefault()).toInstant());
+            Date endTime = Date.from(end.atZone(ZoneId.systemDefault()).toInstant());
+            List<Room> rooms = reservationService.selectAvailableRooms(userId, startTime, endTime,
+                    participantCount == null ? null : participantCount.longValue());
+
+            SimpleDateFormat display = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            StringBuilder result = new StringBuilder("服务器当前时间：").append(display.format(new Date()))
+                    .append("\n查询区间：").append(display.format(startTime)).append(" 至 ").append(display.format(endTime))
+                    .append("\n");
+            if (rooms.isEmpty())
+            {
+                return result.append("当前时段没有可预约实验室。该结果是结合开放时间、预约冲突、容量和准入范围实时计算的。").toString();
+            }
+            result.append("当前可预约实验室：\n");
+            for (Room room : rooms)
+            {
+                result.append("- ").append(room.getRoomCode()).append(" ").append(room.getRoomName())
+                        .append("（ID ").append(room.getId())
+                        .append("，容量 ").append(room.getCapacity())
+                        .append("，安全等级 ").append(room.getSafetyLevel()).append("）\n");
             }
             return result.toString();
         });
