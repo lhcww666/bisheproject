@@ -42,6 +42,7 @@ WHERE m.perms IN (
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
  'module:safetyExam:status', 'module:safetyExam:start', 'module:safetyExam:submit',
  'module:stats:view',
+ 'module:assistant:use',
  'module:creditRecord:list', 'module:creditRecord:query',
  'module:violationRecord:list', 'module:violationRecord:query'
 );
@@ -61,6 +62,7 @@ WHERE m.perms IN (
  'module:reservation:list', 'module:reservation:query', 'module:reservation:review',
  'module:safetyExamRecord:list', 'module:safetyExamRecord:query',
  'module:stats:view',
+ 'module:assistant:use',
  'module:creditRecord:list', 'module:creditRecord:query',
  'module:violationRecord:list', 'module:violationRecord:query'
 );
