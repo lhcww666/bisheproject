@@ -9,6 +9,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.exception.ServiceException;
@@ -156,6 +157,24 @@ public class ReservationDraftServiceImpl implements IReservationDraftService
     public ReservationDraftView getDraft(Long draftId, Long userId)
     {
         return toView(requireDraft(draftId, userId));
+    }
+
+    @Override
+    public List<ReservationDraftView> listPendingDrafts(Long userId, Long sessionId)
+    {
+        QueryWrapper<ReservationDraft> query = new QueryWrapper<>();
+        query.eq("user_id", userId).eq("status", "DRAFT").gt("expires_at", new Date());
+        if (sessionId != null)
+        {
+            query.eq("session_id", sessionId);
+        }
+        query.orderByDesc("id");
+        List<ReservationDraftView> result = new ArrayList<>();
+        for (ReservationDraft draft : draftMapper.selectList(query))
+        {
+            result.add(toView(draft));
+        }
+        return result;
     }
 
     private ReservationDraft requireDraft(Long draftId, Long userId)

@@ -58,6 +58,16 @@ public class ReservationDraftController extends BaseController
     }
 
     /**
+     * 查询当前会话中待确认的草稿，用于页面刷新后恢复草稿卡片。
+     */
+    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @GetMapping("/pending")
+    public AjaxResult pending(@RequestParam(required = false) Long sessionId)
+    {
+        return success(draftService.listPendingDrafts(SecurityUtils.getUserId(), sessionId));
+    }
+
+    /**
      * 用户确认草稿，后端重新校验后创建正式预约。
      */
     @PreAuthorize("@ss.hasPermi('module:agent:use')")

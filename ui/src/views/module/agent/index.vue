@@ -148,7 +148,7 @@
 </template>
 
 <script setup name="Agent">
-import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge, confirmAgentDraft, cancelAgentDraft } from "@/api/module/agent";
+import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
 
 /**
  * 页面状态：
@@ -229,7 +229,18 @@ function selectSession(session) {
       toolCalls: [],
       draft: null
     }));
-    scrollToBottom();
+    listPendingAgentDrafts(session.id).then(draftResponse => {
+      (draftResponse.data || []).forEach(draft => {
+        messages.value.push({
+          role: "ASSISTANT",
+          content: "这份预约草稿还没有确认，请核对信息后点击下方按钮。",
+          createTime: new Date().toISOString(),
+          toolCalls: [],
+          draft
+        });
+      });
+      scrollToBottom();
+    });
   }).finally(() => {
     loading.value = false;
   });

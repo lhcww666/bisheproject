@@ -1,5 +1,7 @@
 package com.ruoyi.module.agent.draft.service;
 
+import java.util.List;
+
 import com.ruoyi.module.agent.draft.domain.ReservationDraftRequest;
 import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
 
@@ -17,4 +19,9 @@ public interface IReservationDraftService
     ReservationDraftView cancelDraft(Long draftId, Long userId);
 
     ReservationDraftView getDraft(Long draftId, Long userId);
+
+    /**
+     * 查询某个会话中尚未确认且未过期的草稿。
+     */
+    List<ReservationDraftView> listPendingDrafts(Long userId, Long sessionId);
 }

@@ -79,3 +79,12 @@ export function cancelAgentDraft(draftId) {
     method: 'post'
   })
 }
+
+// 查询会话中待确认的预约草稿，页面刷新后用于恢复草稿卡片
+export function listPendingAgentDrafts(sessionId) {
+  return request({
+    url: '/module/agent/drafts/pending',
+    method: 'get',
+    params: sessionId ? { sessionId } : {}
+  })
+}
