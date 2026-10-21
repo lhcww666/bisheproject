@@ -63,3 +63,19 @@ export function searchAgentKnowledge(q, topK = 3) {
     params: { q, topK }
   })
 }
+
+// 用户点击确认后提交预约草稿，后端会重新执行完整业务校验
+export function confirmAgentDraft(draftId) {
+  return request({
+    url: '/module/agent/drafts/' + draftId + '/confirm',
+    method: 'post'
+  })
+}
+
+// 取消尚未确认的草稿
+export function cancelAgentDraft(draftId) {
+  return request({
+    url: '/module/agent/drafts/' + draftId + '/cancel',
+    method: 'post'
+  })
+}

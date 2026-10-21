@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.ruoyi.module.agent.domain.ToolCallView;
+import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
 
 /**
  * 一次聊天请求的 Agent 上下文。
@@ -79,6 +80,9 @@ public final class AgentContext
         /** 本次请求期间的工具调用摘要，用于返回前端展示。 */
         private final List<ToolCallView> toolCalls = new ArrayList<>();
 
+        /** 本次请求创建的预约草稿。 */
+        private ReservationDraftView draft;
+
         public Long getSessionId()
         {
             return sessionId;
@@ -92,6 +96,16 @@ public final class AgentContext
         public List<ToolCallView> getToolCalls()
         {
             return toolCalls;
+        }
+
+        public ReservationDraftView getDraft()
+        {
+            return draft;
+        }
+
+        public void setDraft(ReservationDraftView draft)
+        {
+            this.draft = draft;
         }
     }
 }

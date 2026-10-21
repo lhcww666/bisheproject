@@ -15,6 +15,9 @@ import com.ruoyi.module.agent.service.AgentContext;
 import com.ruoyi.module.agent.service.ToolAuditService;
 import com.ruoyi.module.agent.knowledge.domain.KnowledgeSearchResult;
 import com.ruoyi.module.agent.knowledge.service.IKnowledgeSearchService;
+import com.ruoyi.module.agent.draft.domain.ReservationDraftRequest;
+import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
+import com.ruoyi.module.agent.draft.service.IReservationDraftService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.device.domain.Device;
@@ -56,6 +59,8 @@ public class LabAgentTools
     private final ToolAuditService toolAuditService;
 
     private final IKnowledgeSearchService knowledgeSearchService;
+
+    private final IReservationDraftService reservationDraftService;
 
     /**
      * 查询当前用户在某时段可预约的实验室。
@@ -232,6 +237,60 @@ public class LabAgentTools
                         .append("相关度：").append(item.getScore()).append("\n\n");
             }
             return result.toString();
+        });
+    }
+
+    /**
+     * 创建预约草稿。
+     *
+     * <p>工具只落草稿，不直接创建预约；创建成功后会提示用户在前端确认。</p>
+     */
+    @Tool(name = "createReservationDraft",
+            description = "创建实验室预约草稿。只是待确认草稿，不代表预约成功；用户必须在前端确认后才会提交。")
+    public String createReservationDraft(
+            @ToolParam(description = "实验室ID") Long roomId,
+            @ToolParam(description = "实验名称") String experimentName,
+            @ToolParam(description = "开始时间，格式 yyyy-MM-dd HH:mm:ss") String startTime,
+            @ToolParam(description = "结束时间，格式 yyyy-MM-dd HH:mm:ss") String endTime,
+            @ToolParam(description = "参与人数") Integer participantCount,
+            @ToolParam(required = false, description = "设备ID列表，可为空") List<Long> deviceIds,
+            @ToolParam(required = false, description = "实验说明，可为空") String remark)
+    {
+        return execute("createReservationDraft", "roomId=" + roomId + ", " + startTime + "~" + endTime, () -> {
+            AgentContext.Context context = AgentContext.require();
+            ReservationDraftRequest request = new ReservationDraftRequest();
+            request.setRoomId(roomId);
+            request.setExperimentName(experimentName);
+            request.setStartTime(startTime);
+            request.setEndTime(endTime);
+            request.setParticipantCount(participantCount);
+            request.setDeviceIds(deviceIds);
+            request.setRemark(remark);
+            ReservationDraftView draft = reservationDraftService.createDraft(context.getUserId(),
+                    context.getSessionId(), request);
+            context.setDraft(draft);
+            return "预约草稿已创建，草稿ID " + draft.getId() + "。"
+                    + "这不是预约成功；请核对页面上的实验室、时间、人数和设备，然后点击“确认提交预约”。"
+                    + "草稿将在 " + formatDate(draft.getExpiresAt()) + " 前有效。";
+        });
+    }
+
+    /**
+     * 确认预约草稿。
+     *
+     * <p>模型只能在用户明确说“确认提交”后调用；前端按钮是更推荐的确认入口。</p>
+     */
+    @Tool(name = "confirmReservation",
+            description = "确认并提交一个已经展示给用户的预约草稿。只有用户明确确认后才能调用。")
+    public String confirmReservation(
+            @ToolParam(description = "预约草稿ID") Long draftId)
+    {
+        return execute("confirmReservation", "draftId=" + draftId, () -> {
+            AgentContext.Context context = AgentContext.require();
+            ReservationDraftView draft = reservationDraftService.confirmDraft(draftId, context.getUserId());
+            context.setDraft(draft);
+            return "预约已提交，预约编号 " + draft.getReservationNo()
+                    + "，当前状态 " + draft.getReservationStatus() + "。";
         });
     }
 

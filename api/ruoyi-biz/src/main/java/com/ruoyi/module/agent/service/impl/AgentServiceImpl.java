@@ -23,6 +23,7 @@ import com.ruoyi.module.agent.domain.ChatRequest;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.domain.ChatSessionView;
 import com.ruoyi.module.agent.domain.ToolCallView;
+import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
 import com.ruoyi.module.agent.mapper.ChatMessageMapper;
 import com.ruoyi.module.agent.mapper.ChatSessionMapper;
 import com.ruoyi.module.agent.mapper.ToolCallLogMapper;
@@ -148,12 +149,14 @@ public class AgentServiceImpl implements IAgentService
         AgentContext.open(session.getId(), userId);
         String answer;
         List<ToolCallView> toolCalls;
+        ReservationDraftView draft;
         try
         {
             answer = isConfigured() ? askModel(session.getId()) : missingKeyMessage();
             // 工具执行过程中会把调用摘要放进 Context，这里复制给前端展示。
             AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
+            draft = context == null ? null : context.getDraft();
         }
         catch (Exception e)
         {
@@ -161,6 +164,7 @@ public class AgentServiceImpl implements IAgentService
                     : e.getMessage());
             AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
+            draft = context == null ? null : context.getDraft();
         }
         finally
         {
@@ -180,6 +184,7 @@ public class AgentServiceImpl implements IAgentService
         reply.setSessionId(session.getId());
         reply.setContent(answer);
         reply.setToolCalls(toolCalls);
+        reply.setDraft(draft);
 
         session.setUpdateTime(new Date());
         chatSessionMapper.updateById(session);

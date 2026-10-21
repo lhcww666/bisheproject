@@ -2,6 +2,8 @@ package com.ruoyi.module.agent.domain;
 
 import java.util.List;
 
+import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
+
 import lombok.Data;
 
 /**
@@ -20,4 +22,7 @@ public class ChatReply
 
     /** 本次回复期间的工具调用摘要。 */
     private List<ToolCallView> toolCalls;
+
+    /** 本次回复生成的预约草稿；没有草稿时为空。 */
+    private ReservationDraftView draft;
 }

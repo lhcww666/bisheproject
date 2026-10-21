@@ -55,6 +55,29 @@
           <div class="avatar">{{ message.role === 'USER' ? '我' : 'AI' }}</div>
           <div class="message-content">
             <div class="bubble">{{ message.content }}</div>
+            <!-- 预约草稿卡片：只有用户点击确认后，才调用后端提交接口。 -->
+            <el-card v-if="message.draft" shadow="never" class="draft-card">
+              <div class="draft-title">
+                <span>预约草稿</span>
+                <el-tag size="small" :type="draftStatusType(message.draft.status)">
+                  {{ draftStatusLabel(message.draft.status) }}
+                </el-tag>
+              </div>
+              <div class="draft-line"><span>实验室</span>{{ message.draft.roomName || message.draft.roomId }}</div>
+              <div class="draft-line"><span>时间</span>{{ formatDateTime(message.draft.startTime) }} 至 {{ formatDateTime(message.draft.endTime) }}</div>
+              <div class="draft-line"><span>人数</span>{{ message.draft.participantCount }}</div>
+              <div class="draft-line"><span>设备</span>{{ (message.draft.deviceNames || []).join('、') || '未选择' }}</div>
+              <div class="draft-line"><span>说明</span>{{ message.draft.remark || '无' }}</div>
+              <div v-if="message.draft.status === 'DRAFT'" class="draft-actions">
+                <el-button type="primary" size="small" :loading="draftLoading === message.draft.id" @click="confirmDraft(message)">
+                  确认提交预约
+                </el-button>
+                <el-button size="small" @click="cancelDraft(message)">取消草稿</el-button>
+              </div>
+              <div v-else-if="message.draft.status === 'CONFIRMED'" class="draft-result">
+                已提交：{{ message.draft.reservationNo }}，状态 {{ reservationStatusLabel(message.draft.reservationStatus) }}
+              </div>
+            </el-card>
             <div class="message-meta">{{ formatTime(message.createTime) }}</div>
             <!-- 工具调用详情：让用户看到 Agent 实际查了哪些数据。 -->
             <el-collapse v-if="message.toolCalls && message.toolCalls.length" class="tool-collapse">
@@ -125,7 +148,7 @@
 </template>
 
 <script setup name="Agent">
-import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge } from "@/api/module/agent";
+import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge, confirmAgentDraft, cancelAgentDraft } from "@/api/module/agent";
 
 /**
  * 页面状态：
@@ -148,6 +171,7 @@ const knowledgeQuery = ref("");
 const knowledgeLoading = ref(false);
 const knowledgeSearched = ref(false);
 const knowledgeResults = ref([]);
+const draftLoading = ref(null);
 
 const examples = [
   "我通过安全考试了吗？",
@@ -202,7 +226,8 @@ function selectSession(session) {
       role: item.role,
       content: item.content,
       createTime: item.createTime,
-      toolCalls: []
+      toolCalls: [],
+      draft: null
     }));
     scrollToBottom();
   }).finally(() => {
@@ -271,7 +296,8 @@ function send() {
       role: "ASSISTANT",
       content: data.content || "模型没有返回内容。",
       createTime: new Date().toISOString(),
-      toolCalls: data.toolCalls || []
+      toolCalls: data.toolCalls || [],
+      draft: data.draft || null
     });
     if (String(data.content || "").includes("尚未配置模型密钥")) {
       modelConfigured.value = false;
@@ -283,7 +309,8 @@ function send() {
       role: "ASSISTANT",
       content: "请求失败：" + (error && error.message ? error.message : "请稍后重试"),
       createTime: new Date().toISOString(),
-      toolCalls: []
+      toolCalls: [],
+      draft: null
     });
     scrollToBottom();
   }).finally(() => {
@@ -301,6 +328,48 @@ function scrollToBottom() {
 
 function formatTime(value) {
   return value ? proxy.parseTime(value, "{h}:{i}") : "";
+}
+
+// 用户点击草稿卡片后才会提交，模型不能把“草稿”当成“预约成功”来回答。
+function confirmDraft(message) {
+  draftLoading.value = message.draft.id;
+  confirmAgentDraft(message.draft.id).then(response => {
+    message.draft = response.data || message.draft;
+    proxy.$modal.msgSuccess("预约已提交，后端已完成二次校验");
+  }).finally(() => {
+    draftLoading.value = null;
+  });
+}
+
+function cancelDraft(message) {
+  cancelAgentDraft(message.draft.id).then(response => {
+    message.draft = response.data || message.draft;
+    proxy.$modal.msgSuccess("预约草稿已取消");
+  });
+}
+
+function draftStatusLabel(status) {
+  if (status === "DRAFT") return "待确认";
+  if (status === "CONFIRMED") return "已提交";
+  if (status === "CANCELED") return "已取消";
+  if (status === "EXPIRED") return "已过期";
+  return status || "未知";
+}
+
+function draftStatusType(status) {
+  if (status === "CONFIRMED") return "success";
+  if (status === "DRAFT") return "warning";
+  if (status === "EXPIRED") return "danger";
+  return "info";
+}
+
+function reservationStatusLabel(status) {
+  const labels = { "0": "待审核", "1": "已通过", "2": "已驳回", "3": "已取消", "4": "已完成", "5": "已签到", "6": "已爽约" };
+  return labels[status] || status || "未知";
+}
+
+function formatDateTime(value) {
+  return value ? proxy.parseTime(value, "{y}-{m}-{d} {h}:{i}") : "";
 }
 
 // 直接调用知识库检索接口，不需要模型参与，便于演示和排查 RAG 召回。
@@ -427,6 +496,12 @@ function searchKnowledge() {
 .knowledge-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .knowledge-content { margin: 0; line-height: 1.8; white-space: pre-wrap; }
 .knowledge-source { margin-top: 8px; color: #909399; font-size: 12px; }
+.draft-card { margin-top: 10px; border-color: #b3d8ff; background: #f4f9ff; }
+.draft-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 600; color: #303133; }
+.draft-line { display: flex; gap: 10px; margin: 4px 0; color: #606266; font-size: 13px; }
+.draft-line span:first-child { width: 48px; flex-shrink: 0; color: #909399; }
+.draft-actions { display: flex; gap: 8px; margin-top: 12px; }
+.draft-result { margin-top: 10px; color: #67c23a; font-size: 13px; }
 @media (max-width: 900px) {
   .agent-page { flex-direction: column; height: auto; }
   .session-panel { width: 100%; max-height: 180px; }
