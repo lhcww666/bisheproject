@@ -28,7 +28,10 @@
           <h3>实验室智能助手</h3>
           <p>查询实验室、设备、考试、信用和预约审核结果</p>
         </div>
-        <el-tag v-if="!modelConfigured" type="warning">未配置模型密钥</el-tag>
+        <div class="chat-header-actions">
+          <el-button size="small" icon="Search" @click="knowledgeOpen = true">安全知识库</el-button>
+          <el-tag v-if="!modelConfigured" type="warning">未配置模型密钥</el-tag>
+        </div>
       </header>
 
       <div ref="messageBoxRef" class="message-box" v-loading="loading">
@@ -92,11 +95,37 @@
         <el-button type="primary" :loading="sending" @click="send">发送</el-button>
       </footer>
     </section>
+
+    <!-- 不经过模型也能验证 RAG 召回结果的知识库检索弹窗。 -->
+    <el-dialog title="安全知识库检索" v-model="knowledgeOpen" width="720px" append-to-body destroy-on-close>
+      <div class="knowledge-search">
+        <el-input
+          v-model="knowledgeQuery"
+          placeholder="例如：酒精灯打翻着火怎么办"
+          clearable
+          @keyup.enter="searchKnowledge"
+        />
+        <el-button type="primary" :loading="knowledgeLoading" @click="searchKnowledge">检索</el-button>
+      </div>
+      <div v-if="knowledgeResults.length" class="knowledge-results">
+        <el-card v-for="item in knowledgeResults" :key="item.chunkId" shadow="never" class="knowledge-card">
+          <template #header>
+            <div class="knowledge-title">
+              <span>{{ item.documentTitle }}</span>
+              <el-tag size="small" type="success">相关度 {{ item.score }}</el-tag>
+            </div>
+          </template>
+          <p class="knowledge-content">{{ item.content }}</p>
+          <div class="knowledge-source">来源：{{ item.source || '演示安全资料' }}</div>
+        </el-card>
+      </div>
+      <el-empty v-else-if="knowledgeSearched" description="未检索到相关资料" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Agent">
-import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession } from "@/api/module/agent";
+import { getAgentStatus, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge } from "@/api/module/agent";
 
 /**
  * 页面状态：
@@ -114,6 +143,11 @@ const loading = ref(false);
 const sending = ref(false);
 const messageBoxRef = ref(null);
 const modelConfigured = ref(true);
+const knowledgeOpen = ref(false);
+const knowledgeQuery = ref("");
+const knowledgeLoading = ref(false);
+const knowledgeSearched = ref(false);
+const knowledgeResults = ref([]);
 
 const examples = [
   "我通过安全考试了吗？",
@@ -268,6 +302,20 @@ function scrollToBottom() {
 function formatTime(value) {
   return value ? proxy.parseTime(value, "{h}:{i}") : "";
 }
+
+// 直接调用知识库检索接口，不需要模型参与，便于演示和排查 RAG 召回。
+function searchKnowledge() {
+  const query = knowledgeQuery.value.trim();
+  if (!query) return;
+  knowledgeLoading.value = true;
+  knowledgeSearched.value = false;
+  searchAgentKnowledge(query, 3).then(response => {
+    knowledgeResults.value = response.data || [];
+  }).finally(() => {
+    knowledgeLoading.value = false;
+    knowledgeSearched.value = true;
+  });
+}
 </script>
 
 <style lang="scss" scoped>
@@ -327,6 +375,7 @@ function formatTime(value) {
 }
 .chat-header h3 { margin: 0 0 4px; }
 .chat-header p { margin: 0; color: #909399; font-size: 12px; }
+.chat-header-actions { display: flex; align-items: center; gap: 10px; }
 .message-box { flex: 1; overflow-y: auto; padding: 18px; background: #f7f8fa; }
 .welcome { text-align: center; padding: 50px 20px; color: #606266; }
 .welcome-icon {
@@ -372,6 +421,12 @@ function formatTime(value) {
 }
 .composer { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid #ebeef5; }
 .composer .el-textarea { flex: 1; }
+.knowledge-search { display: flex; gap: 10px; margin-bottom: 14px; }
+.knowledge-results { max-height: 480px; overflow-y: auto; }
+.knowledge-card { margin-bottom: 10px; }
+.knowledge-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.knowledge-content { margin: 0; line-height: 1.8; white-space: pre-wrap; }
+.knowledge-source { margin-top: 8px; color: #909399; font-size: 12px; }
 @media (max-width: 900px) {
   .agent-page { flex-direction: column; height: auto; }
   .session-panel { width: 100%; max-height: 180px; }

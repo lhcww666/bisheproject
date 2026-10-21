@@ -15,7 +15,7 @@
 
 实施节奏是“业务系统先行，AI 后接入”：先把实验室、设备、预约、审核、安全考试、信用分的业务闭环做通，再把已有后端能力封装成受控工具交给 Agent 调用。不要为了演示 AI 而跳过业务规则。
 
-当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板已实现；`springai` 分支已接入 Spring AI 会话、6 个只读工具和工具调用审计，RAG 知识问答、预约草稿确认和 LangChain4j 对比分支尚未实现。
+当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板已实现；`springai` 分支已接入 Spring AI 会话、6 个只读工具、工具调用审计和 MySQL 关键词/TF-IDF 的 RAG 检索基线，向量 embedding、预约草稿确认和 LangChain4j 对比分支尚未实现。
 
 ## 二、技术栈与版本
 
@@ -154,7 +154,7 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 - `02` 必须在“导入表”之后执行，`01` 必须在“生成代码”之前执行，否则包路径、字典绑定会回到默认值。
 - 每次重新导入表后，`01` 和 `02` 都要重跑；菜单 SQL 生成后要再执行一次 `00-module-menu-directory.sql`，否则菜单会落回“系统工具”目录。
 - 生成器配置口径：模块名 `module`、包路径 `com.ruoyi.module`、模板类型 `element-plus`、作者 `itjialu`。
-- 实验室准入、班级预约、审核状态、数据维护菜单与预约页面结构脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`、`sql/module/14-menu-data-maintenance.sql`、`sql/module/15-reservation-page-structure.sql`；预约生命周期、信用违规、安全考试、数据看板和智能助手脚本继续执行 `sql/module/20-reservation-lifecycle.sql`、`sql/module/21-credit-violation.sql`、`sql/module/22-safety-exam.sql`、`sql/module/23-stats-dashboard.sql`、`sql/module/24-agent.sql`、`sql/module/25-agent-menu-rename.sql`。以上脚本均可重复执行。
+- 实验室准入、班级预约、审核状态、数据维护菜单与预约页面结构脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`、`sql/module/14-menu-data-maintenance.sql`、`sql/module/15-reservation-page-structure.sql`；预约生命周期、信用违规、安全考试、数据看板、智能助手和 RAG 脚本继续执行 `sql/module/20-reservation-lifecycle.sql`、`sql/module/21-credit-violation.sql`、`sql/module/22-safety-exam.sql`、`sql/module/23-stats-dashboard.sql`、`sql/module/24-agent.sql`、`sql/module/25-agent-menu-rename.sql`、`sql/module/26-agent-rag.sql`。以上脚本均可重复执行。
 
 ## 七、编码约定
 

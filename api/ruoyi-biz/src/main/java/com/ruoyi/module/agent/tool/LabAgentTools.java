@@ -13,6 +13,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.module.agent.service.AgentContext;
 import com.ruoyi.module.agent.service.ToolAuditService;
+import com.ruoyi.module.agent.knowledge.domain.KnowledgeSearchResult;
+import com.ruoyi.module.agent.knowledge.service.IKnowledgeSearchService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.device.domain.Device;
@@ -52,6 +54,8 @@ public class LabAgentTools
     private final ICreditService creditService;
 
     private final ToolAuditService toolAuditService;
+
+    private final IKnowledgeSearchService knowledgeSearchService;
 
     /**
      * 查询当前用户在某时段可预约的实验室。
@@ -198,6 +202,34 @@ public class LabAgentTools
                 detail.getReviewList().forEach(review -> result.append("\n- ")
                         .append(formatDate(review.getReviewTime())).append("：")
                         .append(review.getReviewComment() == null ? "无意见" : review.getReviewComment()));
+            }
+            return result.toString();
+        });
+    }
+
+    /**
+     * 检索实验室安全知识库，返回带来源的片段，供模型组织带依据的回答。
+     */
+    @Tool(name = "searchSafetyKnowledge",
+            description = "检索实验室安全知识库。回答化学品、消防、个人防护、设备安全等问题前应优先调用此工具。")
+    public String searchSafetyKnowledge(
+            @ToolParam(description = "要检索的安全问题，例如：酒精灯打翻着火怎么办") String question,
+            @ToolParam(required = false, description = "返回条数，默认3") Integer topK)
+    {
+        return execute("searchSafetyKnowledge", "question=" + question + ", topK=" + topK, () -> {
+            List<KnowledgeSearchResult> results = knowledgeSearchService.search(question,
+                    topK == null ? 3 : topK);
+            if (results.isEmpty())
+            {
+                return "未检索到可靠的安全知识资料，请提示用户咨询实验室管理员或查阅正式安全制度。";
+            }
+            StringBuilder result = new StringBuilder("安全知识检索结果：\n");
+            for (KnowledgeSearchResult item : results)
+            {
+                result.append("【来源：").append(item.getDocumentTitle())
+                        .append(" / ").append(item.getSource()).append("】\n")
+                        .append(item.getContent()).append("\n")
+                        .append("相关度：").append(item.getScore()).append("\n\n");
             }
             return result.toString();
         });

@@ -54,3 +54,12 @@ export function deleteAgentSession(sessionId) {
     method: 'delete'
   })
 }
+
+// 直接检索安全知识库，便于在没有模型 Key 时验证 RAG 召回结果
+export function searchAgentKnowledge(q, topK = 3) {
+  return request({
+    url: '/module/agent/knowledge/search',
+    method: 'get',
+    params: { q, topK }
+  })
+}
