@@ -87,14 +87,24 @@
           class="option-group"
           @update:model-value="value => setSingleAnswer(question.id, value)"
         >
-          <el-radio v-for="(option, optionIndex) in question.options" :key="optionIndex" :label="optionKey(optionIndex)">
-            {{ optionKey(optionIndex) }}. {{ option }}
+          <el-radio
+            v-for="(option, optionIndex) in question.options"
+            :key="optionIndex"
+            :label="optionKey(optionIndex)"
+            class="option-item"
+          >
+            {{ optionKey(optionIndex) }}. {{ optionText(option) }}
           </el-radio>
         </el-radio-group>
 
         <el-checkbox-group v-else v-model="answers[question.id]" class="option-group">
-          <el-checkbox v-for="(option, optionIndex) in question.options" :key="optionIndex" :label="optionKey(optionIndex)">
-            {{ optionKey(optionIndex) }}. {{ option }}
+          <el-checkbox
+            v-for="(option, optionIndex) in question.options"
+            :key="optionIndex"
+            :label="optionKey(optionIndex)"
+            class="option-item"
+          >
+            {{ optionKey(optionIndex) }}. {{ optionText(option) }}
           </el-checkbox>
         </el-checkbox-group>
       </div>
@@ -210,6 +220,10 @@ function optionKey(index) {
   return String.fromCharCode(65 + index);
 }
 
+function optionText(option) {
+  return String(option || "").replace(/^\s*[A-Z][.、:：]\s*/, "");
+}
+
 function typeLabel(type) {
   if (type === "MULTIPLE") return "多选题";
   if (type === "JUDGE") return "判断题";
@@ -284,7 +298,34 @@ function formatDate(value) {
 .exam-timer.danger { color: #f56c6c; }
 .question-block { padding: 16px 0; border-bottom: 1px solid #ebeef5; }
 .question-title { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; font-weight: 600; line-height: 1.6; }
-.option-group { display: flex; flex-direction: column; gap: 8px; padding-left: 8px; }
+.question-block > .option-group {
+  width: 100%;
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-left: 0;
+}
+.option-group :deep(.option-item) {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 40px;
+  height: auto;
+  margin-right: 0;
+  padding: 9px 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  line-height: 1.6;
+  white-space: normal;
+}
+.option-group :deep(.option-item:hover) { border-color: #b3d8ff; background: #f5f9ff; }
+.option-group :deep(.el-radio__label),
+.option-group :deep(.el-checkbox__label) {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.6;
+}
 .exam-footer { margin-top: 20px; display: flex; align-items: center; gap: 12px; }
 .result-box { padding: 4px 0; text-align: center; }
 </style>
