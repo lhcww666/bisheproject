@@ -16,6 +16,7 @@ class LocalIntentRouterTest
     {
         assertEquals(LocalIntentRouter.REVIEW, LocalIntentRouter.route("我的预约为什么被驳回？"));
         assertEquals("queryReservationReview", LocalIntentRouter.toolFor(LocalIntentRouter.REVIEW));
+        assertEquals(LocalIntentRouter.SAFETY, LocalIntentRouter.route("气体钢瓶为什么要用链条固定？"));
     }
 
     @Test
@@ -41,9 +42,19 @@ class LocalIntentRouterTest
     }
 
     @Test
+    void routesExpandedSafetyQuestions()
+    {
+        assertEquals(LocalIntentRouter.SAFETY, LocalIntentRouter.route("水银温度计打碎怎么办？"));
+        assertEquals(LocalIntentRouter.SAFETY, LocalIntentRouter.route("氧气瓶和乙炔瓶能放一起吗？"));
+        assertEquals(LocalIntentRouter.SAFETY, LocalIntentRouter.route("被针头扎到怎么处理？"));
+        assertEquals(LocalIntentRouter.SAFETY, LocalIntentRouter.route("从超低温冰箱拿样本要戴什么手套？"));
+    }
+
+    @Test
     void returnsUnknownForUnrelatedQuestion()
     {
         assertEquals(LocalIntentRouter.UNKNOWN, LocalIntentRouter.route("今天食堂有什么菜？"));
+        assertEquals(LocalIntentRouter.UNKNOWN, LocalIntentRouter.route("今天图书馆开放到几点？"));
         assertEquals("unknown", LocalIntentRouter.toolFor(LocalIntentRouter.UNKNOWN));
     }
 }

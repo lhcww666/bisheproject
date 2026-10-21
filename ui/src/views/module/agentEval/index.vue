@@ -142,7 +142,7 @@
 </template>
 
 <script setup name="AgentEval">
-import { getAgentEvalRun, listAgentEvalRuns, runAgentEval } from "@/api/module/agentEval";
+import { getAgentEvalRun, listAgentEvalCases, listAgentEvalRuns, runAgentEval } from "@/api/module/agentEval";
 
 const { proxy } = getCurrentInstance();
 const runs = ref([]);
@@ -150,6 +150,7 @@ const currentRun = ref(null);
 const historyLoading = ref(false);
 const detailLoading = ref(false);
 const runLoading = ref(false);
+const caseCount = ref(0);
 
 const metrics = computed(() => {
   const run = currentRun.value || {};
@@ -162,7 +163,16 @@ const metrics = computed(() => {
   ];
 });
 
-onMounted(loadRuns);
+onMounted(() => {
+  loadCaseCount();
+  loadRuns();
+});
+
+function loadCaseCount() {
+  return listAgentEvalCases().then(response => {
+    caseCount.value = (response.data || []).length;
+  });
+}
 
 function loadRuns() {
   historyLoading.value = true;
@@ -191,8 +201,12 @@ function selectRun(row) {
   loadRun(row.id);
 }
 
-function runEvaluation() {
-  proxy.$modal.confirm("本次会写入一条评测批次和 30 条明细，确认开始吗？").then(() => {
+async function runEvaluation() {
+  if (caseCount.value === 0) {
+    await loadCaseCount();
+  }
+  const totalText = caseCount.value > 0 ? caseCount.value + " 条" : "全部";
+  proxy.$modal.confirm("本次会写入一条评测批次和 " + totalText + "明细，确认开始吗？").then(() => {
     runLoading.value = true;
     return runAgentEval();
   }).then(response => {
@@ -228,6 +242,8 @@ function categoryLabel(value) {
     ROOMS: "实验室查询",
     DEVICES: "设备查询",
     SAFETY: "安全知识",
+    SAFETY_HELDOUT: "安全泛化",
+    OUT_OF_SCOPE: "非业务问题",
     DRAFT: "预约草稿"
   }[value] || value;
 }
@@ -241,6 +257,8 @@ function categoryTag(value) {
     ROOMS: "primary",
     DEVICES: "success",
     SAFETY: "warning",
+    SAFETY_HELDOUT: "warning",
+    OUT_OF_SCOPE: "info",
     DRAFT: "primary"
   }[value] || "info";
 }

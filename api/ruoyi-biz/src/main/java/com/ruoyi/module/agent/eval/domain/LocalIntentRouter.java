@@ -27,7 +27,8 @@ public final class LocalIntentRouter
     public static String route(String question)
     {
         String text = question == null ? "" : question;
-        if (containsAny(text, "为什么", "驳回", "审核意见", "没通过"))
+        if (containsAny(text, "驳回", "审核意见", "没通过")
+                || (text.contains("为什么") && containsAny(text, "预约", "审核")))
         {
             return REVIEW;
         }
@@ -43,7 +44,10 @@ public final class LocalIntentRouter
         {
             return CREATE_DRAFT;
         }
-        if (containsAny(text, "着火", "稀释", "溅", "废液", "疏散", "灭菌锅", "穿什么", "安全注意"))
+        if (containsAny(text, "着火", "稀释", "溅", "废液", "疏散", "灭菌锅", "穿什么", "安全注意",
+                "沾到", "皮肤接触", "水银", "汞", "泄漏", "洒", "通风柜", "气瓶", "钢瓶",
+                "加热", "割伤", "割破", "防冻", "超低温", "低温冰箱", "烘箱", "停电", "误食", "吸入", "刺鼻",
+                "头晕", "菌液", "培养皿", "针头", "锐器", "刺伤", "扎到", "洗眼器", "灭火器"))
         {
             return SAFETY;
         }
