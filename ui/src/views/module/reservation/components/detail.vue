@@ -81,10 +81,26 @@
           <el-input v-model="applyForm.experimentName" placeholder="例如：有机溶剂萃取实验" />
         </el-form-item>
         <el-form-item label="使用设备" prop="deviceIds">
-          <el-select v-model="applyForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!applyForm.roomId" :loading="devicesLoading" placeholder="可不选；选择实验室后可多选设备">
+          <el-select v-model="applyForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!applyForm.roomId" :loading="devicesLoading" placeholder="可不选；选择实验室后可多选设备" @change="syncApplyDeviceUsages">
             <el-option v-for="device in availableDevices" :key="device.id" :label="deviceOptionLabel(device)" :value="device.id" />
           </el-select>
-          <div class="form-hint">支持多选；提交时会校验设备所属实验室、库存和培训要求。</div>
+          <div v-if="selectedApplyDevices.length" class="device-usage-list">
+            <div v-for="device in selectedApplyDevices" :key="device.id" class="device-usage-row">
+              <div class="device-usage-meta">
+                <span>{{ device.deviceName }}</span>
+                <small>{{ device.deviceCode }} · 库存 {{ device.quantity }}</small>
+              </div>
+              <el-input-number
+                :model-value="quantityFor(applyForm.deviceUsages, device.id)"
+                :min="1"
+                :max="device.quantity"
+                size="small"
+                @update:model-value="value => setDeviceQuantity(applyForm, device.id, value)"
+              />
+              <span class="device-usage-unit">台</span>
+            </div>
+          </div>
+          <div class="form-hint">支持多选；每台设备可单独填写本次使用数量，后端会再次校验库存和培训要求。</div>
         </el-form-item>
         <el-form-item label="实验说明" prop="remark">
           <el-input v-model="applyForm.remark" type="textarea" :rows="3" placeholder="补充实验内容、防护要求等" />
@@ -111,7 +127,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="实验室" prop="roomId">
-          <el-select v-model="adminForm.roomId" filterable clearable placeholder="请选择实验室" style="width: 100%;" @change="loadAdminDevices(adminForm.roomId)">
+          <el-select v-model="adminForm.roomId" filterable clearable placeholder="请选择实验室" style="width: 100%;" @change="handleAdminRoomChange">
             <el-option
               v-for="room in roomOptions"
               :key="room.id"
@@ -121,16 +137,31 @@
           </el-select>
         </el-form-item>
         <el-form-item label="使用设备" prop="deviceIds">
-          <el-select v-model="adminForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!adminForm.roomId" :loading="devicesLoading" placeholder="选择实验室后可多选设备">
+          <el-select v-model="adminForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!adminForm.roomId" :loading="devicesLoading" placeholder="选择实验室后可多选设备" @change="syncAdminDeviceUsages">
             <el-option v-for="device in availableDevices" :key="device.id" :label="deviceOptionLabel(device)" :value="device.id" />
           </el-select>
-          <div class="form-hint">支持多选；提交时会校验设备所属实验室、库存和培训要求。</div>
+          <div v-if="selectedAdminDevices.length" class="device-usage-list">
+            <div v-for="device in selectedAdminDevices" :key="device.id" class="device-usage-row">
+              <div class="device-usage-meta">
+                <span>{{ device.deviceName }}</span>
+                <small>{{ device.deviceCode }} · 库存 {{ device.quantity }}</small>
+              </div>
+              <el-input-number
+                :model-value="quantityFor(adminForm.deviceUsages, device.id)"
+                :min="1"
+                :max="device.quantity"
+                size="small"
+                @update:model-value="value => setDeviceQuantity(adminForm, device.id, value)"
+              />
+              <span class="device-usage-unit">台</span>
+            </div>
+          </div>
+          <div class="form-hint">支持多选；每台设备可单独填写本次使用数量，后端会再次校验库存和培训要求。</div>
         </el-form-item>
         <el-form-item label="实验名称" prop="experimentName"><el-input v-model="adminForm.experimentName" placeholder="请输入实验名称" /></el-form-item>
         <el-form-item label="开始时间" prop="startTime"><el-date-picker v-model="adminForm.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择开始时间" style="width: 100%;" /></el-form-item>
         <el-form-item label="结束时间" prop="endTime"><el-date-picker v-model="adminForm.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择结束时间" style="width: 100%;" /></el-form-item>
         <el-form-item label="参与人数" prop="participantCount"><el-input v-model="adminForm.participantCount" placeholder="请输入参与人数" /></el-form-item>
-        <el-form-item label="风险等级" prop="riskLevel"><el-input v-model="adminForm.riskLevel" placeholder="请输入风险等级" /></el-form-item>
         <el-form-item label="实验说明" prop="remark"><el-input v-model="adminForm.remark" type="textarea" :rows="3" placeholder="请输入内容" /></el-form-item>
       </el-form>
 
@@ -198,6 +229,7 @@ const applyForm = reactive({
   roomId: null,
   experimentName: null,
   deviceIds: [],
+  deviceUsages: [],
   remark: null
 });
 const applyRules = {
@@ -217,10 +249,17 @@ const adminForm = reactive({
   startTime: null,
   endTime: null,
   participantCount: null,
-  riskLevel: null,
+  reservationType: "INDIVIDUAL",
+  riskLevel: 1,
+  status: "0",
+  checkStatus: "no_check",
+  reviewRequired: "1",
   deviceIds: [],
+  deviceUsages: [],
   remark: null
 });
+const selectedApplyDevices = computed(() => selectedDevices(availableDevices.value, applyForm.deviceIds));
+const selectedAdminDevices = computed(() => selectedDevices(availableDevices.value, adminForm.deviceIds));
 const adminRules = {
   reservationNo: [{ required: true, message: "预约编号不能为空", trigger: "blur" }],
   applicantId: [{ required: true, message: "申请人不能为空", trigger: "change" }],
@@ -228,8 +267,7 @@ const adminRules = {
   experimentName: [{ required: true, message: "实验名称不能为空", trigger: "blur" }],
   startTime: [{ required: true, message: "开始时间不能为空", trigger: "change" }],
   endTime: [{ required: true, message: "结束时间不能为空", trigger: "change" }],
-  participantCount: [{ required: true, message: "参与人数不能为空", trigger: "blur" }],
-  riskLevel: [{ required: true, message: "风险等级不能为空", trigger: "blur" }]
+  participantCount: [{ required: true, message: "参与人数不能为空", trigger: "blur" }]
 };
 
 onMounted(() => {
@@ -259,10 +297,15 @@ function loadReservation() {
   getReservationDetail(route.params.id).then(response => {
     const detail = response.data || {};
     const selectedDeviceIds = (detail.deviceList || []).map(item => item.deviceId);
+    const selectedDeviceUsages = (detail.deviceList || []).map(item => ({
+      deviceId: item.deviceId,
+      quantity: Number(item.quantity || 1)
+    }));
     Object.assign(adminForm, detail);
     adminForm.deviceIds = selectedDeviceIds;
+    adminForm.deviceUsages = selectedDeviceUsages;
     if (adminForm.roomId) {
-      loadAdminDevices(adminForm.roomId, selectedDeviceIds);
+      loadAdminDevices(adminForm.roomId, selectedDeviceIds, selectedDeviceUsages);
     }
     if (adminForm.status === "1") {
       proxy.$modal.msgError("该预约已审核通过，请先弃审再修改");
@@ -276,6 +319,7 @@ function loadReservation() {
 function handleTypeChange(type) {
   applyForm.roomId = null;
   applyForm.deviceIds = [];
+  applyForm.deviceUsages = [];
   availableRooms.value = [];
   availableDevices.value = [];
   applyForm.participantCount = type === "CLASS" ? Number(classInfo.value.studentCount || 1) : 1;
@@ -285,6 +329,7 @@ function handleTypeChange(type) {
 function loadAvailableRooms() {
   applyForm.roomId = null;
   applyForm.deviceIds = [];
+  applyForm.deviceUsages = [];
   availableRooms.value = [];
   availableDevices.value = [];
   roomAvailabilityMessage.value = "";
@@ -345,6 +390,7 @@ function parseDateTime(value) {
 
 function loadDevices(roomId) {
   applyForm.deviceIds = [];
+  applyForm.deviceUsages = [];
   availableDevices.value = [];
   if (!roomId) return;
   devicesLoading.value = true;
@@ -355,10 +401,17 @@ function loadDevices(roomId) {
   });
 }
 
-function loadAdminDevices(roomId, selectedIds = []) {
+function handleAdminRoomChange(roomId) {
+  adminForm.deviceIds = [];
+  adminForm.deviceUsages = [];
+  loadAdminDevices(roomId);
+}
+
+function loadAdminDevices(roomId, selectedIds = [], selectedUsages = []) {
   if (!roomId) {
     availableDevices.value = [];
     adminForm.deviceIds = [];
+    adminForm.deviceUsages = [];
     return;
   }
   devicesLoading.value = true;
@@ -366,9 +419,64 @@ function loadAdminDevices(roomId, selectedIds = []) {
     availableDevices.value = response.data || [];
     const availableIds = new Set(availableDevices.value.map(item => item.id));
     adminForm.deviceIds = (selectedIds || []).filter(id => availableIds.has(id));
+    adminForm.deviceUsages = adminForm.deviceIds.map(deviceId => ({
+      deviceId,
+      quantity: Number((selectedUsages || []).find(item => item.deviceId === deviceId)?.quantity || 1)
+    }));
   }).finally(() => {
     devicesLoading.value = false;
   });
+}
+
+function selectedDevices(options, ids) {
+  const optionMap = new Map((options || []).map(device => [device.id, device]));
+  return (ids || []).map(id => optionMap.get(id)).filter(Boolean);
+}
+
+function quantityFor(deviceUsages, deviceId) {
+  return Number((deviceUsages || []).find(item => item.deviceId === deviceId)?.quantity || 1);
+}
+
+function setDeviceQuantity(form, deviceId, value) {
+  const quantity = Number(value);
+  if (!Number.isInteger(quantity) || quantity < 1) return;
+  const existing = form.deviceUsages.find(item => item.deviceId === deviceId);
+  if (existing) {
+    existing.quantity = quantity;
+  } else {
+    form.deviceUsages.push({ deviceId, quantity });
+  }
+}
+
+function syncDeviceUsages(form) {
+  form.deviceUsages = form.deviceIds.map(deviceId => ({
+    deviceId,
+    quantity: quantityFor(form.deviceUsages, deviceId)
+  }));
+}
+
+function syncApplyDeviceUsages() {
+  syncDeviceUsages(applyForm);
+}
+
+function syncAdminDeviceUsages() {
+  syncDeviceUsages(adminForm);
+}
+
+function buildDeviceUsages(form) {
+  syncDeviceUsages(form);
+  for (const usage of form.deviceUsages) {
+    const device = availableDevices.value.find(item => item.id === usage.deviceId);
+    if (!device) {
+      proxy.$modal.msgError("所选设备已失效，请重新选择");
+      return null;
+    }
+    if (!Number.isInteger(usage.quantity) || usage.quantity < 1 || usage.quantity > Number(device.quantity)) {
+      proxy.$modal.msgError("设备“" + device.deviceName + "”的使用数量必须在 1 到 " + device.quantity + " 之间");
+      return null;
+    }
+  }
+  return form.deviceUsages.map(item => ({ ...item }));
 }
 
 function deviceOptionLabel(device) {
@@ -402,6 +510,8 @@ function submitStudentApply() {
       proxy.$modal.msgError("结束时间必须晚于开始时间");
       return;
     }
+    const deviceUsages = buildDeviceUsages(applyForm);
+    if (!deviceUsages) return;
     saving.value = true;
     applyReservation({
       reservationType: applyForm.reservationType,
@@ -411,6 +521,7 @@ function submitStudentApply() {
       endTime: applyForm.endTime,
       participantCount: applyForm.participantCount,
       deviceIds: applyForm.deviceIds,
+      deviceUsages,
       remark: applyForm.remark
     }).then(response => {
       proxy.$modal.msgSuccess("预约申请已提交");
@@ -425,9 +536,11 @@ function submitStudentApply() {
 function submitAdminForm() {
   adminRef.value.validate(valid => {
     if (!valid) return;
+    const deviceUsages = buildDeviceUsages(adminForm);
+    if (!deviceUsages) return;
     saving.value = true;
     const request = props.isEdit ? updateReservation : addReservation;
-    request({ ...adminForm }).then(response => {
+    request({ ...adminForm, deviceUsages }).then(response => {
       proxy.$modal.msgSuccess(props.isEdit ? "修改成功，预约已重新进入待审核" : "新增成功");
       const id = adminForm.id || response?.data?.id;
       router.push(id ? "/reservationView/" + id : "/module/reservation");
@@ -450,6 +563,13 @@ function goBack() {
 .reservation-tip { margin-bottom: 12px; }
 .room-availability-alert { margin: -4px 0 16px; }
 .form-hint { margin-top: 4px; color: #909399; font-size: 12px; line-height: 1.5; }
+.device-usage-list { width: 100%; margin-top: 10px; border: 1px solid #ebeef5; border-radius: 6px; overflow: hidden; }
+.device-usage-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #fafafa; }
+.device-usage-row + .device-usage-row { border-top: 1px solid #ebeef5; }
+.device-usage-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.45; }
+.device-usage-meta span { color: #303133; }
+.device-usage-meta small { color: #909399; }
+.device-usage-unit { color: #606266; }
 .page-header { display: flex; justify-content: space-between; align-items: center; }
 .form-footer { margin-top: 20px; padding-left: 110px; }
 </style>

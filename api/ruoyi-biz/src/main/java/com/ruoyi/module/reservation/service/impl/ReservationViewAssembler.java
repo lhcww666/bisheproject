@@ -148,6 +148,10 @@ public class ReservationViewAssembler
                 String deviceName = deviceMap.get(reservationDevice.getDeviceId());
                 if (StringUtils.isNotEmpty(deviceName))
                 {
+                    if (reservationDevice.getQuantity() != null && reservationDevice.getQuantity() > 1L)
+                    {
+                        deviceName += " × " + reservationDevice.getQuantity();
+                    }
                     deviceNameMap.computeIfAbsent(reservationDevice.getReservationId(), key -> new ArrayList<>())
                             .add(deviceName);
                 }

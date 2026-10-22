@@ -173,4 +173,8 @@ private static final long serialVersionUID = 1L;
             @TableField(exist = false)
         private List<Long> deviceIds;
 
+            /** 设备及使用数量集合，仅用于提交预约，不映射到 reservation 表 */
+            @TableField(exist = false)
+        private List<ReservationDeviceUsage> deviceUsages;
+
 }

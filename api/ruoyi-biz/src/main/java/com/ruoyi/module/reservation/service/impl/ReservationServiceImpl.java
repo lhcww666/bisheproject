@@ -5,9 +5,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -33,6 +33,7 @@ import com.ruoyi.module.review.mapper.ReservationReviewMapper;
 import com.ruoyi.module.review.domain.ReservationReview;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationDevice;
+import com.ruoyi.module.reservation.domain.ReservationDeviceUsage;
 import com.ruoyi.module.reservation.domain.ReservationStatus;
 import com.ruoyi.module.reservation.domain.ReservationStatusAction;
 import com.ruoyi.module.reservation.domain.ReservationCheckStatus;
@@ -128,7 +129,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         apply.setCreateBy(SecurityUtils.getUsername());
         apply.setCreateTime(DateUtils.getNowDate());
         reservationMapper.insert(apply);
-        saveReservationDevices(apply.getId(), room, userId, reservation.getDeviceIds());
+        saveReservationDevices(apply.getId(), room, userId, reservation.getDeviceIds(), reservation.getDeviceUsages());
         logStatus(apply.getId(), null, apply.getStatus(),
                 reviewRequired ? ReservationStatusAction.CREATE : ReservationStatusAction.AUTO_APPROVE,
                 reviewRequired ? "提交预约申请" : "低风险预约自动通过");
@@ -136,22 +137,20 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     }
 
     /**
-     * 保存预约与设备的关联。设备必须属于预约实验室、状态正常；
+     * 保存预约与设备的关联。设备必须属于预约实验室、状态正常且库存充足；
      * 需要培训的设备还要求申请人持有有效期内的安全考试记录。
      */
-    private void saveReservationDevices(Long reservationId, Room room, Long userId, List<Long> deviceIds)
+    private void saveReservationDevices(Long reservationId, Room room, Long userId, List<Long> deviceIds,
+            List<ReservationDeviceUsage> deviceUsages)
     {
-        if (deviceIds == null || deviceIds.isEmpty())
+        List<ReservationDeviceUsage> usages = normalizeDeviceUsages(deviceIds, deviceUsages);
+        if (usages.isEmpty())
         {
             return;
         }
-        Set<Long> uniqueDeviceIds = new LinkedHashSet<>(deviceIds);
-        for (Long deviceId : uniqueDeviceIds)
+        for (ReservationDeviceUsage usage : usages)
         {
-            if (deviceId == null)
-            {
-                throw new ServiceException("设备不能为空");
-            }
+            Long deviceId = usage.getDeviceId();
             Device device = deviceMapper.selectById(deviceId);
             if (device == null)
             {
@@ -169,6 +168,11 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
             {
                 throw new ServiceException("设备“" + device.getDeviceName() + "”没有可用数量");
             }
+            if (usage.getQuantity() > device.getQuantity())
+            {
+                throw new ServiceException("设备“" + device.getDeviceName() + "”库存不足，最多可预约 "
+                        + device.getQuantity() + " 台");
+            }
             if ("1".equals(device.getRequiresTraining()) && !reservationRuleService.isExamValid(userId))
             {
                 throw new ServiceException("设备“" + device.getDeviceName() + "”需要培训，请先通过安全考试");
@@ -177,11 +181,59 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
             ReservationDevice reservationDevice = new ReservationDevice();
             reservationDevice.setReservationId(reservationId);
             reservationDevice.setDeviceId(deviceId);
-            reservationDevice.setQuantity(1L);
+            reservationDevice.setQuantity(usage.getQuantity());
             reservationDevice.setCreateBy(SecurityUtils.getUsername());
             reservationDevice.setCreateTime(DateUtils.getNowDate());
             reservationDeviceMapper.insert(reservationDevice);
         }
+    }
+
+    /**
+     * 兼容旧的 deviceIds 请求；新前端优先使用 deviceUsages 传递每台设备的数量。
+     */
+    private List<ReservationDeviceUsage> normalizeDeviceUsages(List<Long> deviceIds,
+            List<ReservationDeviceUsage> deviceUsages)
+    {
+        Map<Long, Long> quantities = new LinkedHashMap<>();
+        if (deviceUsages != null && !deviceUsages.isEmpty())
+        {
+            for (ReservationDeviceUsage usage : deviceUsages)
+            {
+                if (usage == null || usage.getDeviceId() == null)
+                {
+                    throw new ServiceException("设备不能为空");
+                }
+                if (usage.getQuantity() == null || usage.getQuantity() < 1L)
+                {
+                    throw new ServiceException("设备使用数量必须大于 0");
+                }
+                if (quantities.putIfAbsent(usage.getDeviceId(), usage.getQuantity()) != null)
+                {
+                    throw new ServiceException("同一设备不能重复填写");
+                }
+            }
+        }
+        else if (deviceIds != null)
+        {
+            for (Long deviceId : deviceIds)
+            {
+                if (deviceId == null)
+                {
+                    throw new ServiceException("设备不能为空");
+                }
+                quantities.putIfAbsent(deviceId, 1L);
+            }
+        }
+
+        List<ReservationDeviceUsage> normalized = new ArrayList<>(quantities.size());
+        for (Map.Entry<Long, Long> entry : quantities.entrySet())
+        {
+            ReservationDeviceUsage usage = new ReservationDeviceUsage();
+            usage.setDeviceId(entry.getKey());
+            usage.setQuantity(entry.getValue());
+            normalized.add(usage);
+        }
+        return normalized;
     }
 
     @Override
@@ -255,6 +307,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         QueryWrapper<Device> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("room_id", roomId);
         queryWrapper.eq("status", "0");
+        queryWrapper.gt("quantity", 0);
         queryWrapper.orderByAsc("device_code");
         return deviceMapper.selectList(queryWrapper);
     }
@@ -433,7 +486,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         reservation.setCreateBy(SecurityUtils.getUsername());
         reservation.setCreateTime(DateUtils.getNowDate());
         int rows = reservationMapper.insert(reservation);
-        saveReservationDevices(reservation.getId(), room, reservation.getApplicantId(), reservation.getDeviceIds());
+        saveReservationDevices(reservation.getId(), room, reservation.getApplicantId(), reservation.getDeviceIds(),
+                reservation.getDeviceUsages());
         logStatus(reservation.getId(), null, reservation.getStatus(),
                 reviewRequired ? ReservationStatusAction.CREATE : ReservationStatusAction.AUTO_APPROVE,
                 "管理员新增预约");
@@ -470,12 +524,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         reservation.setCheckDate(reviewRequired ? null : DateUtils.getNowDate());
         reservation.setUpdateTime(DateUtils.getNowDate());
         reservation.setUpdateBy(SecurityUtils.getUsername());
-        if (reservation.getDeviceIds() != null) {
+        if (reservation.getDeviceIds() != null || reservation.getDeviceUsages() != null) {
             QueryWrapper<ReservationDevice> deviceQuery = new QueryWrapper<>();
             deviceQuery.eq("reservation_id", reservation.getId());
             reservationDeviceMapper.delete(deviceQuery);
             saveReservationDevices(reservation.getId(), room, reservation.getApplicantId(),
-                    reservation.getDeviceIds());
+                    reservation.getDeviceIds(), reservation.getDeviceUsages());
         }
         int rows = reservationMapper.updateById(reservation);
         if (ReservationStatus.APPROVED.equals(reservation.getStatus()))
