@@ -226,4 +226,35 @@ const router = createRouter({
   },
 });
 
+const businessPageLabels = {
+  device: "设备档案",
+  room: "实验室档案",
+  reservation: "实验室预约",
+  reservationDevice: "预约设备",
+  reservationReview: "预约审核",
+  safetyExamRecord: "安全考试记录",
+  creditRecord: "信用分流水",
+  classRepresentative: "班级负责人",
+  roomAccess: "实验室准入",
+  violationRecord: "违规记录",
+  safetyQuestion: "题库管理",
+  safetyExam: "安全考试"
+};
+
+const businessPageActions = {
+  add: "新增",
+  edit: "编辑",
+  view: "详情"
+};
+
+router.beforeEach((to) => {
+  if (to.name === "BusinessPage") {
+    const businessName = String(to.params.businessName || "");
+    const pageName = String(to.params.page || "");
+    const label = businessPageLabels[businessName] || businessName || "业务";
+    to.meta.title = label + (businessPageActions[pageName] || "");
+  }
+  return true;
+});
+
 export default router;
