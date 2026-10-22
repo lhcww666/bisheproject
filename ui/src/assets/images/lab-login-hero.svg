@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="校园实验室安全科技背景">
+  <defs>
+    <linearGradient id="base" x1="80" y1="30" x2="1100" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071827"/>
+      <stop offset=".55" stop-color="#0b2d46"/>
+      <stop offset="1" stop-color="#0b4f5c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(915 190) rotate(130) scale(540 430)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="760" y1="410" x2="1050" y2="780" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#bae6fd" stop-opacity=".64"/>
+      <stop offset="1" stop-color="#5eead4" stop-opacity=".08"/>
+    </linearGradient>
+    <linearGradient id="liquid" x1="830" y1="600" x2="1000" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2dd4bf" stop-opacity=".62"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity=".18"/>
+    </linearGradient>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#93c5fd" stroke-opacity=".08"/>
+    </pattern>
+    <filter id="blur"><feGaussianBlur stdDeviation="28"/></filter>
+  </defs>
+  <rect width="1200" height="900" fill="url(#base)"/>
+  <rect width="1200" height="900" fill="url(#grid)"/>
+  <rect width="1200" height="900" fill="url(#glow)"/>
+  <circle cx="1050" cy="120" r="190" fill="#0ea5e9" opacity=".16" filter="url(#blur)"/>
+  <circle cx="760" cy="780" r="240" fill="#14b8a6" opacity=".15" filter="url(#blur)"/>
+
+  <g opacity=".5" fill="none" stroke="#7dd3fc" stroke-width="1.6">
+    <path d="M85 210 180 160l106 60 74-86 116 50"/>
+    <path d="M100 730c115-96 218-103 326-25s214 78 318-20 208-103 356-36"/>
+    <path d="M80 650c105-86 205-100 306-40"/>
+  </g>
+  <g fill="#7dd3fc" opacity=".7">
+    <circle cx="85" cy="210" r="5"/><circle cx="180" cy="160" r="4"/><circle cx="286" cy="220" r="6"/>
+    <circle cx="360" cy="134" r="4"/><circle cx="476" cy="184" r="5"/>
+  </g>
+
+  <g transform="translate(95 340)" opacity=".55">
+    <path d="M0 180c54-82 108-82 162 0s108 82 162 0 108-82 162 0" fill="none" stroke="#22d3ee" stroke-width="2"/>
+    <path d="M0 205c54-82 108-82 162 0s108 82 162 0 108-82 162 0" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity=".6"/>
+  </g>
+
+  <g transform="translate(700 280)" fill="none" stroke="#bae6fd" stroke-width="4" opacity=".8">
+    <path d="M180 40h92v168l103 190c15 28-5 62-37 62H114c-32 0-52-34-37-62l103-190V40h-38"/>
+    <path d="M142 475h249l27 47c8 14-2 32-19 32H134c-17 0-27-18-19-32l27-47Z" fill="url(#liquid)" stroke="none"/>
+    <path d="M243 474v-75M214 430h58" stroke="#bae6fd" stroke-width="2" opacity=".7"/>
+    <circle cx="200" cy="505" r="12" fill="#67e8f9" stroke="none" opacity=".75"/>
+    <circle cx="255" cy="522" r="8" fill="#a7f3d0" stroke="none" opacity=".75"/>
+    <circle cx="310" cy="498" r="6" fill="#7dd3fc" stroke="none" opacity=".7"/>
+  </g>
+
+  <g transform="translate(1000 390)" opacity=".72">
+    <path d="M0 0h124l34 36v176c0 25-20 45-45 45H45c-25 0-45-20-45-45V0Z" fill="url(#glass)" stroke="#bae6fd" stroke-width="3"/>
+    <path d="M20 105h132M20 145h90M20 185h112" stroke="#bae6fd" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+    <circle cx="52" cy="70" r="13" fill="#67e8f9" opacity=".5"/>
+    <circle cx="86" cy="218" r="8" fill="#5eead4" opacity=".6"/>
+  </g>
+
+  <g transform="translate(630 600)" opacity=".4" fill="none" stroke="#5eead4" stroke-width="2">
+    <path d="M0 80h54l22-42 36 84 31-62 24 38h68"/>
+  </g>
+</svg>
