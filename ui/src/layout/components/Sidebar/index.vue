@@ -14,7 +14,7 @@
         :class="sideTheme"
       >
         <sidebar-item
-          v-for="(route, index) in sidebarRouters"
+          v-for="(route, index) in displaySidebarRouters"
           :key="route.path + index"
           :item="route"
           :base-path="route.path"
@@ -31,13 +31,17 @@ import variables from '@/assets/styles/variables.module.scss'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import useUserStore from "@/store/modules/user";
+import { buildSidebarRoutes } from "@/utils/menuDisplay";
 
 const route = useRoute();
 const appStore = useAppStore()
 const settingsStore = useSettingsStore()
 const permissionStore = usePermissionStore()
+const userStore = useUserStore();
 
 const sidebarRouters = computed(() => permissionStore.sidebarRouters);
+const displaySidebarRouters = computed(() => buildSidebarRoutes(sidebarRouters.value, userStore.roles));
 const showLogo = computed(() => settingsStore.sidebarLogo);
 const sideTheme = computed(() => settingsStore.sideTheme);
 const theme = computed(() => settingsStore.theme);
@@ -66,6 +70,7 @@ const activeMenu = computed(() => {
   }
   return path;
 });
+
 </script>
 
 <style lang="scss" scoped>
