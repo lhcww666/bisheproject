@@ -17,7 +17,7 @@
 
     <el-card class="detail-card">
       <el-descriptions title="设备档案" :column="2" border>
-        <el-descriptions-item label="所属实验室">{{ detail.roomName || detail.roomId || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="所属实验室">{{ roomLabel }}</el-descriptions-item>
         <el-descriptions-item label="设备编号">{{ detail.deviceCode || '—' }}</el-descriptions-item>
         <el-descriptions-item label="设备名称">{{ detail.deviceName || '—' }}</el-descriptions-item>
         <el-descriptions-item label="设备类型">
@@ -49,6 +49,10 @@ const devicePageBase = "/business/module/device";
 const deviceListPath = "/module/device";
 const loading = ref(true);
 const detail = ref({});
+const roomLabel = computed(() => {
+  const label = [detail.value.roomCode, detail.value.roomName].filter(Boolean).join(" · ");
+  return label || "—";
+});
 
 onMounted(loadDetail);
 

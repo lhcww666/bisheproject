@@ -79,4 +79,12 @@ private static final long serialVersionUID = 1L;
             @NotBlank(message = "是否需要培训不能为空")
         private String requiresTraining;
 
+            /** 实验室编号，仅用于列表和详情展示 */
+            @TableField(exist = false)
+        private String roomCode;
+
+            /** 实验室名称，仅用于列表和详情展示 */
+            @TableField(exist = false)
+        private String roomName;
+
 }

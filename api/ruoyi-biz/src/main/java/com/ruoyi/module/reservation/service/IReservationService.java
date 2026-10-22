@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.module.reservation.domain .Reservation;
+import com.ruoyi.module.reservation.domain.ReservationApplicantOption;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.room.domain.Room;
@@ -66,6 +67,20 @@ public interface IReservationService extends IService<Reservation> {
      * @return 可预约设备列表
      */
     public List<Device> selectAvailableDevices(Long roomId);
+
+    /**
+     * 查询预约管理表单可选择的申请人。教师只能读取本人负责班级的学生。
+     *
+     * @return 申请人选项
+     */
+    public List<ReservationApplicantOption> selectApplicantOptions();
+
+    /**
+     * 查询预约列表和管理表单使用的实验室选项。
+     *
+     * @return 按实验室编号排序的实验室列表
+     */
+    public List<Room> selectRoomOptions();
 
     /**
      * 查询实验室预约

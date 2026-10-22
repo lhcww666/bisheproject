@@ -12,8 +12,15 @@
           end-placeholder="结束日期"
         ></el-date-picker>
       </el-form-item>
-      <el-form-item label="所属实验室" prop="roomIdLike">
-        <el-input v-model="deviceQueryParams.roomIdLike" placeholder="请输入所属实验室" clearable @keyup.enter="deviceHandleQuery" />
+      <el-form-item label="所属实验室" prop="roomId">
+        <el-select v-model="deviceQueryParams.roomId" filterable clearable placeholder="请选择实验室" style="width: 220px;">
+          <el-option
+            v-for="room in roomOptions"
+            :key="room.id"
+            :label="roomOptionLabel(room)"
+            :value="room.id"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="设备编号" prop="deviceCodeLike">
         <el-input v-model="deviceQueryParams.deviceCodeLike" placeholder="请输入设备编号" clearable @keyup.enter="deviceHandleQuery" />
@@ -83,7 +90,9 @@
       @selection-change="deviceHandleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="所属实验室" align="center" prop="roomId" />
+      <el-table-column label="所属实验室" align="center" min-width="190">
+        <template #default="scope">{{ roomLabel(scope.row) }}</template>
+      </el-table-column>
       <el-table-column label="设备编号" align="center" prop="deviceCode" />
       <el-table-column label="设备名称" align="center" prop="deviceName" />
       <el-table-column label="设备类型" align="center" prop="deviceType">
@@ -121,7 +130,7 @@
 </template>
 
 <script setup name="DeviceList">
-import { listDevice, delDevice } from "@/api/module/device";
+import { listDevice, delDevice, listDeviceRoomOptions } from "@/api/module/device";
 
 const dateRange = ref([]);
 const router = useRouter();
@@ -138,11 +147,12 @@ const deviceIds = ref([]);
 const deviceSingle = ref(true);
 const deviceMultiple = ref(true);
 const deviceTotal = ref(0);
+const roomOptions = ref([]);
 const deviceData = reactive({
   deviceQueryParams: {
     pageNum: 1,
     pageSize: 10,
-    roomIdLike: null,
+    roomId: null,
     deviceCodeLike: null,
     deviceNameLike: null,
     deviceType: null,
@@ -158,7 +168,16 @@ watch(() => importRes.value, (val) => {
   }
 }, { deep: true });
 
-onMounted(() => deviceHandleQuery());
+onMounted(() => {
+  loadRoomOptions();
+  deviceHandleQuery();
+});
+
+function loadRoomOptions() {
+  listDeviceRoomOptions().then(response => {
+    roomOptions.value = response.data || [];
+  });
+}
 
 function deviceGetList() {
   deviceLoading.value = true;
@@ -224,6 +243,15 @@ function deviceRowClassName() {
 
 function deviceHandleExport() {
   proxy.download('module/device/export', { ...deviceQueryParams.value }, `设备档案_${new Date().getTime()}.xlsx`);
+}
+
+function roomOptionLabel(room) {
+  return [room.roomCode, room.roomName].filter(Boolean).join(" · ");
+}
+
+function roomLabel(device) {
+  const label = [device.roomCode, device.roomName].filter(Boolean).join(" · ");
+  return label || "—";
 }
 
 function deviceImportTemplate() {

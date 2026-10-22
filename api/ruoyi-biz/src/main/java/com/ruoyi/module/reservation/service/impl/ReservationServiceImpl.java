@@ -10,7 +10,11 @@ import java.util.List;
 import java.util.Set;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
+import com.ruoyi.common.core.domain.entity.SysDept;
+import com.ruoyi.common.core.domain.entity.SysRole;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.bean.BeanValidators;
@@ -35,6 +39,7 @@ import com.ruoyi.module.reservation.domain.ReservationCheckStatus;
 import com.ruoyi.module.reservation.domain.ReservationType;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.domain.ReservationStatusLog;
+import com.ruoyi.module.reservation.domain.ReservationApplicantOption;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.device.domain.Device;
@@ -45,6 +50,10 @@ import com.ruoyi.module.violation.domain.ViolationType;
 import com.ruoyi.module.violation.domain.ViolationRecord;
 import com.ruoyi.module.violation.mapper.ViolationRecordMapper;
 import com.ruoyi.module.violation.service.IViolationRecordService;
+import com.ruoyi.module.common.service.ModuleDataScopeService;
+import com.ruoyi.system.service.ISysDeptService;
+import com.ruoyi.system.service.ISysRoleService;
+import com.ruoyi.system.service.ISysUserService;
 
 import jakarta.validation.Validator;
 
@@ -67,6 +76,10 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     private final ReservationViewAssembler reservationViewAssembler;
     private final IViolationRecordService violationRecordService;
     private final ViolationRecordMapper violationRecordMapper;
+    private final ModuleDataScopeService moduleDataScopeService;
+    private final ISysUserService sysUserService;
+    private final ISysRoleService sysRoleService;
+    private final ISysDeptService sysDeptService;
     protected final Validator validator;
 
     @Override
@@ -244,6 +257,57 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         queryWrapper.eq("status", "0");
         queryWrapper.orderByAsc("device_code");
         return deviceMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<ReservationApplicantOption> selectApplicantOptions()
+    {
+        if (moduleDataScopeService.isStudent())
+        {
+            SysUser currentUser = sysUserService.selectUserById(SecurityUtils.getUserId());
+            return currentUser == null ? List.of() : List.of(toApplicantOption(currentUser));
+        }
+
+        SysRole roleQuery = new SysRole();
+        roleQuery.setRoleKey("student");
+        SysRole studentRole = sysRoleService.selectRoleList(roleQuery).stream()
+                .filter(role -> "student".equals(role.getRoleKey()))
+                .findFirst()
+                .orElse(null);
+        if (studentRole == null)
+        {
+            return List.of();
+        }
+        SysUser userQuery = new SysUser();
+        userQuery.setRoleId(studentRole.getRoleId());
+        return sysUserService.selectAllocatedList(userQuery).stream()
+                .filter(user -> "0".equals(user.getStatus()))
+                .map(this::toApplicantOption)
+                .sorted((left, right) -> StringUtils.nvl(left.getUserName(), "")
+                        .compareTo(StringUtils.nvl(right.getUserName(), "")))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Room> selectRoomOptions()
+    {
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByAsc("room_code");
+        return roomMapper.selectList(queryWrapper);
+    }
+
+    private ReservationApplicantOption toApplicantOption(SysUser user)
+    {
+        ReservationApplicantOption option = new ReservationApplicantOption();
+        option.setUserId(user.getUserId());
+        option.setUserName(user.getUserName());
+        option.setNickName(user.getNickName());
+        if (user.getDeptId() != null)
+        {
+            SysDept dept = sysDeptService.selectDeptById(user.getDeptId());
+            option.setDeptName(dept == null ? null : dept.getDeptName());
+        }
+        return option;
     }
 
     /**

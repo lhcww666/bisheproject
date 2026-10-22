@@ -25,6 +25,22 @@ export function getReservationDetail(id) {
   })
 }
 
+// 查询预约筛选与表单可选申请人
+export function listReservationApplicantOptions() {
+  return request({
+    url: '/module/reservation/applicantOptions',
+    method: 'get'
+  })
+}
+
+// 查询预约筛选与表单可选实验室
+export function listReservationRoomOptions() {
+  return request({
+    url: '/module/reservation/roomOptions',
+    method: 'get'
+  })
+}
+
 // 新增实验室预约
 export function addReservation(data) {
   return request({

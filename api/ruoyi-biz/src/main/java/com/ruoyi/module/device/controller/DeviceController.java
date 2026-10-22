@@ -27,6 +27,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.device.service.IDeviceService;
 import com.ruoyi.module.device.mapper.DeviceMapper;
+import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.page.TableDataInfo;
 
@@ -97,6 +98,16 @@ public class DeviceController extends BaseController {
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
         return success(deviceService.selectDeviceById(id));
+    }
+
+    /**
+     * 设备档案表单使用的实验室下拉选项。
+     */
+    @PreAuthorize("@ss.hasAnyPermi('module:device:list,module:device:add,module:device:edit')")
+    @GetMapping("/roomOptions")
+    public AjaxResult roomOptions() {
+        List<Room> rooms = deviceService.selectRoomOptions();
+        return success(rooms);
     }
 
     /**

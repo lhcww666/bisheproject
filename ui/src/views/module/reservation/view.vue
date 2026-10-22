@@ -42,9 +42,9 @@
         <el-descriptions-item label="预约类型">
           <dict-tag :options="module_reservation_type" :value="detail.reservationType || 'INDIVIDUAL'"/>
         </el-descriptions-item>
-        <el-descriptions-item label="申请人">{{ detail.applicantName || detail.applicantId || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="申请人">{{ detail.applicantName || '—' }}</el-descriptions-item>
         <el-descriptions-item label="预约班级">{{ detail.classDeptName || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="实验室">{{ detail.roomName || detail.roomId || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="实验室">{{ roomLabel }}</el-descriptions-item>
         <el-descriptions-item label="实验名称">{{ detail.experimentName || '—' }}</el-descriptions-item>
         <el-descriptions-item label="开始时间">{{ formatDate(detail.startTime) }}</el-descriptions-item>
         <el-descriptions-item label="结束时间">{{ formatDate(detail.endTime) }}</el-descriptions-item>
@@ -104,7 +104,7 @@
     <el-dialog title="审核预约" v-model="reviewOpen" width="520px" append-to-body destroy-on-close>
       <el-form label-width="90px">
         <el-form-item label="预约编号">{{ detail.reservationNo }}</el-form-item>
-        <el-form-item label="申请人">{{ detail.applicantName || detail.applicantId }}</el-form-item>
+        <el-form-item label="申请人">{{ detail.applicantName || '—' }}</el-form-item>
         <el-form-item label="审核结果" required>
           <el-radio-group v-model="reviewForm.result">
             <el-radio label="1">通过</el-radio>
@@ -161,6 +161,10 @@ const canReview = computed(() => isTeacher.value || canManage.value);
 
 const loading = ref(true);
 const detail = ref({});
+const roomLabel = computed(() => {
+  const label = [detail.value.roomCode, detail.value.roomName].filter(Boolean).join(" · ");
+  return label || "—";
+});
 const reviewOpen = ref(false);
 const reviewLoading = ref(false);
 const reviewForm = reactive({ result: "1", comment: "" });

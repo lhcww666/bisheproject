@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.module.device.domain .Device;
+import com.ruoyi.module.room.domain.Room;
 
 /**
  * 设备档案Service接口
@@ -16,6 +17,13 @@ import com.ruoyi.module.device.domain .Device;
  */
 public interface IDeviceService extends IService<Device> {
     public IPage<Device> pageDevice(Page<Device> page, QueryWrapper<Device> queryWrapper);
+
+    /**
+     * 查询设备档案表单可选的实验室。
+     *
+     * @return 按实验室编号排序的实验室列表
+     */
+    public List<Room> selectRoomOptions();
 
     /**
      * 查询设备档案

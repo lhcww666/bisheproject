@@ -17,6 +17,14 @@ export function getDevice(id) {
   })
 }
 
+// 查询设备表单可选的实验室
+export function listDeviceRoomOptions() {
+  return request({
+    url: '/module/device/roomOptions',
+    method: 'get'
+  })
+}
+
 // 新增设备档案
 export function addDevice(data) {
   return request({

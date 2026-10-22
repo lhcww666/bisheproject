@@ -32,11 +32,25 @@
       <el-form-item label="预约编号" prop="reservationNoLike">
         <el-input v-model="reservationQueryParams.reservationNoLike" placeholder="请输入预约编号" clearable @keyup.enter="reservationHandleQuery" />
       </el-form-item>
-      <el-form-item v-if="!isStudent" label="申请人ID" prop="applicantIdLike">
-        <el-input v-model="reservationQueryParams.applicantIdLike" placeholder="请输入申请人ID" clearable @keyup.enter="reservationHandleQuery" />
+      <el-form-item v-if="!isStudent" label="申请人" prop="applicantId">
+        <el-select v-model="reservationQueryParams.applicantId" filterable clearable placeholder="请选择申请人" style="width: 190px;">
+          <el-option
+            v-for="applicant in applicantOptions"
+            :key="applicant.userId"
+            :label="applicantOptionLabel(applicant)"
+            :value="applicant.userId"
+          />
+        </el-select>
       </el-form-item>
-      <el-form-item v-if="!isStudent" label="实验室" prop="roomIdLike">
-        <el-input v-model="reservationQueryParams.roomIdLike" placeholder="请输入实验室ID" clearable @keyup.enter="reservationHandleQuery" />
+      <el-form-item v-if="!isStudent" label="实验室" prop="roomId">
+        <el-select v-model="reservationQueryParams.roomId" filterable clearable placeholder="请选择实验室" style="width: 210px;">
+          <el-option
+            v-for="room in roomOptions"
+            :key="room.id"
+            :label="roomOptionLabel(room)"
+            :value="room.id"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="实验名称" prop="experimentNameLike">
         <el-input v-model="reservationQueryParams.experimentNameLike" placeholder="请输入实验名称" clearable @keyup.enter="reservationHandleQuery" />
@@ -117,7 +131,7 @@
       <el-table-column v-if="canManage" type="selection" width="55" align="center" />
       <el-table-column label="预约编号" align="center" prop="reservationNo" min-width="170" />
       <el-table-column label="申请人" align="center" min-width="110">
-        <template #default="scope"><span>{{ scope.row.applicantName || scope.row.applicantId }}</span></template>
+        <template #default="scope"><span>{{ scope.row.applicantName || '—' }}</span></template>
       </el-table-column>
       <el-table-column label="预约类型" align="center" width="110">
         <template #default="scope"><dict-tag :options="module_reservation_type" :value="scope.row.reservationType || 'INDIVIDUAL'"/></template>
@@ -126,7 +140,7 @@
         <template #default="scope"><span>{{ scope.row.classDeptName || '—' }}</span></template>
       </el-table-column>
       <el-table-column label="实验室" align="center" min-width="150">
-        <template #default="scope"><span>{{ scope.row.roomName || scope.row.roomId }}</span></template>
+        <template #default="scope"><span>{{ roomLabel(scope.row) }}</span></template>
       </el-table-column>
       <el-table-column label="实验名称" align="center" prop="experimentName" min-width="150" />
       <el-table-column label="使用设备" align="center" min-width="150">
@@ -173,7 +187,15 @@
 </template>
 
 <script setup name="ReservationList">
-import { listReservation, delReservation, cancelReservation, checkInReservation, finishReservation } from "@/api/module/reservation";
+import {
+  listReservation,
+  delReservation,
+  cancelReservation,
+  checkInReservation,
+  finishReservation,
+  listReservationApplicantOptions,
+  listReservationRoomOptions
+} from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 
 const dateRange = ref([]);
@@ -196,9 +218,11 @@ const reservationIds = ref([]);
 const reservationSingle = ref(true);
 const reservationMultiple = ref(true);
 const reservationTotal = ref(0);
+const applicantOptions = ref([]);
+const roomOptions = ref([]);
 const reservationData = reactive({
   reservationQueryParams: {
-    pageNum: 1, pageSize: 10, reservationNoLike: null, applicantIdLike: null, roomIdLike: null,
+    pageNum: 1, pageSize: 10, reservationNoLike: null, applicantId: null, roomId: null,
     experimentNameLike: null, status: null, startTime: null, endTime: null,
     participantCountLike: null, riskLevelLike: null, reviewRequired: null
   }
@@ -209,7 +233,21 @@ watch(() => importRes.value, (val) => {
   if (val && val.code == 200) reservationHandleQuery();
 });
 
-onMounted(() => reservationHandleQuery());
+onMounted(() => {
+  if (!isStudent.value) {
+    loadFilterOptions();
+  }
+  reservationHandleQuery();
+});
+
+function loadFilterOptions() {
+  listReservationApplicantOptions().then(response => {
+    applicantOptions.value = response.data || [];
+  });
+  listReservationRoomOptions().then(response => {
+    roomOptions.value = response.data || [];
+  });
+}
 
 function reservationGetList() {
   reservationLoading.value = true;
@@ -289,6 +327,22 @@ function reservationHandleExport() {
 
 function reservationImportTemplate() {
   proxy.download("module/reservation/importTemplate", {}, `实验室预约_${new Date().getTime()}.xlsx`);
+}
+
+function applicantOptionLabel(applicant) {
+  const name = applicant.nickName || applicant.userName || "未命名用户";
+  const account = applicant.userName ? "（" + applicant.userName + "）" : "";
+  const dept = applicant.deptName ? " · " + applicant.deptName : "";
+  return name + account + dept;
+}
+
+function roomOptionLabel(room) {
+  return [room.roomCode, room.roomName].filter(Boolean).join(" · ");
+}
+
+function roomLabel(reservation) {
+  const label = [reservation.roomCode, reservation.roomName].filter(Boolean).join(" · ");
+  return label || "—";
 }
 
 function canCancel(row) {

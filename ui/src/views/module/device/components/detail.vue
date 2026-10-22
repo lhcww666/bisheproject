@@ -10,7 +10,14 @@
 
       <el-form ref="formRef" :model="form" :rules="rules" label-width="auto">
         <el-form-item label="所属实验室" prop="roomId">
-          <el-input v-model="form.roomId" placeholder="请输入所属实验室" />
+          <el-select v-model="form.roomId" filterable clearable placeholder="请选择实验室" style="width: 100%;">
+            <el-option
+              v-for="room in roomOptions"
+              :key="room.id"
+              :label="roomOptionLabel(room)"
+              :value="room.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="设备编号" prop="deviceCode">
           <el-input v-model="form.deviceCode" placeholder="请输入设备编号" />
@@ -50,7 +57,7 @@
 </template>
 
 <script setup name="DeviceDetail">
-import { getDevice, addDevice, updateDevice } from "@/api/module/device";
+import { getDevice, addDevice, updateDevice, listDeviceRoomOptions } from "@/api/module/device";
 
 const props = defineProps({
   isEdit: { type: Boolean, default: false }
@@ -66,6 +73,7 @@ const deviceListPath = "/module/device";
 const pageTitle = computed(() => props.isEdit ? "修改设备档案" : "新增设备档案");
 const loading = ref(false);
 const saving = ref(false);
+const roomOptions = ref([]);
 const formRef = ref(null);
 const form = reactive({
   id: null,
@@ -90,10 +98,21 @@ const rules = {
 
 onMounted(() => {
   resetForm();
+  loadRoomOptions();
   if (props.isEdit) {
     loadDetail();
   }
 });
+
+function loadRoomOptions() {
+  listDeviceRoomOptions().then(response => {
+    roomOptions.value = response.data || [];
+  });
+}
+
+function roomOptionLabel(room) {
+  return [room.roomCode, room.roomName].filter(Boolean).join(" · ");
+}
 
 function resetForm() {
   Object.assign(form, {

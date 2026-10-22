@@ -100,8 +100,26 @@
         style="max-width: 680px;"
       >
         <el-form-item label="预约编号" prop="reservationNo"><el-input v-model="adminForm.reservationNo" placeholder="请输入预约编号" /></el-form-item>
-        <el-form-item label="申请人ID" prop="applicantId"><el-input v-model="adminForm.applicantId" placeholder="请输入申请人用户ID" /></el-form-item>
-        <el-form-item label="实验室ID" prop="roomId"><el-input v-model="adminForm.roomId" placeholder="请输入实验室ID" @change="loadAdminDevices(adminForm.roomId)" /></el-form-item>
+        <el-form-item label="申请人" prop="applicantId">
+          <el-select v-model="adminForm.applicantId" filterable clearable placeholder="请选择学生" style="width: 100%;">
+            <el-option
+              v-for="applicant in applicantOptions"
+              :key="applicant.userId"
+              :label="applicantOptionLabel(applicant)"
+              :value="applicant.userId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="实验室" prop="roomId">
+          <el-select v-model="adminForm.roomId" filterable clearable placeholder="请选择实验室" style="width: 100%;" @change="loadAdminDevices(adminForm.roomId)">
+            <el-option
+              v-for="room in roomOptions"
+              :key="room.id"
+              :label="roomOptionLabel(room)"
+              :value="room.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="使用设备" prop="deviceIds">
           <el-select v-model="adminForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!adminForm.roomId" :loading="devicesLoading" placeholder="选择实验室后可多选设备">
             <el-option v-for="device in availableDevices" :key="device.id" :label="deviceOptionLabel(device)" :value="device.id" />
@@ -125,7 +143,17 @@
 </template>
 
 <script setup name="ReservationDetail">
-import { applyReservation, addReservation, getReservationDetail, updateReservation, listAvailableRooms, listAvailableDevices, getMyClassRepresentative } from "@/api/module/reservation";
+import {
+  applyReservation,
+  addReservation,
+  getReservationDetail,
+  updateReservation,
+  listAvailableRooms,
+  listAvailableDevices,
+  getMyClassRepresentative,
+  listReservationApplicantOptions,
+  listReservationRoomOptions
+} from "@/api/module/reservation";
 import useUserStore from "@/store/modules/user";
 
 const props = defineProps({
@@ -149,6 +177,8 @@ const roomsLoading = ref(false);
 const devicesLoading = ref(false);
 const availableRooms = ref([]);
 const availableDevices = ref([]);
+const applicantOptions = ref([]);
+const roomOptions = ref([]);
 const roomAvailabilityMessage = ref("");
 const roomAvailabilityType = ref("info");
 const roomAvailabilityNoDataText = computed(() => {
@@ -193,8 +223,8 @@ const adminForm = reactive({
 });
 const adminRules = {
   reservationNo: [{ required: true, message: "预约编号不能为空", trigger: "blur" }],
-  applicantId: [{ required: true, message: "申请人ID不能为空", trigger: "blur" }],
-  roomId: [{ required: true, message: "实验室不能为空", trigger: "blur" }],
+  applicantId: [{ required: true, message: "申请人不能为空", trigger: "change" }],
+  roomId: [{ required: true, message: "实验室不能为空", trigger: "change" }],
   experimentName: [{ required: true, message: "实验名称不能为空", trigger: "blur" }],
   startTime: [{ required: true, message: "开始时间不能为空", trigger: "change" }],
   endTime: [{ required: true, message: "结束时间不能为空", trigger: "change" }],
@@ -203,6 +233,9 @@ const adminRules = {
 };
 
 onMounted(() => {
+  if (!isStudent.value) {
+    loadAdminOptions();
+  }
   if (props.isEdit) {
     loadReservation();
   } else if (isStudent.value) {
@@ -211,6 +244,15 @@ onMounted(() => {
     });
   }
 });
+
+function loadAdminOptions() {
+  listReservationApplicantOptions().then(response => {
+    applicantOptions.value = response.data || [];
+  });
+  listReservationRoomOptions().then(response => {
+    roomOptions.value = response.data || [];
+  });
+}
 
 function loadReservation() {
   loading.value = true;
@@ -332,6 +374,17 @@ function loadAdminDevices(roomId, selectedIds = []) {
 function deviceOptionLabel(device) {
   const training = "1" === String(device.requiresTraining) ? "，需培训" : "";
   return device.deviceName + "（" + device.deviceCode + "，可用 " + (device.quantity || 0) + training + "）";
+}
+
+function applicantOptionLabel(applicant) {
+  const name = applicant.nickName || applicant.userName || "未命名用户";
+  const account = applicant.userName ? "（" + applicant.userName + "）" : "";
+  const dept = applicant.deptName ? " · " + applicant.deptName : "";
+  return name + account + dept;
+}
+
+function roomOptionLabel(room) {
+  return [room.roomCode, room.roomName].filter(Boolean).join(" · ");
 }
 
 function submit() {

@@ -138,6 +138,24 @@ public class ReservationController extends BaseController {
     }
 
     /**
+     * 预约筛选和新增/修改表单使用的申请人选项。
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:list')")
+    @GetMapping("/applicantOptions")
+    public AjaxResult applicantOptions() {
+        return success(reservationService.selectApplicantOptions());
+    }
+
+    /**
+     * 预约筛选和新增/修改表单使用的实验室选项。
+     */
+    @PreAuthorize("@ss.hasPermi('module:reservation:list')")
+    @GetMapping("/roomOptions")
+    public AjaxResult roomOptions() {
+        return success(reservationService.selectRoomOptions());
+    }
+
+    /**
      * 新增实验室预约
      */
     @PreAuthorize("@ss.hasPermi('module:reservation:add')")

@@ -4,7 +4,12 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -19,6 +24,8 @@ import org.springframework.stereotype.Service;
 import com.ruoyi.module.device.mapper.DeviceMapper;
 import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.device.service.IDeviceService;
+import com.ruoyi.module.room.domain.Room;
+import com.ruoyi.module.room.mapper.RoomMapper;
 
 import jakarta.validation.Validator;
 
@@ -32,6 +39,7 @@ import jakarta.validation.Validator;
 @RequiredArgsConstructor
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implements IDeviceService {
     private final DeviceMapper deviceMapper;
+    private final RoomMapper roomMapper;
     protected final Validator validator;
 
     @Override
@@ -89,7 +97,16 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
 
     @Override
     public IPage<Device> pageDevice(Page<Device> page, QueryWrapper<Device> queryWrapper) {
-        return deviceMapper.selectPage(page, queryWrapper);
+        IPage<Device> pageData = deviceMapper.selectPage(page, queryWrapper);
+        fillRoomDisplayFields(pageData.getRecords());
+        return pageData;
+    }
+
+    @Override
+    public List<Room> selectRoomOptions() {
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByAsc("room_code");
+        return roomMapper.selectList(queryWrapper);
     }
 
     /**
@@ -100,7 +117,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
      */
     @Override
     public Device selectDeviceById(Long id) {
-        return deviceMapper.selectById(id);
+        Device device = deviceMapper.selectById(id);
+        if (device != null) {
+            fillRoomDisplayFields(List.of(device));
+        }
+        return device;
     }
 
     /**
@@ -149,5 +170,32 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper,Device> implemen
     @Override
     public int deleteDeviceById(Long id) {
         return deviceMapper.deleteById(id);
+    }
+
+    /**
+     * 批量补充实验室编号和名称，避免前端只看到 roomId。
+     */
+    private void fillRoomDisplayFields(List<Device> devices) {
+        if (devices == null || devices.isEmpty()) {
+            return;
+        }
+        Set<Long> roomIds = devices.stream()
+                .map(Device::getRoomId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (roomIds.isEmpty()) {
+            return;
+        }
+        Map<Long, Room> roomMap = new HashMap<>();
+        for (Room room : roomMapper.selectBatchIds(roomIds)) {
+            roomMap.put(room.getId(), room);
+        }
+        for (Device device : devices) {
+            Room room = roomMap.get(device.getRoomId());
+            if (room != null) {
+                device.setRoomCode(room.getRoomCode());
+                device.setRoomName(room.getRoomName());
+            }
+        }
     }
 }
