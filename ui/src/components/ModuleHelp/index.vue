@@ -52,6 +52,13 @@ const help = computed(() => helpContent[props.module] || {});
 </script>
 
 <style lang="scss" scoped>
+.module-help {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .module-help__body {
   font-size: 13px;
   color: #303133;

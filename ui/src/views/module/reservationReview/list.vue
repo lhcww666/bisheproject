@@ -29,15 +29,13 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="reservationReviewHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="reservationReviewResetQuery">重置</el-button>
+        <module-help module="reservationReview" />
       </el-form-item>
     </el-form>
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="reservationReviewHandleExport" v-hasPermi="['module:reservationReview:export']">导出</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="reservationReview" />
       </el-col>
       <right-toolbar v-model:showSearch="reservationReviewShowSearch" @queryTable="reservationReviewGetList"></right-toolbar>
     </el-row>

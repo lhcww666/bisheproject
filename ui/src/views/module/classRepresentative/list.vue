@@ -39,6 +39,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <module-help module="classRepresentative" />
       </el-form-item>
     </el-form>
 
@@ -51,9 +52,6 @@
       </el-col>
       <el-col :span="1.5">
         <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['module:classRepresentative:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="classRepresentative" />
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>

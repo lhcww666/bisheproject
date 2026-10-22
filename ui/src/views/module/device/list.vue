@@ -37,6 +37,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="deviceHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="deviceResetQuery">重置</el-button>
+        <module-help module="device" />
       </el-form-item>
     </el-form>
 
@@ -69,9 +70,6 @@
           :isShowFileList="false"
           isImport
         />
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="device" />
       </el-col>
       <right-toolbar v-model:showSearch="deviceShowSearch" @queryTable="deviceGetList"></right-toolbar>
     </el-row>

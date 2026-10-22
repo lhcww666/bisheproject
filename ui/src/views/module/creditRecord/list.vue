@@ -63,6 +63,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="creditRecordHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="creditRecordResetQuery">重置</el-button>
+        <module-help module="creditRecord" />
       </el-form-item>
     </el-form>
 
@@ -89,9 +90,6 @@
           :isShowFileList="false"
           isImport
         />
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="creditRecord" />
       </el-col>
       <right-toolbar v-model:showSearch="creditRecordShowSearch" @queryTable="creditRecordGetList"></right-toolbar>
     </el-row>

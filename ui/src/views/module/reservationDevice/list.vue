@@ -24,15 +24,13 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="reservationDeviceHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="reservationDeviceResetQuery">重置</el-button>
+        <module-help module="reservationDevice" />
       </el-form-item>
     </el-form>
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="warning" plain icon="Download" @click="reservationDeviceHandleExport" v-hasPermi="['module:reservationDevice:export']">导出</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="reservationDevice" />
       </el-col>
       <right-toolbar v-model:showSearch="reservationDeviceShowSearch" @queryTable="reservationDeviceGetList"></right-toolbar>
     </el-row>

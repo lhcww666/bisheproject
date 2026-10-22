@@ -41,6 +41,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="roomHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="roomResetQuery">重置</el-button>
+        <module-help module="room" />
       </el-form-item>
     </el-form>
 
@@ -73,9 +74,6 @@
           :isShowFileList="false"
           isImport
         />
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="room" />
       </el-col>
       <right-toolbar v-model:showSearch="roomShowSearch" @queryTable="roomGetList"></right-toolbar>
     </el-row>

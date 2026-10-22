@@ -49,6 +49,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="safetyExamRecordHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="safetyExamRecordResetQuery">重置</el-button>
+        <module-help module="safetyExamRecord" />
       </el-form-item>
     </el-form>
 
@@ -72,9 +73,6 @@
           :isShowFileList="false"
           isImport
         />
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="safetyExamRecord" />
       </el-col>
       <right-toolbar v-model:showSearch="safetyExamRecordShowSearch" @queryTable="safetyExamRecordGetList"></right-toolbar>
     </el-row>

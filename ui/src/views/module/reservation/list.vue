@@ -66,6 +66,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="reservationHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="reservationResetQuery">重置</el-button>
+        <module-help module="reservation" />
       </el-form-item>
     </el-form>
 
@@ -101,9 +102,6 @@
           :isShowFileList="false"
           isImport
         />
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="reservation" />
       </el-col>
       <right-toolbar v-model:showSearch="reservationShowSearch" @queryTable="reservationGetList"></right-toolbar>
     </el-row>

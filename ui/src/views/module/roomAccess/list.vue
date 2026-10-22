@@ -25,6 +25,7 @@
       <el-form-item>
         <el-button type="primary" icon="Search" @click="roomAccessHandleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="roomAccessResetQuery">重置</el-button>
+        <module-help module="roomAccess" />
       </el-form-item>
     </el-form>
 
@@ -37,9 +38,6 @@
       </el-col>
       <el-col :span="1.5">
         <el-button type="danger" plain icon="Delete" :disabled="roomAccessMultiple" @click="roomAccessHandleDelete" v-hasPermi="['module:roomAccess:remove']">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <module-help module="roomAccess" />
       </el-col>
       <right-toolbar v-model:showSearch="roomAccessShowSearch" @queryTable="roomAccessGetList"></right-toolbar>
     </el-row>
