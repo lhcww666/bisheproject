@@ -81,9 +81,10 @@
           <el-input v-model="applyForm.experimentName" placeholder="例如：有机溶剂萃取实验" />
         </el-form-item>
         <el-form-item label="使用设备" prop="deviceIds">
-          <el-select v-model="applyForm.deviceIds" multiple filterable clearable style="width: 100%;" :disabled="!applyForm.roomId" :loading="devicesLoading" placeholder="可不选；选择实验室后可挑设备">
-            <el-option v-for="device in availableDevices" :key="device.id" :label="device.deviceName + '（' + device.deviceCode + '）'" :value="device.id" />
+          <el-select v-model="applyForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!applyForm.roomId" :loading="devicesLoading" placeholder="可不选；选择实验室后可多选设备">
+            <el-option v-for="device in availableDevices" :key="device.id" :label="deviceOptionLabel(device)" :value="device.id" />
           </el-select>
+          <div class="form-hint">支持多选；提交时会校验设备所属实验室、库存和培训要求。</div>
         </el-form-item>
         <el-form-item label="实验说明" prop="remark">
           <el-input v-model="applyForm.remark" type="textarea" :rows="3" placeholder="补充实验内容、防护要求等" />
@@ -102,9 +103,10 @@
         <el-form-item label="申请人ID" prop="applicantId"><el-input v-model="adminForm.applicantId" placeholder="请输入申请人用户ID" /></el-form-item>
         <el-form-item label="实验室ID" prop="roomId"><el-input v-model="adminForm.roomId" placeholder="请输入实验室ID" @change="loadAdminDevices(adminForm.roomId)" /></el-form-item>
         <el-form-item label="使用设备" prop="deviceIds">
-          <el-select v-model="adminForm.deviceIds" multiple filterable clearable style="width: 100%;" :disabled="!adminForm.roomId" :loading="devicesLoading" placeholder="选择实验室后可挑设备">
-            <el-option v-for="device in availableDevices" :key="device.id" :label="device.deviceName + '（' + device.deviceCode + '）'" :value="device.id" />
+          <el-select v-model="adminForm.deviceIds" multiple filterable clearable collapse-tags collapse-tags-tooltip style="width: 100%;" :disabled="!adminForm.roomId" :loading="devicesLoading" placeholder="选择实验室后可多选设备">
+            <el-option v-for="device in availableDevices" :key="device.id" :label="deviceOptionLabel(device)" :value="device.id" />
           </el-select>
+          <div class="form-hint">支持多选；提交时会校验设备所属实验室、库存和培训要求。</div>
         </el-form-item>
         <el-form-item label="实验名称" prop="experimentName"><el-input v-model="adminForm.experimentName" placeholder="请输入实验名称" /></el-form-item>
         <el-form-item label="开始时间" prop="startTime"><el-date-picker v-model="adminForm.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择开始时间" style="width: 100%;" /></el-form-item>
@@ -327,6 +329,11 @@ function loadAdminDevices(roomId, selectedIds = []) {
   });
 }
 
+function deviceOptionLabel(device) {
+  const training = "1" === String(device.requiresTraining) ? "，需培训" : "";
+  return device.deviceName + "（" + device.deviceCode + "，可用 " + (device.quantity || 0) + training + "）";
+}
+
 function submit() {
   if (useStudentApplyForm.value) {
     submitStudentApply();
@@ -389,6 +396,7 @@ function goBack() {
 <style lang="scss" scoped>
 .reservation-tip { margin-bottom: 12px; }
 .room-availability-alert { margin: -4px 0 16px; }
+.form-hint { margin-top: 4px; color: #909399; font-size: 12px; line-height: 1.5; }
 .page-header { display: flex; justify-content: space-between; align-items: center; }
 .form-footer { margin-top: 20px; padding-left: 110px; }
 </style>
