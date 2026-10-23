@@ -13,6 +13,7 @@ import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,8 @@ public class ModuleDataScopeService
     private static final String STATUS_NORMAL = "0";
 
     private final ISysUserService sysUserService;
+
+    private final ISysRoleService sysRoleService;
 
     /**
      * 是否为管理员。管理员不受业务数据范围限制。
@@ -158,6 +161,45 @@ public class ModuleDataScopeService
         {
             throw new ServiceException("没有权限查看其他学生的记录");
         }
+    }
+
+    /**
+     * 查询当前账号有权查看的学生。
+     *
+     * <p>管理员返回全部正常学生，教师返回本人部门中的正常学生，学生只返回本人。
+     * 没有实验室业务角色时返回空集合。</p>
+     *
+     * @return 当前数据范围内的正常学生
+     */
+    public List<SysUser> selectScopedStudents()
+    {
+        if (isStudent())
+        {
+            SysUser current = sysUserService.selectUserById(SecurityUtils.getUserId());
+            return current == null ? Collections.emptyList() : List.of(current);
+        }
+        if (!isAdmin() && !isTeacher())
+        {
+            return Collections.emptyList();
+        }
+
+        SysRole roleQuery = new SysRole();
+        roleQuery.setRoleKey(ROLE_STUDENT);
+        SysRole studentRole = sysRoleService.selectRoleList(roleQuery).stream()
+                .filter(role -> ROLE_STUDENT.equals(role.getRoleKey()))
+                .findFirst()
+                .orElse(null);
+        if (studentRole == null)
+        {
+            return Collections.emptyList();
+        }
+
+        SysUser userQuery = new SysUser();
+        userQuery.setRoleId(studentRole.getRoleId());
+        return sysUserService.selectAllocatedList(userQuery).stream()
+                .filter(user -> STATUS_NORMAL.equals(user.getStatus()))
+                .filter(user -> STATUS_NORMAL.equals(user.getDelFlag()))
+                .collect(Collectors.toList());
     }
 
     private boolean isStudentUser(SysUser user)

@@ -1,6 +1,9 @@
 package com.ruoyi.module.agent.tool;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Supplier;
@@ -32,7 +35,7 @@ import com.ruoyi.system.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 教师和管理员助手可调用的审核查询工具。
+ * 教师和管理员助手可调用的审核查询与班级统计工具。
  *
  * <p>所有查询都复用 {@link ModuleDataScopeService}，教师只能查看本人负责范围内的学生。
  * 审核通过、驳回和弃审仍必须由教师在页面确认，不向模型开放写操作。</p>
@@ -84,6 +87,54 @@ public class TeacherAgentTools
                         .append("\n");
             }
             return result.append("共 ").append(data.getTotal()).append(" 条待审核预约。").toString();
+        });
+    }
+
+    @Tool(name = "queryClassStudentStatistics",
+            description = "统计当前账号数据范围内的学生人数、平均信用分、低于预约门槛的学生和没有有效安全考试的学生。")
+    public String queryClassStudentStatistics()
+    {
+        return execute("queryClassStudentStatistics", "currentScope", () -> {
+            AgentContext.require();
+            List<SysUser> students = moduleDataScopeService.selectScopedStudents();
+            if (students.isEmpty())
+            {
+                return "当前数据范围内没有可统计的学生。";
+            }
+
+            long totalScore = 0L;
+            int minScore = Integer.MAX_VALUE;
+            List<String> belowThreshold = new ArrayList<>();
+            List<String> withoutExam = new ArrayList<>();
+            for (SysUser student : students)
+            {
+                CreditSummary credit = creditService.getSummary(student.getUserId());
+                int score = credit.getScore() == null ? 0 : credit.getScore();
+                int currentMinScore = credit.getMinScore() == null ? 60 : credit.getMinScore();
+                totalScore += score;
+                minScore = Math.min(minScore, currentMinScore);
+                if (score < currentMinScore)
+                {
+                    belowThreshold.add(displayName(student) + "（" + student.getUserName() + "，" + score + "分）");
+                }
+
+                SafetyExamStatusView exam = safetyExamService.getStatus(student.getUserId());
+                if (!Boolean.TRUE.equals(exam.getHasValidPass()))
+                {
+                    withoutExam.add(displayName(student) + "（" + student.getUserName() + "）");
+                }
+            }
+
+            BigDecimal average = BigDecimal.valueOf(totalScore)
+                    .divide(BigDecimal.valueOf(students.size()), 1, RoundingMode.HALF_UP);
+            StringBuilder result = new StringBuilder("学生统计：\n")
+                    .append("- 学生人数：").append(students.size()).append("\n")
+                    .append("- 平均信用分：").append(average).append("，预约门槛 ").append(minScore).append("分\n")
+                    .append("- 低于门槛：").append(belowThreshold.size()).append("人\n");
+            appendNames(result, belowThreshold, 15);
+            result.append("- 无有效安全考试：").append(withoutExam.size()).append("人\n");
+            appendNames(result, withoutExam, 15);
+            return result.toString().trim();
         });
     }
 
@@ -175,6 +226,23 @@ public class TeacherAgentTools
     private String displayName(SysUser user)
     {
         return StringUtils.isNotEmpty(user.getNickName()) ? user.getNickName() : user.getUserName();
+    }
+
+    private void appendNames(StringBuilder result, List<String> names, int limit)
+    {
+        if (names.isEmpty())
+        {
+            return;
+        }
+        int count = Math.min(names.size(), limit);
+        for (int i = 0; i < count; i++)
+        {
+            result.append("  - ").append(names.get(i)).append("\n");
+        }
+        if (names.size() > limit)
+        {
+            result.append("  - 其余 ").append(names.size() - limit).append(" 人未展开\n");
+        }
     }
 
     private String safeValue(Object value)
