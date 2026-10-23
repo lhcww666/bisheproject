@@ -3,7 +3,10 @@ package com.ruoyi.framework.config;
 import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.framework.interceptor.RepeatSubmitInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
@@ -24,8 +27,13 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration
 public class ResourcesConfig implements WebMvcConfigurer {
+    private static final Logger log = LoggerFactory.getLogger(ResourcesConfig.class);
+
     @Autowired
     private RepeatSubmitInterceptor repeatSubmitInterceptor;
+
+    @Value("${ruoyi.cors.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*}")
+    private String[] allowedOriginPatterns;
 
     @Override
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
@@ -59,8 +67,12 @@ public class ResourcesConfig implements WebMvcConfigurer {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
 //        config.setAllowCredentials(true);
-        // 设置访问源地址
-        config.addAllowedOriginPattern("*");
+        // 只允许配置中明确列出的前端来源，禁止任意站点跨域调用后端。
+        for (String originPattern : allowedOriginPatterns)
+        {
+            config.addAllowedOriginPattern(originPattern.trim());
+        }
+        log.info("跨域允许来源模式: {}", String.join(",", allowedOriginPatterns));
         // 设置访问源请求头
         config.addAllowedHeader("*");
         // 设置访问源请求方法

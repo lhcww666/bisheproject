@@ -4,6 +4,10 @@ ruoyi:
   # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
   profile: /www/wwwroot/RuoyiSpringBoot3/profile
   siteUrl: https://www.undsky.com/prod-api
+  security:
+    management-endpoints-enabled: false
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:https://www.undsky.com}
 
 # 数据源配置
 spring:
@@ -49,7 +53,7 @@ spring:
       webStatFilter:
         enabled: true
       statViewServlet:
-        enabled: true
+        enabled: false
         # 设置白名单，不填则允许所有访问
         allow:
         url-pattern: /druid/*
@@ -98,6 +102,6 @@ pagehelper:
   params: count=countSql
 
 magic-api:
-  web: /magic/web # 正式上线后改为 null
+  web: null
   resource:
     readonly: true

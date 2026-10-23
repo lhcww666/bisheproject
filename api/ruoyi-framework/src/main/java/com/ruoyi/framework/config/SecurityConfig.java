@@ -4,7 +4,10 @@ import com.ruoyi.framework.config.properties.PermitAllUrlProperties;
 import com.ruoyi.framework.security.filter.JwtAuthenticationTokenFilter;
 import com.ruoyi.framework.security.handle.AuthenticationEntryPointImpl;
 import com.ruoyi.framework.security.handle.LogoutSuccessHandlerImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,6 +30,8 @@ import org.springframework.web.filter.CorsFilter;
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 @Configuration
 public class SecurityConfig {
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
     /**
      * 认证失败处理类
      */
@@ -58,6 +63,12 @@ public class SecurityConfig {
     private PermitAllUrlProperties permitAllUrl;
 
     /**
+     * 生产环境关闭 Swagger、Druid 和 Magic API 管理入口。
+     */
+    @Value("${ruoyi.security.management-endpoints-enabled:true}")
+    private boolean managementEndpointsEnabled;
+
+    /**
      * 身份验证实现
      */
     @Bean
@@ -82,6 +93,7 @@ public class SecurityConfig {
      */
     @Bean
     protected SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+        log.info("Swagger、Druid、Magic API 管理入口{}", managementEndpointsEnabled ? "已开放" : "已关闭");
         return httpSecurity
                 // CSRF禁用，因为不使用session
                 .csrf(csrf -> csrf.disable())
@@ -99,11 +111,19 @@ public class SecurityConfig {
                     // 对于登录login 注册register 验证码captchaImage 允许匿名访问
                     requests.requestMatchers("/login", "/register", "/captchaImage").permitAll()
                             // 静态资源，可匿名访问
-                            .requestMatchers(HttpMethod.GET, "/", "/*.html", "/**.html", "/**.css", "/**.js", "/profile/**").permitAll()
-                            .requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**", "/druid/**").permitAll()
-                            .requestMatchers("/magic/**").permitAll()
-                            // 除上面外的所有请求全部需要鉴权认证
-                            .anyRequest().authenticated();
+                            .requestMatchers(HttpMethod.GET, "/", "/*.html", "/**.html", "/**.css", "/**.js", "/profile/**").permitAll();
+                    if (managementEndpointsEnabled)
+                    {
+                        requests.requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**", "/druid/**", "/magic/**")
+                                .permitAll();
+                    }
+                    else
+                    {
+                        requests.requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**", "/druid/**", "/magic/**")
+                                .denyAll();
+                    }
+                    // 除上面外的所有请求全部需要鉴权认证
+                    requests.anyRequest().authenticated();
                 })
                 // 添加Logout filter
                 .logout(logout -> logout.logoutUrl("/logout").logoutSuccessHandler(logoutSuccessHandler))

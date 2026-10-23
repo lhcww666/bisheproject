@@ -4,6 +4,16 @@ ruoyi:
   # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
   profile: D:/ruoyi/uploadPath
   siteUrl: https://www.undsky.com
+  security:
+    management-endpoints-enabled: true
+  cors:
+    allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*,http://192.168.*:*
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
 
 # 数据源配置
 spring:

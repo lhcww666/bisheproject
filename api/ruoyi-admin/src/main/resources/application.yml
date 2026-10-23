@@ -12,6 +12,12 @@ ruoyi:
   addressEnabled: false
   # 验证码类型 math 数字计算 char 字符验证
   captchaType: math
+  # 管理端调试入口只允许在开发环境开放，生产 profile 会覆盖为 false
+  security:
+    management-endpoints-enabled: true
+  # 浏览器跨域白名单，多个值用英文逗号分隔
+  cors:
+    allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*
 
 # 开发环境配置
 server:
@@ -114,6 +120,13 @@ swagger:
   enabled: false
   # 请求前缀
   pathMapping: /dev-api
+
+# OpenAPI 文档默认关闭，开发 profile 再显式开启
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 # 防止XSS攻击
 xss:
