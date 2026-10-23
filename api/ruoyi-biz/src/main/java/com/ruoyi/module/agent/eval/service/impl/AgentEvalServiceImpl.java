@@ -23,6 +23,7 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.module.agent.eval.domain.AgentEvalCase;
+import com.ruoyi.module.agent.eval.domain.AgentEvalMatcher;
 import com.ruoyi.module.agent.eval.domain.AgentEvalResult;
 import com.ruoyi.module.agent.eval.domain.AgentEvalRun;
 import com.ruoyi.module.agent.eval.domain.AgentEvalRunView;
@@ -106,8 +107,9 @@ public class AgentEvalServiceImpl implements IAgentEvalService
             long started = System.currentTimeMillis();
             String actualIntent = LocalIntentRouter.route(item.getQuestion());
             String actualTool = LocalIntentRouter.toolFor(actualIntent);
-            boolean intentHit = item.getExpectedIntent().equals(actualIntent);
-            boolean toolHit = item.getExpectedTool().equals(actualTool);
+            List<String> routedTools = "unknown".equals(actualTool) ? Collections.emptyList() : List.of(actualTool);
+            boolean intentHit = AgentEvalMatcher.intentMatches(item.getExpectedIntent(), routedTools);
+            boolean toolHit = AgentEvalMatcher.toolMatches(item.getExpectedTool(), routedTools);
             boolean keywordHit = true;
             String answer = "离线路由：" + actualTool;
             if (LocalIntentRouter.SAFETY.equals(item.getExpectedIntent()))
@@ -219,13 +221,15 @@ public class AgentEvalServiceImpl implements IAgentEvalService
                 calls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
                 Set<String> calledTools = calls.stream().map(ToolCallView::getToolName)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
+                Set<String> successfulTools = calls.stream()
+                        .filter(call -> Boolean.TRUE.equals(call.getSuccess()))
+                        .map(ToolCallView::getToolName)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
                 actualTool = calledTools.isEmpty() ? "unknown" : String.join(",", calledTools);
-                actualIntent = calledTools.isEmpty() ? LocalIntentRouter.UNKNOWN
-                        : LocalIntentRouter.intentForTool(calledTools.iterator().next());
-                intentHit = item.getExpectedIntent().equals(actualIntent);
-                toolHit = "unknown".equals(item.getExpectedTool()) ? calls.isEmpty()
-                        : calls.stream().anyMatch(call -> item.getExpectedTool().equals(call.getToolName())
-                                && Boolean.TRUE.equals(call.getSuccess()));
+                actualIntent = AgentEvalMatcher.resolveActualIntent(
+                        item.getExpectedIntent(), item.getExpectedTool(), calledTools);
+                intentHit = AgentEvalMatcher.intentMatches(item.getExpectedIntent(), calledTools);
+                toolHit = AgentEvalMatcher.toolMatches(item.getExpectedTool(), successfulTools);
                 if (LocalIntentRouter.SAFETY.equals(item.getExpectedIntent()))
                 {
                     ragCases++;
