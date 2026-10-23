@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container agent-page" :class="{ 'theme-candy': skin === 'candy' }">
+  <div class="app-container agent-page" :class="'theme-' + skin">
     <!-- 左侧：会话列表。所有会话都属于当前登录用户。 -->
     <aside class="session-panel">
       <div class="session-header">
@@ -84,9 +84,29 @@
           </div>
         </div>
         <div class="chat-header-actions">
-          <el-button size="small" plain icon="MagicStick" class="skin-toggle" @click="toggleSkin">
-            {{ skin === "candy" ? "清爽模式" : "糖果模式" }}
-          </el-button>
+          <el-dropdown trigger="click" placement="bottom-end" popper-class="agent-skin-popper" @command="setSkin">
+            <el-button size="small" plain icon="MagicStick" class="skin-toggle">
+              <span class="skin-current-dot" :class="'skin-' + skin"></span>
+              {{ currentSkin.label }}
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu class="agent-skin-menu">
+                <el-dropdown-item
+                  v-for="option in skinOptions"
+                  :key="option.key"
+                  :command="option.key"
+                  :class="{ active: skin === option.key }"
+                >
+                  <span class="skin-option-swatch" :class="'skin-' + option.key"></span>
+                  <span class="skin-option-copy">
+                    <strong>{{ option.label }}</strong>
+                    <small>{{ option.description }}</small>
+                  </span>
+                  <span v-if="skin === option.key" class="skin-option-check">✓</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-button size="small" plain icon="Search" @click="knowledgeOpen = true">知识库</el-button>
           <el-button
             v-if="!modelStatusLoading && modelConfigured"
@@ -426,7 +446,14 @@ const knowledgeLoading = ref(false);
 const knowledgeSearched = ref(false);
 const knowledgeResults = ref([]);
 const draftLoading = ref(null);
-const skin = ref(window.localStorage.getItem("agent-page-skin") === "candy" ? "candy" : "fresh");
+const skinOptions = [
+  { key: "fresh", label: "清爽实验室", description: "蓝白科技，适合正式演示" },
+  { key: "candy", label: "奶油糖果", description: "粉紫柔光，亲切活泼" },
+  { key: "mint", label: "薄荷实验室", description: "薄荷绿，清爽耐看" }
+];
+const savedSkin = window.localStorage.getItem("agent-page-skin");
+const skin = ref(skinOptions.some(option => option.key === savedSkin) ? savedSkin : "fresh");
+const currentSkin = computed(() => skinOptions.find(option => option.key === skin.value) || skinOptions[0]);
 
 const examples = ref([
   "我通过安全考试了吗？",
@@ -666,9 +693,12 @@ function formatSessionTime(value) {
   return proxy.parseTime(value, "{m}-{d}");
 }
 
-function toggleSkin() {
-  skin.value = skin.value === "candy" ? "fresh" : "candy";
-  window.localStorage.setItem("agent-page-skin", skin.value);
+function setSkin(key) {
+  if (!skinOptions.some(option => option.key === key)) {
+    return;
+  }
+  skin.value = key;
+  window.localStorage.setItem("agent-page-skin", key);
 }
 
 function formatTime(value) {
@@ -1067,6 +1097,27 @@ function searchKnowledge() {
 }
 .chat-header-actions :deep(.el-button) {
   border-radius: 9px;
+}
+.skin-current-dot,
+.skin-option-swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+.skin-current-dot {
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+}
+.skin-fresh {
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+}
+.skin-candy {
+  background: linear-gradient(135deg, #f472b6, #a78bfa);
+}
+.skin-mint {
+  background: linear-gradient(135deg, #10b981, #2dd4bf);
 }
 .model-state {
   display: inline-flex;
@@ -1471,6 +1522,152 @@ function searchKnowledge() {
 }
 .theme-candy .composer-submit {
   color: #b294a5;
+}
+
+/* 薄荷实验室皮肤：清爽、耐看，适合讲解答辩。 */
+.agent-page.theme-mint {
+  border-color: #dcefe8;
+  background: #f8fffc;
+  box-shadow: 0 18px 52px rgba(48, 126, 101, 0.11);
+}
+.theme-mint .session-panel {
+  border-color: #def0e9;
+  background:
+    radial-gradient(circle at 0 0, rgba(167, 243, 208, 0.24), transparent 35%),
+    linear-gradient(180deg, #f6fffb 0%, #f1fbf8 100%);
+}
+.theme-mint .session-brand-icon,
+.theme-mint .assistant-avatar,
+.theme-mint .welcome-icon,
+.theme-mint .message-row.assistant .avatar,
+.theme-mint .composer-submit :deep(.el-button) {
+  background: linear-gradient(145deg, #059669, #2dd4bf);
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.24);
+}
+.theme-mint .new-session-button {
+  border-color: #cce9df !important;
+  color: #0f9f76 !important;
+}
+.theme-mint .session-item.active {
+  border-color: #cdeee2;
+  color: #078a68;
+  box-shadow: 0 8px 22px rgba(49, 130, 102, 0.09);
+}
+.theme-mint .session-item.active .session-indicator {
+  background: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+.theme-mint .chat-header {
+  border-color: #e3f2ec;
+  background: rgba(250, 255, 253, 0.97);
+}
+.theme-mint .chat-header p,
+.theme-mint .session-branding small,
+.theme-mint .session-time {
+  color: #89a69b;
+}
+.theme-mint .model-state.ready {
+  background: #ecfdf5;
+  color: #278f69;
+}
+.theme-mint .message-box {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(167, 243, 208, 0.2), transparent 25%),
+    radial-gradient(circle at 90% 18%, rgba(153, 246, 228, 0.17), transparent 25%),
+    linear-gradient(180deg, #f9fffc 0%, #f4fcf9 100%);
+}
+.theme-mint .welcome {
+  border-color: #dcefe8;
+  background: rgba(252, 255, 253, 0.94);
+  box-shadow: 0 20px 55px rgba(50, 118, 94, 0.09);
+}
+.theme-mint .welcome-glow {
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.17), transparent 68%);
+}
+.theme-mint .welcome-kicker {
+  color: #2e9f83;
+}
+.theme-mint .welcome-capabilities span {
+  border-color: #dcefe8;
+  background: #f7fffc;
+  color: #68877c;
+}
+.theme-mint .example-card {
+  border-color: #e0f0ea;
+  color: #526960;
+}
+.theme-mint .example-card:hover {
+  border-color: #9dddc9;
+  color: #078a68;
+  box-shadow: 0 10px 24px rgba(57, 137, 111, 0.09);
+}
+.theme-mint .message-row.user .bubble {
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  box-shadow: 0 10px 24px rgba(13, 148, 136, 0.19);
+}
+.theme-mint .tool-collapse {
+  border-color: #e0f0ea;
+  background: rgba(252, 255, 253, 0.86);
+}
+.theme-mint .composer-shell {
+  border-color: #daeee7;
+  background: #fbfffd;
+  box-shadow: 0 12px 32px rgba(52, 118, 96, 0.1);
+}
+.theme-mint .composer-shell:focus-within {
+  border-color: #8ed5c1;
+  box-shadow: 0 14px 36px rgba(16, 185, 129, 0.13);
+}
+.theme-mint .composer-submit {
+  color: #93aaa2;
+}
+
+:global(.agent-skin-popper.el-popper) {
+  padding: 0;
+  border: 1px solid #e5ebf3;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(32, 58, 96, 0.16);
+}
+:global(.agent-skin-popper .el-dropdown-menu) {
+  min-width: 242px;
+  padding: 6px;
+  border-radius: 13px;
+}
+:global(.agent-skin-popper .el-dropdown-menu__item) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  line-height: 1.3;
+}
+:global(.agent-skin-popper .el-dropdown-menu__item.active) {
+  background: #f2f7ff;
+  color: #2563eb;
+}
+.skin-option-swatch {
+  width: 22px;
+  height: 22px;
+}
+.skin-option-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+.skin-option-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.skin-option-copy small {
+  color: #9aa6b8;
+  font-size: 10px;
+}
+.skin-option-check {
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 700;
 }
 @media (max-width: 900px) {
   .agent-page {
