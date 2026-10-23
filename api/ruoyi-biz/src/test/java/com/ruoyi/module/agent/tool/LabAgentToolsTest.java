@@ -16,6 +16,7 @@ import com.ruoyi.module.agent.service.AgentContext;
 import com.ruoyi.module.agent.service.ToolAuditService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
+import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.room.domain.Room;
@@ -94,6 +95,37 @@ class LabAgentToolsTest
             assertTrue(result.contains("R101 基础实验室"));
             assertTrue(result.contains("R201 有机实验室"));
             assertTrue(result.contains("低风险实验室可继续选择时段预约"));
+        }
+        finally
+        {
+            AgentContext.close();
+        }
+    }
+
+    @Test
+    void deviceSearchAcceptsRoomAndDeviceNameKeywords()
+    {
+        IReservationService reservationService = mock(IReservationService.class);
+        Device device = new Device();
+        device.setId(8L);
+        device.setDeviceCode("EQ-B203-02");
+        device.setDeviceName("高速离心机");
+        device.setQuantity(1L);
+        device.setRequiresTraining("0");
+        device.setRoomCode("B203");
+        device.setRoomName("生物实验室");
+        when(reservationService.searchAvailableDevices(1L, "生物实验室", "离心机"))
+                .thenReturn(List.of(device));
+
+        LabAgentTools tools = new LabAgentTools(reservationService, null, mock(RoomMapper.class), null, null,
+                null, null, mock(ToolAuditService.class), null, null);
+        AgentContext.open(100L, 1L);
+        try
+        {
+            String result = tools.queryAvailableDevices(null, "生物实验室", "离心机");
+            assertTrue(result.contains("高速离心机"));
+            assertTrue(result.contains("B203 生物实验室"));
+            assertTrue(result.contains("需要培训 否"));
         }
         finally
         {

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ import com.ruoyi.module.agent.mapper.ChatSessionMapper;
 import com.ruoyi.module.agent.mapper.ToolCallLogMapper;
 import com.ruoyi.module.agent.service.AgentContext;
 import com.ruoyi.module.agent.service.AgentChatClientRouter;
+import com.ruoyi.module.agent.service.AgentPromptContext;
 import com.ruoyi.module.agent.service.IAgentService;
 
 import lombok.RequiredArgsConstructor;
@@ -253,6 +255,7 @@ public class AgentServiceImpl implements IAgentService
     {
         List<ChatMessage> messages = history(sessionId);
         List<Message> history = new ArrayList<>();
+        history.add(new SystemMessage(AgentPromptContext.currentTimeInstruction()));
         for (ChatMessage message : messages)
         {
             if (ChatMessage.ROLE_USER.equals(message.getRole()))

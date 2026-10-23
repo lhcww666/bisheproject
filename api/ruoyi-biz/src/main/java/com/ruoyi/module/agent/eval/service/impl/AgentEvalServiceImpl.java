@@ -38,6 +38,7 @@ import com.ruoyi.module.agent.role.AgentRole;
 import com.ruoyi.module.agent.role.AgentRoleService;
 import com.ruoyi.module.agent.service.AgentChatClientRouter;
 import com.ruoyi.module.agent.service.AgentContext;
+import com.ruoyi.module.agent.service.AgentPromptContext;
 import com.ruoyi.module.agent.service.IAgentService;
 
 import lombok.RequiredArgsConstructor;
@@ -209,7 +210,11 @@ public class AgentEvalServiceImpl implements IAgentEvalService
             AgentContext.open(null, userId);
             try
             {
-                answer = chatClientRouter.current().prompt().user(item.getQuestion()).call().content();
+                answer = chatClientRouter.current().prompt()
+                        .system(AgentPromptContext.currentTimeInstruction())
+                        .user(item.getQuestion())
+                        .call()
+                        .content();
                 AgentContext.Context context = AgentContext.current();
                 calls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
                 Set<String> calledTools = calls.stream().map(ToolCallView::getToolName)

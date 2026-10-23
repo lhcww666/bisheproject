@@ -153,23 +153,45 @@ public class LabAgentTools
      * 查询实验室的设备。返回 ID，便于模型继续调用设备相关工具。
      */
     @Tool(name = "queryAvailableDevices",
-            description = "查询指定实验室当前可预约的设备，返回设备编号、名称、数量和是否需要培训。")
+            description = "按实验室名称、设备名称或实验室ID查询当前可预约设备。用户只给出“生物实验室”或“离心机”时可使用名称关键词，不要求提供实验室ID。")
     public String queryAvailableDevices(
-            @ToolParam(description = "实验室ID，可从可用实验室结果或实验室档案查询") Long roomId)
+            @ToolParam(required = false, description = "实验室ID，可为空") Long roomId,
+            @ToolParam(required = false, description = "实验室编号或名称关键词，可为空") String roomKeyword,
+            @ToolParam(required = false, description = "设备编号或名称关键词，可为空") String deviceKeyword)
     {
-        return execute("queryAvailableDevices", "roomId=" + roomId, () -> {
-            List<Device> devices = reservationService.selectAvailableDevices(roomId);
+        return execute("queryAvailableDevices",
+                "roomId=" + roomId + ", roomKeyword=" + roomKeyword + ", deviceKeyword=" + deviceKeyword, () -> {
+            Long userId = AgentContext.require().getUserId();
+            List<Device> devices = roomId == null
+                    ? reservationService.searchAvailableDevices(userId, roomKeyword, deviceKeyword)
+                    : reservationService.selectAvailableDevices(roomId);
+            if (roomId != null && !devices.isEmpty())
+            {
+                Room room = roomMapper.selectById(roomId);
+                if (room != null)
+                {
+                    devices.forEach(device -> {
+                        device.setRoomCode(room.getRoomCode());
+                        device.setRoomName(room.getRoomName());
+                    });
+                }
+            }
             if (devices.isEmpty())
             {
-                return "该实验室当前没有可预约设备。";
+                return "没有找到符合条件的可预约设备。";
             }
             StringBuilder result = new StringBuilder("可用设备：\n");
-            for (Device device : devices)
+            for (Device device : devices.stream().limit(20).toList())
             {
                 result.append("- ").append(device.getDeviceCode()).append(" ").append(device.getDeviceName())
+                        .append("，实验室 ").append(device.getRoomCode()).append(" ").append(device.getRoomName())
                         .append("，数量 ").append(device.getQuantity())
                         .append("，需要培训 ").append("1".equals(device.getRequiresTraining()) ? "是" : "否")
                         .append("\n");
+            }
+            if (devices.size() > 20)
+            {
+                result.append("其余 ").append(devices.size() - 20).append(" 台设备未展开，请提供更具体的关键词。");
             }
             return result.toString();
         });

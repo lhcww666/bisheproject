@@ -69,6 +69,16 @@ public interface IReservationService extends IService<Reservation> {
     public List<Device> selectAvailableDevices(Long roomId);
 
     /**
+     * 按实验室名称和设备名称搜索当前用户可预约的设备。
+     *
+     * @param userId        当前用户
+     * @param roomKeyword   实验室编号或名称关键词，可为空
+     * @param deviceKeyword 设备编号或名称关键词，可为空
+     * @return 当前用户可进入实验室中的可用设备
+     */
+    public List<Device> searchAvailableDevices(Long userId, String roomKeyword, String deviceKeyword);
+
+    /**
      * 查询预约管理表单可选择的申请人。教师只能读取本人负责班级的学生。
      *
      * @return 申请人选项

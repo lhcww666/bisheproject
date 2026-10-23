@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -46,6 +48,7 @@ import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.device.mapper.DeviceMapper;
 import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.module.room.mapper.RoomMapper;
+import com.ruoyi.module.roomaccess.service.IRoomAccessService;
 import com.ruoyi.module.violation.domain.ViolationType;
 import com.ruoyi.module.violation.domain.ViolationRecord;
 import com.ruoyi.module.violation.mapper.ViolationRecordMapper;
@@ -71,6 +74,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     private final ReservationStatusLogMapper reservationStatusLogMapper;
     private final DeviceMapper deviceMapper;
     private final RoomMapper roomMapper;
+    private final IRoomAccessService roomAccessService;
     private final IReservationRuleService reservationRuleService;
     private final ReservationViewAssembler reservationViewAssembler;
     private final IViolationRecordService violationRecordService;
@@ -307,6 +311,58 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         queryWrapper.gt("quantity", 0);
         queryWrapper.orderByAsc("device_code");
         return deviceMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<Device> searchAvailableDevices(Long userId, String roomKeyword, String deviceKeyword)
+    {
+        if (StringUtils.isEmpty(roomKeyword) && StringUtils.isEmpty(deviceKeyword))
+        {
+            throw new ServiceException("请提供实验室名称或设备名称");
+        }
+
+        QueryWrapper<Room> roomQuery = new QueryWrapper<>();
+        roomQuery.eq("status", "0");
+        if (StringUtils.isNotEmpty(roomKeyword))
+        {
+            String keyword = roomKeyword.trim();
+            roomQuery.and(wrapper -> wrapper.like("room_code", keyword).or().like("room_name", keyword));
+        }
+        roomQuery.orderByAsc("room_code");
+        List<Room> rooms = roomMapper.selectList(roomQuery);
+        if (rooms.isEmpty())
+        {
+            return List.of();
+        }
+        rooms = roomAccessService.filterBookableRooms(userId, rooms);
+        if (rooms.isEmpty())
+        {
+            return List.of();
+        }
+
+        Map<Long, Room> roomMap = rooms.stream().collect(Collectors.toMap(Room::getId, room -> room));
+        Set<Long> roomIds = new LinkedHashSet<>(roomMap.keySet());
+        QueryWrapper<Device> deviceQuery = new QueryWrapper<>();
+        deviceQuery.in("room_id", roomIds);
+        deviceQuery.eq("status", "0");
+        deviceQuery.gt("quantity", 0);
+        if (StringUtils.isNotEmpty(deviceKeyword))
+        {
+            String keyword = deviceKeyword.trim();
+            deviceQuery.and(wrapper -> wrapper.like("device_code", keyword).or().like("device_name", keyword));
+        }
+        deviceQuery.orderByAsc("device_code").last("limit 100");
+        List<Device> devices = deviceMapper.selectList(deviceQuery);
+        for (Device device : devices)
+        {
+            Room room = roomMap.get(device.getRoomId());
+            if (room != null)
+            {
+                device.setRoomCode(room.getRoomCode());
+                device.setRoomName(room.getRoomName());
+            }
+        }
+        return devices;
     }
 
     @Override

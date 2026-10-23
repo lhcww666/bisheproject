@@ -36,11 +36,13 @@ public class CommonAgentTools
     }
 
     @Tool(name = "queryAvailableDevices",
-            description = "查询指定实验室当前可预约的设备，返回设备编号、名称、数量和是否需要培训。")
+            description = "按实验室名称、设备名称或实验室ID查询当前可预约设备。用户只给出“生物实验室”或“离心机”时可使用名称关键词，不要求提供实验室ID。")
     public String queryAvailableDevices(
-            @ToolParam(description = "实验室ID") Long roomId)
+            @ToolParam(required = false, description = "实验室ID，可为空") Long roomId,
+            @ToolParam(required = false, description = "实验室编号或名称关键词，可为空") String roomKeyword,
+            @ToolParam(required = false, description = "设备编号或名称关键词，可为空") String deviceKeyword)
     {
-        return delegate.queryAvailableDevices(roomId);
+        return delegate.queryAvailableDevices(roomId, roomKeyword, deviceKeyword);
     }
 
     @Tool(name = "searchSafetyKnowledge",
