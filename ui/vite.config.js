@@ -2,7 +2,8 @@ import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import createVitePlugins from './vite/plugins'
 
-const baseUrl = 'http://localhost:8087' // 后端接口 https://vue.ruoyi.vip/prod-api
+// 验证脚本可通过 PROXY_API 指向临时后端，日常开发仍默认使用 8087。
+const baseUrl = process.env.PROXY_API || 'http://localhost:8087'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode, command }) => {
