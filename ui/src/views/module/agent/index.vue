@@ -7,6 +7,18 @@
         <el-button type="primary" size="small" icon="Plus" @click="newSession">新对话</el-button>
       </div>
       <div class="session-list">
+        <el-alert
+          v-if="sessionError"
+          class="inline-error"
+          type="error"
+          :closable="false"
+          show-icon
+          :title="sessionError"
+        >
+          <template #default>
+            <el-button link type="primary" @click="loadSessions">重试</el-button>
+          </template>
+        </el-alert>
         <div
           v-for="session in sessions"
           :key="session.id"
@@ -68,6 +80,30 @@
       >
         <template #default>
           <el-button link type="primary" @click="configOpen = true">查看填写位置</el-button>
+        </template>
+      </el-alert>
+      <el-alert
+        v-if="statusError"
+        class="model-alert"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="statusError"
+      >
+        <template #default>
+          <el-button link type="primary" @click="loadAgentStatus">重试</el-button>
+        </template>
+      </el-alert>
+      <el-alert
+        v-if="messageError"
+        class="model-alert"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="messageError"
+      >
+        <template #default>
+          <el-button link type="primary" @click="messageError = ''">知道了</el-button>
         </template>
       </el-alert>
 
@@ -215,6 +251,13 @@
           <div class="knowledge-source">来源：{{ item.source || '演示安全资料' }}</div>
         </el-card>
       </div>
+      <el-alert
+        v-else-if="knowledgeError"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="knowledgeError"
+      />
       <el-empty v-else-if="knowledgeSearched" description="未检索到相关资料" />
     </el-dialog>
 
@@ -265,6 +308,10 @@ const sending = ref(false);
 const messageBoxRef = ref(null);
 const modelConfigured = ref(false);
 const modelStatusLoading = ref(true);
+const statusError = ref("");
+const sessionError = ref("");
+const messageError = ref("");
+const knowledgeError = ref("");
 const modelName = ref("");
 const checkingModel = ref(false);
 const configOpen = ref(false);
@@ -289,6 +336,13 @@ const examples = ref([
 
 // 页面初始化：先查询模型状态，再加载当前用户的会话。
 onMounted(() => {
+  loadAgentStatus();
+  loadSessions();
+});
+
+function loadAgentStatus() {
+  modelStatusLoading.value = true;
+  statusError.value = "";
   getAgentStatus().then(response => {
     const status = response.data || {};
     modelConfigured.value = status.configured === true;
@@ -300,13 +354,15 @@ onMounted(() => {
     if (Array.isArray(status.examples) && status.examples.length) {
       examples.value = status.examples;
     }
+  }).catch(error => {
+    statusError.value = "助手状态加载失败：" + (error?.message || "请检查后端服务");
   }).finally(() => {
     modelStatusLoading.value = false;
   });
-  loadSessions();
-});
+}
 
 function loadSessions() {
+  sessionError.value = "";
   return listAgentSessions().then(response => {
     sessions.value = response.data || [];
     if (!sessions.value.length) {
@@ -320,6 +376,11 @@ function loadSessions() {
     if (active) {
       selectSession(active);
     }
+  }).catch(error => {
+    sessionError.value = "会话列表加载失败：" + (error?.message || "请稍后重试");
+    sessions.value = [];
+    currentSession.value = null;
+    messages.value = [];
   });
 }
 
@@ -333,12 +394,15 @@ function refreshSessionsOnly() {
         currentSession.value = refreshed;
       }
     }
+  }).catch(error => {
+    sessionError.value = "会话列表刷新失败：" + (error?.message || "请稍后重试");
   });
 }
 
 function selectSession(session) {
   currentSession.value = session;
   loading.value = true;
+  messageError.value = "";
   listAgentMessages(session.id).then(response => {
     messages.value = (response.data || []).map(item => ({
       role: item.role,
@@ -358,7 +422,14 @@ function selectSession(session) {
         });
       });
       scrollToBottom();
+    }).catch(error => {
+      messageError.value = "待确认草稿加载失败：" + (error?.message || "请重新进入会话");
+    }).finally(() => {
+      scrollToBottom();
     });
+  }).catch(error => {
+    messageError.value = "会话消息加载失败：" + (error?.message || "请稍后重试");
+    messages.value = [];
   }).finally(() => {
     loading.value = false;
   });
@@ -372,6 +443,8 @@ function newSession() {
     currentSession.value = session;
     messages.value = [];
     input.value = "";
+  }).catch(error => {
+    messageError.value = "新建会话失败：" + (error?.message || "请稍后重试");
   });
 }
 
@@ -401,6 +474,8 @@ function testModel() {
     } else {
       proxy.$modal.msgError(result.message || "模型连接失败，请检查 Key、网络和模型配置");
     }
+  }).catch(error => {
+    proxy.$modal.msgError("模型连接失败：" + (error?.message || "请检查 Key、网络和模型配置"));
   }).finally(() => {
     checkingModel.value = false;
   });
@@ -479,6 +554,8 @@ function confirmDraft(message) {
   confirmAgentDraft(message.draft.id).then(response => {
     message.draft = response.data || message.draft;
     proxy.$modal.msgSuccess("预约已提交，后端已完成二次校验");
+  }).catch(error => {
+    proxy.$modal.msgError("预约草稿提交失败：" + (error?.message || "请重新检查预约信息"));
   }).finally(() => {
     draftLoading.value = null;
   });
@@ -488,6 +565,8 @@ function cancelDraft(message) {
   cancelAgentDraft(message.draft.id).then(response => {
     message.draft = response.data || message.draft;
     proxy.$modal.msgSuccess("预约草稿已取消");
+  }).catch(error => {
+    proxy.$modal.msgError("取消预约草稿失败：" + (error?.message || "请稍后重试"));
   });
 }
 
@@ -582,8 +661,12 @@ function searchKnowledge() {
   if (!query) return;
   knowledgeLoading.value = true;
   knowledgeSearched.value = false;
+  knowledgeError.value = "";
+  knowledgeResults.value = [];
   searchAgentKnowledge(query, 3).then(response => {
     knowledgeResults.value = response.data || [];
+  }).catch(error => {
+    knowledgeError.value = "知识库检索失败：" + (error?.message || "请检查后端服务");
   }).finally(() => {
     knowledgeLoading.value = false;
     knowledgeSearched.value = true;
@@ -617,6 +700,7 @@ function searchKnowledge() {
   font-weight: 600;
 }
 .session-list { flex: 1; overflow-y: auto; padding: 8px; }
+.inline-error { margin-bottom: 8px; }
 .session-item {
   position: relative;
   padding: 10px 24px 10px 10px;

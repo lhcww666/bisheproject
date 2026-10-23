@@ -107,6 +107,9 @@ onMounted(() => {
 function loadRoomOptions() {
   listDeviceRoomOptions().then(response => {
     roomOptions.value = response.data || [];
+  }).catch(error => {
+    roomOptions.value = [];
+    proxy.$modal.msgError("实验室选项加载失败：" + (error?.message || "请稍后重试"));
   });
 }
 

@@ -13,7 +13,7 @@
         ></el-date-picker>
       </el-form-item>
       <el-form-item label="所属实验室" prop="roomId">
-        <el-select v-model="deviceQueryParams.roomId" filterable clearable placeholder="请选择实验室" style="width: 220px;">
+        <el-select v-model="deviceQueryParams.roomId" filterable clearable placeholder="请选择实验室" style="width: 220px;" :loading="roomOptionsLoading" :no-data-text="roomOptionsError || '暂无实验室选项'">
           <el-option
             v-for="room in roomOptions"
             :key="room.id"
@@ -80,6 +80,19 @@
       </el-col>
       <right-toolbar v-model:showSearch="deviceShowSearch" @queryTable="deviceGetList"></right-toolbar>
     </el-row>
+
+    <el-alert
+      v-if="deviceLoadError"
+      class="list-error"
+      type="error"
+      :closable="false"
+      show-icon
+      :title="deviceLoadError"
+    >
+      <template #default>
+        <el-button link type="primary" @click="deviceGetList">重试</el-button>
+      </template>
+    </el-alert>
 
     <el-table
       v-loading="deviceLoading"
@@ -148,6 +161,9 @@ const deviceSingle = ref(true);
 const deviceMultiple = ref(true);
 const deviceTotal = ref(0);
 const roomOptions = ref([]);
+const roomOptionsLoading = ref(false);
+const roomOptionsError = ref("");
+const deviceLoadError = ref("");
 const deviceData = reactive({
   deviceQueryParams: {
     pageNum: 1,
@@ -174,16 +190,29 @@ onMounted(() => {
 });
 
 function loadRoomOptions() {
+  roomOptionsLoading.value = true;
+  roomOptionsError.value = "";
   listDeviceRoomOptions().then(response => {
     roomOptions.value = response.data || [];
+  }).catch(error => {
+    roomOptions.value = [];
+    roomOptionsError.value = "实验室选项加载失败";
+    proxy.$modal.msgError("实验室选项加载失败：" + (error?.message || "请稍后重试"));
+  }).finally(() => {
+    roomOptionsLoading.value = false;
   });
 }
 
 function deviceGetList() {
   deviceLoading.value = true;
+  deviceLoadError.value = "";
   listDevice(proxy.addDateRange(deviceQueryParams.value, dateRange.value, 'create_time', true)).then(response => {
     deviceList.value = response.rows;
     deviceTotal.value = response.total;
+  }).catch(error => {
+    deviceList.value = [];
+    deviceTotal.value = 0;
+    deviceLoadError.value = "设备档案加载失败：" + (error?.message || "请检查后端服务");
   }).finally(() => {
     deviceLoading.value = false;
   });
@@ -263,4 +292,5 @@ function deviceImportTemplate() {
 :deep(.device-clickable-row) {
   cursor: pointer;
 }
+.list-error { margin-bottom: 12px; }
 </style>

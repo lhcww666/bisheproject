@@ -15,6 +15,19 @@
       </div>
     </div>
 
+    <el-alert
+      v-if="loadError"
+      class="dashboard-error"
+      type="error"
+      :closable="false"
+      show-icon
+      :title="loadError"
+    >
+      <template #default>
+        <el-button link type="primary" @click="loadData">重新加载</el-button>
+      </template>
+    </el-alert>
+
     <el-row :gutter="12" class="metric-row" v-loading="loading">
       <el-col v-for="metric in metrics" :key="metric.key" :xs="12" :sm="8" :md="4">
         <el-card shadow="never" class="metric-card">
@@ -66,6 +79,7 @@ const userStore = useUserStore();
 const roleKeys = computed(() => userStore.roles || []);
 const isStudent = computed(() => roleKeys.value.includes("student") && !roleKeys.value.includes("teacher") && !roleKeys.value.includes("admin"));
 const loading = ref(true);
+const loadError = ref("");
 const days = ref(30);
 const dashboard = ref(null);
 const trendChartRef = ref(null);
@@ -99,8 +113,13 @@ onBeforeUnmount(() => {
 
 function loadData() {
   loading.value = true;
+  loadError.value = "";
   getStatsDashboard({ days: days.value }).then(response => {
     dashboard.value = response.data || {};
+    nextTick(renderCharts);
+  }).catch(error => {
+    dashboard.value = null;
+    loadError.value = "数据看板加载失败：" + (error?.message || "请检查后端或网络后重试");
     nextTick(renderCharts);
   }).finally(() => {
     loading.value = false;
@@ -128,6 +147,10 @@ function renderCharts() {
 function renderTrend(points) {
   const chart = ensureChart("trend", trendChartRef.value);
   if (!chart) return;
+  if (!points.length || points.every(item => !item.total && !item.approved && !item.completed)) {
+    setEmptyChart(chart, "暂无预约趋势数据");
+    return;
+  }
   chart.setOption({
     tooltip: { trigger: "axis" },
     legend: { data: ["预约总数", "有效预约", "已完成"], bottom: 0 },
@@ -172,6 +195,10 @@ function renderRoomUsage(items) {
   const chart = ensureChart("room", roomChartRef.value);
   if (!chart) return;
   const top = items.slice(0, 8);
+  if (!top.length) {
+    setEmptyChart(chart, "暂无实验室使用数据");
+    return;
+  }
   chart.setOption({
     tooltip: {
       trigger: "axis",
@@ -191,6 +218,10 @@ function renderRoomUsage(items) {
 function renderViolation(points) {
   const chart = ensureChart("violation", violationChartRef.value);
   if (!chart) return;
+  if (!points.length || points.every(item => !item.count && !item.creditChange)) {
+    setEmptyChart(chart, "暂无违规记录");
+    return;
+  }
   chart.setOption({
     tooltip: { trigger: "axis" },
     legend: { data: ["违规次数", "信用变动"], bottom: 0 },
@@ -214,6 +245,20 @@ function resizeCharts() {
 function formatPercent(value) {
   return Number(value || 0).toFixed(1);
 }
+
+function setEmptyChart(chart, text) {
+  chart.setOption({
+    title: {
+      text,
+      left: "center",
+      top: "45%",
+      textStyle: { color: "#909399", fontSize: 14, fontWeight: 400 }
+    },
+    xAxis: { show: false },
+    yAxis: { show: false },
+    series: []
+  }, true);
+}
 </script>
 
 <style lang="scss" scoped>
@@ -222,6 +267,7 @@ function formatPercent(value) {
 .dashboard-header h2 { margin: 0 0 6px; font-size: 22px; }
 .dashboard-header p { margin: 0; color: #909399; font-size: 13px; }
 .dashboard-actions { display: flex; align-items: center; gap: 10px; }
+.dashboard-error { margin-bottom: 14px; }
 .metric-row { margin-bottom: 4px; }
 .metric-card { margin-bottom: 12px; }
 .metric-label { color: #909399; font-size: 13px; }

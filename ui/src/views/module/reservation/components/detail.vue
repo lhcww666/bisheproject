@@ -32,6 +32,14 @@
         show-icon
         title="管理员新增的预约同样先进入待审核，不能直接指定为已通过。"
       />
+      <el-alert
+        v-if="referenceError || deviceLoadError"
+        class="reservation-tip"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="referenceError || deviceLoadError"
+      />
 
       <el-form
         v-if="useStudentApplyForm"
@@ -210,6 +218,8 @@ const availableRooms = ref([]);
 const availableDevices = ref([]);
 const applicantOptions = ref([]);
 const roomOptions = ref([]);
+const referenceError = ref("");
+const deviceLoadError = ref("");
 const roomAvailabilityMessage = ref("");
 const roomAvailabilityType = ref("info");
 const roomAvailabilityNoDataText = computed(() => {
@@ -284,11 +294,14 @@ onMounted(() => {
 });
 
 function loadAdminOptions() {
-  listReservationApplicantOptions().then(response => {
-    applicantOptions.value = response.data || [];
-  });
-  listReservationRoomOptions().then(response => {
-    roomOptions.value = response.data || [];
+  referenceError.value = "";
+  Promise.all([listReservationApplicantOptions(), listReservationRoomOptions()]).then(([applicantResponse, roomResponse]) => {
+    applicantOptions.value = applicantResponse.data || [];
+    roomOptions.value = roomResponse.data || [];
+  }).catch(error => {
+    applicantOptions.value = [];
+    roomOptions.value = [];
+    referenceError.value = "学生或实验室选项加载失败：" + (error?.message || "请稍后重试");
   });
 }
 
@@ -392,10 +405,13 @@ function loadDevices(roomId) {
   applyForm.deviceIds = [];
   applyForm.deviceUsages = [];
   availableDevices.value = [];
+  deviceLoadError.value = "";
   if (!roomId) return;
   devicesLoading.value = true;
   listAvailableDevices({ roomId }).then(response => {
     availableDevices.value = response.data || [];
+  }).catch(error => {
+    deviceLoadError.value = "设备选项加载失败：" + (error?.message || "请稍后重试");
   }).finally(() => {
     devicesLoading.value = false;
   });
@@ -408,6 +424,7 @@ function handleAdminRoomChange(roomId) {
 }
 
 function loadAdminDevices(roomId, selectedIds = [], selectedUsages = []) {
+  deviceLoadError.value = "";
   if (!roomId) {
     availableDevices.value = [];
     adminForm.deviceIds = [];
@@ -423,6 +440,11 @@ function loadAdminDevices(roomId, selectedIds = [], selectedUsages = []) {
       deviceId,
       quantity: Number((selectedUsages || []).find(item => item.deviceId === deviceId)?.quantity || 1)
     }));
+  }).catch(error => {
+    availableDevices.value = [];
+    adminForm.deviceIds = [];
+    adminForm.deviceUsages = [];
+    deviceLoadError.value = "设备选项加载失败：" + (error?.message || "请稍后重试");
   }).finally(() => {
     devicesLoading.value = false;
   });

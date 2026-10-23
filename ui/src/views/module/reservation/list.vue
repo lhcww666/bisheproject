@@ -33,7 +33,7 @@
         <el-input v-model="reservationQueryParams.reservationNoLike" placeholder="请输入预约编号" clearable @keyup.enter="reservationHandleQuery" />
       </el-form-item>
       <el-form-item v-if="!isStudent" label="申请人" prop="applicantId">
-        <el-select v-model="reservationQueryParams.applicantId" filterable clearable placeholder="请选择申请人" style="width: 190px;">
+        <el-select v-model="reservationQueryParams.applicantId" filterable clearable placeholder="请选择申请人" style="width: 190px;" :loading="filterOptionsLoading" :no-data-text="filterOptionsError || '暂无申请人选项'">
           <el-option
             v-for="applicant in applicantOptions"
             :key="applicant.userId"
@@ -43,7 +43,7 @@
         </el-select>
       </el-form-item>
       <el-form-item v-if="!isStudent" label="实验室" prop="roomId">
-        <el-select v-model="reservationQueryParams.roomId" filterable clearable placeholder="请选择实验室" style="width: 210px;">
+        <el-select v-model="reservationQueryParams.roomId" filterable clearable placeholder="请选择实验室" style="width: 210px;" :loading="filterOptionsLoading" :no-data-text="filterOptionsError || '暂无实验室选项'">
           <el-option
             v-for="room in roomOptions"
             :key="room.id"
@@ -119,6 +119,19 @@
       </el-col>
       <right-toolbar v-model:showSearch="reservationShowSearch" @queryTable="reservationGetList"></right-toolbar>
     </el-row>
+
+    <el-alert
+      v-if="reservationLoadError"
+      class="reservation-tip"
+      type="error"
+      :closable="false"
+      show-icon
+      :title="reservationLoadError"
+    >
+      <template #default>
+        <el-button link type="primary" @click="reservationGetList">重试</el-button>
+      </template>
+    </el-alert>
 
     <el-table
       v-loading="reservationLoading"
@@ -220,6 +233,9 @@ const reservationMultiple = ref(true);
 const reservationTotal = ref(0);
 const applicantOptions = ref([]);
 const roomOptions = ref([]);
+const filterOptionsLoading = ref(false);
+const filterOptionsError = ref("");
+const reservationLoadError = ref("");
 const reservationData = reactive({
   reservationQueryParams: {
     pageNum: 1, pageSize: 10, reservationNoLike: null, applicantId: null, roomId: null,
@@ -241,19 +257,31 @@ onMounted(() => {
 });
 
 function loadFilterOptions() {
-  listReservationApplicantOptions().then(response => {
-    applicantOptions.value = response.data || [];
-  });
-  listReservationRoomOptions().then(response => {
-    roomOptions.value = response.data || [];
+  filterOptionsLoading.value = true;
+  filterOptionsError.value = "";
+  Promise.all([listReservationApplicantOptions(), listReservationRoomOptions()]).then(([applicantResponse, roomResponse]) => {
+    applicantOptions.value = applicantResponse.data || [];
+    roomOptions.value = roomResponse.data || [];
+  }).catch(error => {
+    applicantOptions.value = [];
+    roomOptions.value = [];
+    filterOptionsError.value = "筛选选项加载失败";
+    proxy.$modal.msgError("预约筛选选项加载失败：" + (error?.message || "请稍后重试"));
+  }).finally(() => {
+    filterOptionsLoading.value = false;
   });
 }
 
 function reservationGetList() {
   reservationLoading.value = true;
+  reservationLoadError.value = "";
   listReservation(proxy.addDateRange(reservationQueryParams.value, dateRange.value, 'create_time', true)).then(response => {
     reservationList.value = response.rows;
     reservationTotal.value = response.total;
+  }).catch(error => {
+    reservationList.value = [];
+    reservationTotal.value = 0;
+    reservationLoadError.value = "预约列表加载失败：" + (error?.message || "请检查后端服务");
   }).finally(() => {
     reservationLoading.value = false;
   });
