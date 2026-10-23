@@ -97,6 +97,27 @@ public final class LocalIntentRouter
         };
     }
 
+    /**
+     * 根据真实模型实际调用的工具反推业务意图，用于 LLM 评测报告。
+     */
+    public static String intentForTool(String toolName)
+    {
+        return switch (toolName == null ? "" : toolName)
+        {
+            case "queryReservationReview" -> REVIEW;
+            case "checkMyReservationEligibility" -> ELIGIBILITY;
+            case "checkSafetyExamStatus" -> EXAM_STATUS;
+            case "queryMyCredit" -> CREDIT;
+            case "createReservationDraft" -> CREATE_DRAFT;
+            case "searchSafetyKnowledge" -> SAFETY;
+            case "queryAvailableDevices" -> DEVICES;
+            case "queryMyReservations" -> MY_RESERVATIONS;
+            case "queryAvailableRoomsNow" -> ROOMS_NOW;
+            case "queryAvailableRooms" -> QUERY_ROOMS;
+            default -> UNKNOWN;
+        };
+    }
+
     private static boolean containsAny(String text, String... keywords)
     {
         for (String keyword : keywords)

@@ -17,6 +17,11 @@ public interface IAgentEvalService
 
     AgentEvalRunView runOffline();
 
+    /**
+     * 使用当前登录角色可用的真实模型和工具执行评测。
+     */
+    AgentEvalRunView runLlm();
+
     List<AgentEvalRun> listRuns();
 
     AgentEvalRunView getRun(Long runId);

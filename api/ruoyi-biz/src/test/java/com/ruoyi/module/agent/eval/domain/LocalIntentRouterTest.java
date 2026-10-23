@@ -76,4 +76,15 @@ class LocalIntentRouterTest
         assertEquals(LocalIntentRouter.UNKNOWN, LocalIntentRouter.route("今天图书馆开放到几点？"));
         assertEquals("unknown", LocalIntentRouter.toolFor(LocalIntentRouter.UNKNOWN));
     }
+
+    @Test
+    void mapsActualToolBackToIntentForLlmEvaluation()
+    {
+        assertEquals(LocalIntentRouter.SAFETY,
+                LocalIntentRouter.intentForTool("searchSafetyKnowledge"));
+        assertEquals(LocalIntentRouter.ROOMS_NOW,
+                LocalIntentRouter.intentForTool("queryAvailableRoomsNow"));
+        assertEquals(LocalIntentRouter.UNKNOWN,
+                LocalIntentRouter.intentForTool("unexpected-tool"));
+    }
 }

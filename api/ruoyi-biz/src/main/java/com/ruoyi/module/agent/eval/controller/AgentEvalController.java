@@ -55,4 +55,12 @@ public class AgentEvalController extends BaseController
     {
         return success(evalService.runOffline());
     }
+
+    @PreAuthorize("@ss.hasPermi('module:agent:eval')")
+    @PostMapping("/run-llm")
+    @Log(title = "Agent真实模型评测", businessType = BusinessType.INSERT)
+    public AjaxResult executeLlm()
+    {
+        return success(evalService.runLlm());
+    }
 }

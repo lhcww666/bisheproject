@@ -1,8 +1,8 @@
 import request from '@/utils/request'
 
 /**
- * Agent 离线评测接口。
- * 当前为确定性离线路由与 RAG 检索评测，不依赖模型 API Key。
+ * Agent 评测接口。
+ * 支持确定性离线回归，以及调用真实模型和工具链的 LLM 评测。
  */
 
 // 查询启用的评测用例
@@ -18,6 +18,15 @@ export function runAgentEval() {
   return request({
     url: '/module/agent/eval/run',
     method: 'post'
+  })
+}
+
+// 使用当前角色可用的真实模型和工具执行评测
+export function runAgentLlmEval() {
+  return request({
+    url: '/module/agent/eval/run-llm',
+    method: 'post',
+    timeout: 600000
   })
 }
 

@@ -2,12 +2,13 @@
   <div class="app-container eval-page">
     <div class="eval-header">
       <div>
-        <h2>Agent 离线评测</h2>
-        <p>固定用例回归意图路由、工具选择和 RAG 检索，不消耗模型额度。</p>
+        <h2>Agent 评测</h2>
+        <p>离线回归验证稳定性，真实模型评测验证实际工具选择与回答质量。</p>
       </div>
       <div class="eval-actions">
         <el-button icon="Refresh" :loading="historyLoading" @click="loadRuns">刷新</el-button>
         <el-button type="primary" icon="VideoPlay" :loading="runLoading" @click="runEvaluation">运行离线评测</el-button>
+        <el-button type="warning" icon="Cpu" :loading="llmLoading" @click="runLlmEvaluation">运行真实模型评测</el-button>
       </div>
     </div>
 
@@ -16,7 +17,7 @@
       type="info"
       :closable="false"
       show-icon
-      title="离线模式不调用大模型，结果可重复；接入真实模型后可扩展为 LLM 实际工具调用评测。"
+      title="离线模式不调用大模型，结果可重复；真实模型模式只执行当前角色可用工具，会消耗模型额度并记录实际回答。"
     />
 
     <el-empty v-if="!currentRun && !detailLoading" description="还没有评测批次，点击“运行离线评测”建立第一条基线" />
@@ -142,7 +143,7 @@
 </template>
 
 <script setup name="AgentEval">
-import { getAgentEvalRun, listAgentEvalCases, listAgentEvalRuns, runAgentEval } from "@/api/module/agentEval";
+import { getAgentEvalRun, listAgentEvalCases, listAgentEvalRuns, runAgentEval, runAgentLlmEval } from "@/api/module/agentEval";
 
 const { proxy } = getCurrentInstance();
 const runs = ref([]);
@@ -150,6 +151,7 @@ const currentRun = ref(null);
 const historyLoading = ref(false);
 const detailLoading = ref(false);
 const runLoading = ref(false);
+const llmLoading = ref(false);
 const caseCount = ref(0);
 
 const metrics = computed(() => {
@@ -215,6 +217,19 @@ async function runEvaluation() {
     return loadRuns();
   }).catch(() => {}).finally(() => {
     runLoading.value = false;
+  });
+}
+
+async function runLlmEvaluation() {
+  proxy.$modal.confirm("真实模型评测会调用 DeepSeek 和业务工具，用例数取决于当前角色可用工具；可能耗时数分钟并消耗模型额度，确认开始吗？").then(() => {
+    llmLoading.value = true;
+    return runAgentLlmEval();
+  }).then(response => {
+    currentRun.value = response.data || null;
+    proxy.$modal.msgSuccess("真实模型评测完成");
+    return loadRuns();
+  }).catch(() => {}).finally(() => {
+    llmLoading.value = false;
   });
 }
 
