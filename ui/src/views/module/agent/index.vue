@@ -257,11 +257,10 @@
             maxlength="2000"
             resize="none"
             placeholder="描述你的实验室问题，例如：下周三下午有哪些实验室可以做有机实验？"
-            @keydown.ctrl.enter.prevent="send"
-            @keydown.meta.enter.prevent="send"
+            @keydown="handleComposerKeydown"
           />
           <div class="composer-footer">
-            <span class="composer-hint">Ctrl / ⌘ + Enter 发送 · 查询结果以系统实时数据为准</span>
+            <span class="composer-hint">Enter 发送 · Shift + Enter 换行 · 查询结果以系统实时数据为准</span>
             <div class="composer-submit">
               <span>{{ input.length }}/2000</span>
               <el-button type="primary" icon="Promotion" :loading="sending" :disabled="!input.trim()" @click="send">
@@ -579,6 +578,14 @@ function send() {
   }).finally(() => {
     sending.value = false;
   });
+}
+
+function handleComposerKeydown(event) {
+  if (event.key !== "Enter" || event.isComposing || event.shiftKey) {
+    return;
+  }
+  event.preventDefault();
+  send();
 }
 
 function scrollToBottom() {
