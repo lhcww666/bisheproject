@@ -350,37 +350,7 @@
     </section>
 
     <!-- 不经过模型也能验证 RAG 召回结果的知识库检索弹窗。 -->
-    <el-dialog title="安全知识库检索" v-model="knowledgeOpen" width="720px" append-to-body destroy-on-close>
-      <div class="knowledge-search">
-        <el-input
-          v-model="knowledgeQuery"
-          placeholder="例如：酒精灯打翻着火怎么办"
-          clearable
-          @keyup.enter="searchKnowledge"
-        />
-        <el-button type="primary" :loading="knowledgeLoading" @click="searchKnowledge">检索</el-button>
-      </div>
-      <div v-if="knowledgeResults.length" class="knowledge-results">
-        <el-card v-for="item in knowledgeResults" :key="item.chunkId" shadow="never" class="knowledge-card">
-          <template #header>
-            <div class="knowledge-title">
-              <span>{{ item.documentTitle }}</span>
-              <el-tag size="small" type="success">相关度 {{ item.score }}</el-tag>
-            </div>
-          </template>
-          <p class="knowledge-content">{{ item.content }}</p>
-          <div class="knowledge-source">来源：{{ item.source || '演示安全资料' }}</div>
-        </el-card>
-      </div>
-      <el-alert
-        v-else-if="knowledgeError"
-        type="error"
-        :closable="false"
-        show-icon
-        :title="knowledgeError"
-      />
-      <el-empty v-else-if="knowledgeSearched" description="未检索到相关资料" />
-    </el-dialog>
+    <AgentKnowledgeDialog v-model="knowledgeOpen" />
 
     <el-dialog title="配置 DeepSeek API Key" v-model="configOpen" width="700px" append-to-body>
       <el-alert
@@ -410,7 +380,8 @@
 </template>
 
 <script setup name="Agent">
-import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, searchAgentKnowledge, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
+import AgentKnowledgeDialog from "./components/KnowledgeDialog.vue";
+import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
 
 /**
  * 页面状态：
@@ -432,7 +403,6 @@ const modelStatusLoading = ref(true);
 const statusError = ref("");
 const sessionError = ref("");
 const messageError = ref("");
-const knowledgeError = ref("");
 const modelName = ref("");
 const checkingModel = ref(false);
 const configOpen = ref(false);
@@ -441,10 +411,6 @@ const roleLabel = ref("");
 const assistantTitle = ref("实验室智能助手");
 const assistantDescription = ref("查询实验室、设备、考试、信用和预约审核结果");
 const knowledgeOpen = ref(false);
-const knowledgeQuery = ref("");
-const knowledgeLoading = ref(false);
-const knowledgeSearched = ref(false);
-const knowledgeResults = ref([]);
 const draftLoading = ref(null);
 const skinOptions = [
   { key: "fresh", label: "清爽实验室", description: "蓝白科技，适合正式演示" },
@@ -812,23 +778,6 @@ function parseInlineMarkdown(text) {
   return segments.length ? segments : [{ type: "text", text: "" }];
 }
 
-// 直接调用知识库检索接口，不需要模型参与，便于演示和排查 RAG 召回。
-function searchKnowledge() {
-  const query = knowledgeQuery.value.trim();
-  if (!query) return;
-  knowledgeLoading.value = true;
-  knowledgeSearched.value = false;
-  knowledgeError.value = "";
-  knowledgeResults.value = [];
-  searchAgentKnowledge(query, 3).then(response => {
-    knowledgeResults.value = response.data || [];
-  }).catch(error => {
-    knowledgeError.value = "知识库检索失败：" + (error?.message || "请检查后端服务");
-  }).finally(() => {
-    knowledgeLoading.value = false;
-    knowledgeSearched.value = true;
-  });
-}
 </script>
 
 <style lang="scss" scoped>
@@ -1399,12 +1348,6 @@ function searchKnowledge() {
   background: linear-gradient(135deg, #2563eb, #3b82f6);
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
-.knowledge-search { display: flex; gap: 10px; margin-bottom: 14px; }
-.knowledge-results { max-height: 480px; overflow-y: auto; }
-.knowledge-card { margin-bottom: 10px; }
-.knowledge-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.knowledge-content { margin: 0; line-height: 1.8; white-space: pre-wrap; }
-.knowledge-source { margin-top: 8px; color: #909399; font-size: 12px; }
 .config-guide { margin-top: 16px; line-height: 1.8; color: #606266; }
 .config-guide h4 { margin: 16px 0 6px; color: #303133; }
 .config-guide p { margin: 6px 0; }
