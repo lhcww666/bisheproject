@@ -3,6 +3,7 @@ package com.ruoyi.module.agent.knowledge.domain;
 import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -29,6 +30,19 @@ public class KnowledgeDocument
 
     private String status;
 
+    private String createBy;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
+
+    private String updateBy;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date updateTime;
+
+    private String remark;
+
+    /** 列表展示用片段数量。 */
+    @TableField(exist = false)
+    private Long chunkCount;
 }

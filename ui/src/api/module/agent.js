@@ -96,3 +96,74 @@ export function listPendingAgentDrafts(sessionId) {
     params: sessionId ? { sessionId } : {}
   })
 }
+
+// 管理员知识库管理：文档
+export function listKnowledgeDocuments(params) {
+  return request({
+    url: '/module/agent/knowledge/admin/documents',
+    method: 'get',
+    params
+  })
+}
+
+export function getKnowledgeDocument(id) {
+  return request({
+    url: '/module/agent/knowledge/admin/documents/' + id,
+    method: 'get'
+  })
+}
+
+export function addKnowledgeDocument(data) {
+  return request({
+    url: '/module/agent/knowledge/admin/documents',
+    method: 'post',
+    data
+  })
+}
+
+export function updateKnowledgeDocument(data) {
+  return request({
+    url: '/module/agent/knowledge/admin/documents',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteKnowledgeDocument(id) {
+  return request({
+    url: '/module/agent/knowledge/admin/documents/' + id,
+    method: 'delete'
+  })
+}
+
+// 管理员知识库管理：知识片段
+export function listKnowledgeChunks(params) {
+  return request({
+    url: '/module/agent/knowledge/admin/chunks',
+    method: 'get',
+    params
+  })
+}
+
+export function addKnowledgeChunk(data) {
+  return request({
+    url: '/module/agent/knowledge/admin/chunks',
+    method: 'post',
+    data
+  })
+}
+
+export function updateKnowledgeChunk(data) {
+  return request({
+    url: '/module/agent/knowledge/admin/chunks',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteKnowledgeChunk(id) {
+  return request({
+    url: '/module/agent/knowledge/admin/chunks/' + id,
+    method: 'delete'
+  })
+}
