@@ -38,7 +38,21 @@ export default defineConfig(({ mode, command }) => {
         output: {
           chunkFileNames: 'static/js/[name]-[hash].js',
           entryFileNames: 'static/js/[name]-[hash].js',
-          assetFileNames: 'static/[ext]/[name]-[hash].[ext]'
+          assetFileNames: 'static/[ext]/[name]-[hash].[ext]',
+          manualChunks(id) {
+            const normalized = id.replace(/\\/g, '/')
+            if (!normalized.includes('/node_modules/')) return
+            if (normalized.includes('/element-plus/') || normalized.includes('/@element-plus/')) {
+              return 'vendor-element-plus'
+            }
+            if (normalized.includes('/echarts/') || normalized.includes('/zrender/')) {
+              return 'vendor-charts'
+            }
+            if (normalized.includes('/axios/') || normalized.includes('/js-cookie/')) {
+              return 'vendor-http'
+            }
+            return 'vendor-core'
+          }
         }
       }
     },
