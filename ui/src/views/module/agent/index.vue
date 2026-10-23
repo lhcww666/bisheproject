@@ -1,62 +1,16 @@
 <template>
   <div class="app-container agent-page" :class="'theme-' + skin">
     <!-- 左侧：会话列表。所有会话都属于当前登录用户。 -->
-    <aside class="session-panel">
-      <div class="session-header">
-        <div class="session-branding">
-          <span class="session-brand-icon">
-            <svg class="lab-mascot" viewBox="0 0 64 64" aria-hidden="true">
-              <path class="mascot-antenna" d="M32 18V9" />
-              <circle class="mascot-bulb" cx="32" cy="8" r="3" />
-              <rect class="mascot-head" x="12" y="18" width="40" height="32" rx="13" />
-              <circle class="mascot-eye" cx="24" cy="33" r="2.8" />
-              <circle class="mascot-eye" cx="40" cy="33" r="2.8" />
-              <path class="mascot-smile" d="M26 40c3.8 4.2 8.2 4.2 12 0" />
-              <circle class="mascot-cheek" cx="18" cy="39" r="2.2" />
-              <circle class="mascot-cheek" cx="46" cy="39" r="2.2" />
-            </svg>
-          </span>
-          <div>
-            <strong>会话记录</strong>
-            <small>{{ sessions.length }} 个对话</small>
-          </div>
-        </div>
-        <el-button class="new-session-button" circle plain icon="Plus" title="新建对话" @click="newSession" />
-      </div>
-      <div class="session-list">
-        <el-alert
-          v-if="sessionError"
-          class="inline-error"
-          type="error"
-          :closable="false"
-          show-icon
-          :title="sessionError"
-        >
-          <template #default>
-            <el-button link type="primary" @click="loadSessions">重试</el-button>
-          </template>
-        </el-alert>
-        <div
-          v-for="session in sessions"
-          :key="session.id"
-          class="session-item"
-          :class="{ active: currentSession && currentSession.id === session.id }"
-          @click="selectSession(session)"
-        >
-          <span class="session-indicator"></span>
-          <div class="session-copy">
-            <div class="session-title" :title="session.title">{{ session.title }}</div>
-            <div class="session-time">{{ formatSessionTime(session.updateTime) }}</div>
-          </div>
-          <el-button link type="danger" icon="Delete" class="session-delete" @click.stop="removeSession(session)" />
-        </div>
-        <el-empty v-if="sessions.length === 0" description="还没有对话，点击右上角开始" :image-size="64" />
-      </div>
-      <div class="session-tip">
-        <span class="session-tip-dot"></span>
-        查询结果均可追溯
-      </div>
-    </aside>
+    <AgentSessionPanel
+      :sessions="sessions"
+      :active-session-id="currentSession?.id"
+      :error="sessionError"
+      :skin="skin"
+      @select="selectSession"
+      @new="newSession"
+      @delete="removeSession"
+      @retry="loadSessions"
+    />
 
     <!-- 右侧：当前会话的消息、工具调用和输入框。 -->
     <section class="chat-panel">
@@ -381,6 +335,7 @@
 
 <script setup name="Agent">
 import AgentKnowledgeDialog from "./components/KnowledgeDialog.vue";
+import AgentSessionPanel from "./components/SessionPanel.vue";
 import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
 
 /**
@@ -647,18 +602,6 @@ function scrollToBottom() {
   });
 }
 
-function formatSessionTime(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const today = new Date();
-  const isSameDay = date.toDateString() === today.toDateString();
-  if (isSameDay) {
-    return "今天 " + proxy.parseTime(value, "{h}:{i}");
-  }
-  return proxy.parseTime(value, "{m}-{d}");
-}
-
 function setSkin(key) {
   if (!skinOptions.some(option => option.key === key)) {
     return;
@@ -792,57 +735,6 @@ function parseInlineMarkdown(text) {
   box-shadow: 0 18px 48px rgba(30, 55, 90, 0.08);
   overflow: hidden;
 }
-.session-panel {
-  width: 258px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #e9edf5;
-  background: linear-gradient(180deg, #f8faff 0%, #f4f7fc 100%);
-  overflow: hidden;
-}
-.session-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 18px 16px;
-}
-.session-branding {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.session-branding > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.session-branding strong {
-  color: #1f2d3d;
-  font-size: 15px;
-  font-weight: 700;
-}
-.session-branding small {
-  color: #98a4b8;
-  font-size: 11px;
-}
-.session-brand-icon {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
 .lab-mascot {
   width: 72%;
   height: 72%;
@@ -870,104 +762,12 @@ function parseInlineMarkdown(text) {
   opacity: 0.48;
   stroke: none;
 }
-.new-session-button {
-  border-color: #dbe5f5 !important;
-  background: rgba(255, 255, 255, 0.8) !important;
-  color: #2563eb !important;
-  box-shadow: 0 4px 12px rgba(45, 83, 140, 0.08);
-}
-.session-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 12px 16px;
-}
-.session-list::-webkit-scrollbar,
 .message-box::-webkit-scrollbar {
   width: 6px;
 }
-.session-list::-webkit-scrollbar-thumb,
 .message-box::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: #d7dfeb;
-}
-.inline-error { margin-bottom: 8px; }
-.session-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 58px;
-  padding: 10px 12px;
-  margin-bottom: 7px;
-  border: 1px solid transparent;
-  border-radius: 13px;
-  cursor: pointer;
-  color: #566176;
-  transition: all 0.18s ease;
-}
-.session-item:hover {
-  background: rgba(255, 255, 255, 0.72);
-  color: #25324a;
-}
-.session-item.active {
-  border-color: #dbe8ff;
-  background: #fff;
-  color: #2563eb;
-  box-shadow: 0 8px 20px rgba(50, 82, 132, 0.09);
-}
-.session-indicator {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #c5cfdd;
-  transition: all 0.18s ease;
-}
-.session-item.active .session-indicator {
-  background: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-}
-.session-copy {
-  min-width: 0;
-  flex: 1;
-}
-.session-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 500;
-}
-.session-time {
-  margin-top: 4px;
-  color: #9aa6b8;
-  font-size: 10px;
-}
-.session-delete {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  transition: opacity 0.18s ease;
-}
-.session-item:hover .session-delete { opacity: 1; }
-.session-tip {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 0 18px 16px;
-  padding-top: 13px;
-  border-top: 1px solid #e4eaf3;
-  color: #99a4b5;
-  font-size: 11px;
-}
-.session-tip-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.11);
 }
 .chat-panel {
   flex: 1;
