@@ -20,6 +20,12 @@ public class KnowledgeSearchResult
 
     private String source;
 
-    /** 检索相关度，当前为关键词/二元词 TF-IDF 分数。 */
+    /** 混合检索综合分数。 */
     private Double score;
+
+    /** 词汇检索分数，归一化到 0-1。 */
+    private Double lexicalScore;
+
+    /** 本地向量余弦分数，归一化到 0-1。 */
+    private Double vectorScore;
 }
