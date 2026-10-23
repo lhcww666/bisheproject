@@ -13,6 +13,7 @@ import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
 
@@ -41,6 +42,8 @@ public class ModuleDataScopeService
     private final ISysUserService sysUserService;
 
     private final ISysRoleService sysRoleService;
+
+    private final SysUserMapper sysUserMapper;
 
     /**
      * 是否为管理员。管理员不受业务数据范围限制。
@@ -196,9 +199,16 @@ public class ModuleDataScopeService
 
         SysUser userQuery = new SysUser();
         userQuery.setRoleId(studentRole.getRoleId());
-        return sysUserService.selectAllocatedList(userQuery).stream()
+        // 这里按业务角色显式过滤部门，避免教师从其他业务菜单进入时被权限上下文误判为空。
+        List<SysUser> allocatedStudents = sysUserMapper.selectAllocatedList(userQuery);
+        Long teacherDeptId = isTeacher() ? SecurityUtils.getDeptId() : null;
+        if (isTeacher() && teacherDeptId == null)
+        {
+            return Collections.emptyList();
+        }
+        return allocatedStudents.stream()
                 .filter(user -> STATUS_NORMAL.equals(user.getStatus()))
-                .filter(user -> STATUS_NORMAL.equals(user.getDelFlag()))
+                .filter(user -> teacherDeptId == null || teacherDeptId.equals(user.getDeptId()))
                 .collect(Collectors.toList());
     }
 

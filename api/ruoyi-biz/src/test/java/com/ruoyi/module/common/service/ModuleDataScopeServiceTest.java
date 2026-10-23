@@ -1,7 +1,9 @@
 package com.ruoyi.module.common.service;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +20,7 @@ import com.ruoyi.common.core.domain.entity.SysRole;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
 
@@ -38,20 +41,28 @@ class ModuleDataScopeServiceTest
     void teacherCanOnlyAccessStudentsInOwnDepartment()
     {
         ISysUserService userService = mock(ISysUserService.class);
-        ModuleDataScopeService service = new ModuleDataScopeService(userService, mock(ISysRoleService.class));
+        SysUserMapper userMapper = mock(SysUserMapper.class);
+        ISysRoleService roleService = mock(ISysRoleService.class);
+        SysRole studentRole = role("student");
+        studentRole.setRoleId(101L);
+        when(roleService.selectRoleList(any())).thenReturn(List.of(studentRole));
+        ModuleDataScopeService service = new ModuleDataScopeService(userService, roleService, userMapper);
         authenticate(200L, 10L, role("teacher"));
         when(userService.selectUserById(300L)).thenReturn(student(300L, 10L));
         when(userService.selectUserById(301L)).thenReturn(student(301L, 11L));
+        when(userMapper.selectAllocatedList(any())).thenReturn(List.of(student(300L, 10L), student(301L, 11L)));
 
         assertTrue(service.canAccessStudentRecord(300L));
         assertFalse(service.canAccessStudentRecord(301L));
+        assertEquals(List.of(300L), service.selectScopedStudents().stream().map(SysUser::getUserId).toList());
     }
 
     @Test
     void studentScopeIsRestrictedToCurrentUser()
     {
         ISysUserService userService = mock(ISysUserService.class);
-        ModuleDataScopeService service = new ModuleDataScopeService(userService, mock(ISysRoleService.class));
+        ModuleDataScopeService service = new ModuleDataScopeService(
+                userService, mock(ISysRoleService.class), mock(SysUserMapper.class));
         authenticate(300L, 10L, role("student"));
 
         assertTrue(service.canAccessStudentRecord(300L));
