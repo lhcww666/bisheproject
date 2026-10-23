@@ -1,10 +1,21 @@
 <template>
-  <div class="app-container agent-page">
+  <div class="app-container agent-page" :class="{ 'theme-candy': skin === 'candy' }">
     <!-- 左侧：会话列表。所有会话都属于当前登录用户。 -->
     <aside class="session-panel">
       <div class="session-header">
         <div class="session-branding">
-          <span class="session-brand-icon">AI</span>
+          <span class="session-brand-icon">
+            <svg class="lab-mascot" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="mascot-antenna" d="M32 18V9" />
+              <circle class="mascot-bulb" cx="32" cy="8" r="3" />
+              <rect class="mascot-head" x="12" y="18" width="40" height="32" rx="13" />
+              <circle class="mascot-eye" cx="24" cy="33" r="2.8" />
+              <circle class="mascot-eye" cx="40" cy="33" r="2.8" />
+              <path class="mascot-smile" d="M26 40c3.8 4.2 8.2 4.2 12 0" />
+              <circle class="mascot-cheek" cx="18" cy="39" r="2.2" />
+              <circle class="mascot-cheek" cx="46" cy="39" r="2.2" />
+            </svg>
+          </span>
           <div>
             <strong>会话记录</strong>
             <small>{{ sessions.length }} 个对话</small>
@@ -52,7 +63,16 @@
       <header class="chat-header">
         <div class="chat-heading">
           <div class="assistant-avatar">
-            <span>AI</span>
+            <svg class="lab-mascot" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="mascot-antenna" d="M32 18V9" />
+              <circle class="mascot-bulb" cx="32" cy="8" r="3" />
+              <rect class="mascot-head" x="12" y="18" width="40" height="32" rx="13" />
+              <circle class="mascot-eye" cx="24" cy="33" r="2.8" />
+              <circle class="mascot-eye" cx="40" cy="33" r="2.8" />
+              <path class="mascot-smile" d="M26 40c3.8 4.2 8.2 4.2 12 0" />
+              <circle class="mascot-cheek" cx="18" cy="39" r="2.2" />
+              <circle class="mascot-cheek" cx="46" cy="39" r="2.2" />
+            </svg>
             <i></i>
           </div>
           <div class="chat-heading-copy">
@@ -64,6 +84,9 @@
           </div>
         </div>
         <div class="chat-header-actions">
+          <el-button size="small" plain icon="MagicStick" class="skin-toggle" @click="toggleSkin">
+            {{ skin === "candy" ? "清爽模式" : "糖果模式" }}
+          </el-button>
           <el-button size="small" plain icon="Search" @click="knowledgeOpen = true">知识库</el-button>
           <el-button
             v-if="!modelStatusLoading && modelConfigured"
@@ -133,7 +156,18 @@
       <div ref="messageBoxRef" class="message-box" v-loading="loading">
         <div v-if="messages.length === 0" class="welcome">
           <div class="welcome-glow"></div>
-          <div class="welcome-icon">AI</div>
+          <div class="welcome-icon">
+            <svg class="lab-mascot" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="mascot-antenna" d="M32 18V9" />
+              <circle class="mascot-bulb" cx="32" cy="8" r="3" />
+              <rect class="mascot-head" x="12" y="18" width="40" height="32" rx="13" />
+              <circle class="mascot-eye" cx="24" cy="33" r="2.8" />
+              <circle class="mascot-eye" cx="40" cy="33" r="2.8" />
+              <path class="mascot-smile" d="M26 40c3.8 4.2 8.2 4.2 12 0" />
+              <circle class="mascot-cheek" cx="18" cy="39" r="2.2" />
+              <circle class="mascot-cheek" cx="46" cy="39" r="2.2" />
+            </svg>
+          </div>
           <span class="welcome-kicker">LABORATORY COPILOT</span>
           <h2>你好，我是{{ assistantTitle }}</h2>
           <p>基于平台真实业务数据回答，复杂操作会调用受控工具完成。</p>
@@ -158,7 +192,19 @@
         </div>
 
         <div v-for="(message, index) in messages" :key="index" class="message-row" :class="message.role.toLowerCase()">
-          <div class="avatar">{{ message.role === 'USER' ? '我' : 'AI' }}</div>
+          <div class="avatar">
+            <span v-if="message.role === 'USER'">我</span>
+            <svg v-else class="lab-mascot" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="mascot-antenna" d="M32 18V9" />
+              <circle class="mascot-bulb" cx="32" cy="8" r="3" />
+              <rect class="mascot-head" x="12" y="18" width="40" height="32" rx="13" />
+              <circle class="mascot-eye" cx="24" cy="33" r="2.8" />
+              <circle class="mascot-eye" cx="40" cy="33" r="2.8" />
+              <path class="mascot-smile" d="M26 40c3.8 4.2 8.2 4.2 12 0" />
+              <circle class="mascot-cheek" cx="18" cy="39" r="2.2" />
+              <circle class="mascot-cheek" cx="46" cy="39" r="2.2" />
+            </svg>
+          </div>
           <div class="message-content">
             <div v-if="message.role === 'ASSISTANT'" class="bubble markdown-bubble">
               <template v-for="(block, blockIndex) in parseMarkdown(message.content)" :key="blockIndex">
@@ -242,7 +288,18 @@
         </div>
 
         <div v-if="sending" class="message-row assistant">
-          <div class="avatar">AI</div>
+          <div class="avatar">
+            <svg class="lab-mascot" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="mascot-antenna" d="M32 18V9" />
+              <circle class="mascot-bulb" cx="32" cy="8" r="3" />
+              <rect class="mascot-head" x="12" y="18" width="40" height="32" rx="13" />
+              <circle class="mascot-eye" cx="24" cy="33" r="2.8" />
+              <circle class="mascot-eye" cx="40" cy="33" r="2.8" />
+              <path class="mascot-smile" d="M26 40c3.8 4.2 8.2 4.2 12 0" />
+              <circle class="mascot-cheek" cx="18" cy="39" r="2.2" />
+              <circle class="mascot-cheek" cx="46" cy="39" r="2.2" />
+            </svg>
+          </div>
           <div class="bubble typing">正在查询系统数据...</div>
         </div>
       </div>
@@ -369,6 +426,7 @@ const knowledgeLoading = ref(false);
 const knowledgeSearched = ref(false);
 const knowledgeResults = ref([]);
 const draftLoading = ref(null);
+const skin = ref(window.localStorage.getItem("agent-page-skin") === "candy" ? "candy" : "fresh");
 
 const examples = ref([
   "我通过安全考试了吗？",
@@ -608,6 +666,11 @@ function formatSessionTime(value) {
   return proxy.parseTime(value, "{m}-{d}");
 }
 
+function toggleSkin() {
+  skin.value = skin.value === "candy" ? "fresh" : "candy";
+  window.localStorage.setItem("agent-page-skin", skin.value);
+}
+
 function formatTime(value) {
   return value ? proxy.parseTime(value, "{h}:{i}") : "";
 }
@@ -800,6 +863,33 @@ function searchKnowledge() {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.5px;
+}
+.lab-mascot {
+  width: 72%;
+  height: 72%;
+  display: block;
+  color: #fff;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mascot-bulb {
+  fill: currentColor;
+  stroke: none;
+}
+.mascot-head {
+  fill: rgba(255, 255, 255, 0.14);
+}
+.mascot-eye {
+  fill: currentColor;
+  stroke: none;
+}
+.mascot-cheek {
+  fill: currentColor;
+  opacity: 0.48;
+  stroke: none;
 }
 .new-session-button {
   border-color: #dbe5f5 !important;
@@ -1284,6 +1374,104 @@ function searchKnowledge() {
 .draft-line span:first-child { width: 48px; flex-shrink: 0; color: #909399; }
 .draft-actions { display: flex; gap: 8px; margin-top: 12px; }
 .draft-result { margin-top: 10px; color: #67c23a; font-size: 13px; }
+
+/* 奶油糖果皮肤：保留专业信息层级，只用柔和色彩和小 IP 增加亲和力。 */
+.agent-page.theme-candy {
+  border-color: #f2dfeb;
+  background: #fffaf7;
+  box-shadow: 0 18px 52px rgba(159, 94, 132, 0.12);
+}
+.theme-candy .session-panel {
+  border-color: #f1e1eb;
+  background:
+    radial-gradient(circle at 0 0, rgba(255, 195, 214, 0.2), transparent 34%),
+    linear-gradient(180deg, #fff8fb 0%, #fbf5ff 100%);
+}
+.theme-candy .session-brand-icon,
+.theme-candy .assistant-avatar,
+.theme-candy .welcome-icon,
+.theme-candy .message-row.assistant .avatar,
+.theme-candy .composer-submit :deep(.el-button) {
+  background: linear-gradient(145deg, #f472b6, #a78bfa);
+  box-shadow: 0 10px 24px rgba(206, 100, 166, 0.25);
+}
+.theme-candy .new-session-button {
+  border-color: #f2cfe1 !important;
+  color: #db5c98 !important;
+}
+.theme-candy .session-item.active {
+  border-color: #f5cee2;
+  color: #d84d91;
+  box-shadow: 0 8px 22px rgba(186, 92, 142, 0.1);
+}
+.theme-candy .session-item.active .session-indicator {
+  background: #ec6aa9;
+  box-shadow: 0 0 0 4px rgba(236, 106, 169, 0.11);
+}
+.theme-candy .chat-header {
+  border-color: #f5e7ef;
+  background: rgba(255, 252, 250, 0.97);
+}
+.theme-candy .chat-header p,
+.theme-candy .session-branding small,
+.theme-candy .session-time {
+  color: #a88e9d;
+}
+.theme-candy .model-state.ready {
+  background: #ecfdf5;
+  color: #3f9a72;
+}
+.theme-candy .message-box {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 204, 222, 0.22), transparent 24%),
+    radial-gradient(circle at 88% 18%, rgba(210, 190, 255, 0.2), transparent 25%),
+    linear-gradient(180deg, #fffafc 0%, #fbf8ff 100%);
+}
+.theme-candy .welcome {
+  border-color: #f2dfeb;
+  background: rgba(255, 252, 249, 0.94);
+  box-shadow: 0 20px 55px rgba(156, 102, 132, 0.1);
+}
+.theme-candy .welcome-glow {
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.18), transparent 68%);
+}
+.theme-candy .welcome-kicker {
+  color: #c76a9e;
+}
+.theme-candy .welcome-capabilities span {
+  border-color: #f1dfeb;
+  background: #fff9fc;
+  color: #926e83;
+}
+.theme-candy .example-card {
+  border-color: #f1e3eb;
+  color: #63546a;
+}
+.theme-candy .example-card:hover {
+  border-color: #f2b8d5;
+  color: #c44786;
+  box-shadow: 0 10px 24px rgba(190, 100, 148, 0.1);
+}
+.theme-candy .message-row.user .bubble {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 10px 24px rgba(193, 79, 165, 0.2);
+}
+.theme-candy .tool-collapse {
+  border-color: #f2e2eb;
+  background: rgba(255, 252, 250, 0.86);
+}
+.theme-candy .composer-shell {
+  border-color: #f0dce8;
+  background: #fffcf9;
+  box-shadow: 0 12px 32px rgba(161, 99, 134, 0.11);
+}
+.theme-candy .composer-shell:focus-within {
+  border-color: #f0a8ca;
+  box-shadow: 0 14px 36px rgba(221, 101, 165, 0.14);
+}
+.theme-candy .composer-submit {
+  color: #b294a5;
+}
 @media (max-width: 900px) {
   .agent-page {
     flex-direction: column;
