@@ -415,7 +415,7 @@ import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession,
 /**
  * 页面状态：
  * - sessions/currentSession：左侧会话和当前选中的会话；
- * - messages：当前会话的消息，toolCalls 只对本次新回复保留；
+ * - messages：当前会话的消息，历史消息和本次新回复都会展示工具调用；
  * - sending/loading：请求和加载状态；
  * - modelConfigured：后端是否配置了 DEEPSEEK_API_KEY。
  */
@@ -537,7 +537,7 @@ function selectSession(session) {
       role: item.role,
       content: item.content,
       createTime: item.createTime,
-      toolCalls: [],
+      toolCalls: item.toolCalls || [],
       draft: null
     }));
     listPendingAgentDrafts(session.id).then(draftResponse => {

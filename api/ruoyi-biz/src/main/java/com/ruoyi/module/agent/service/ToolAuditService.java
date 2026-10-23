@@ -58,6 +58,7 @@ public class ToolAuditService
         if (context != null)
         {
             context.getToolCalls().add(view);
+            context.getToolCallLogIds().add(log.getId());
         }
     }
 

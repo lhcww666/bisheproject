@@ -29,6 +29,9 @@ public class ToolCallLog
     /** 所属会话，可为空（便于未来独立调用工具时审计）。 */
     private Long sessionId;
 
+    /** 对应的助手消息主键。 */
+    private Long messageId;
+
     /** 调用用户。 */
     private Long userId;
 

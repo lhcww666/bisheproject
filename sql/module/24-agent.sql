@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
 CREATE TABLE IF NOT EXISTS tool_call_log (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   session_id BIGINT DEFAULT NULL COMMENT '会话ID',
+  message_id BIGINT DEFAULT NULL COMMENT '助手消息ID',
   user_id BIGINT DEFAULT NULL COMMENT '调用用户',
   tool_name VARCHAR(80) NOT NULL COMMENT '工具名称',
   arguments TEXT COMMENT '工具参数',
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS tool_call_log (
   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_tool_call_session (session_id, id),
+  KEY idx_tool_call_message (message_id, id),
   KEY idx_tool_call_user (user_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能助手工具调用审计';
 

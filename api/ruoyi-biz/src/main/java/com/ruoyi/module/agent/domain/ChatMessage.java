@@ -1,8 +1,10 @@
 package com.ruoyi.module.agent.domain;
 
 import java.util.Date;
+import java.util.List;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -46,4 +48,8 @@ public class ChatMessage
     /** 消息时间。 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
+
+    /** 该条助手消息关联的工具调用，查询展示用。 */
+    @TableField(exist = false)
+    private List<ToolCallView> toolCalls;
 }

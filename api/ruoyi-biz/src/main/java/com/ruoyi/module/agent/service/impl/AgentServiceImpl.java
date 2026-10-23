@@ -3,6 +3,7 @@ package com.ruoyi.module.agent.service.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -23,6 +25,7 @@ import com.ruoyi.module.agent.domain.ChatReply;
 import com.ruoyi.module.agent.domain.ChatRequest;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.domain.ChatSessionView;
+import com.ruoyi.module.agent.domain.ToolCallLog;
 import com.ruoyi.module.agent.domain.ToolCallView;
 import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
 import com.ruoyi.module.agent.mapper.ChatMessageMapper;
@@ -115,7 +118,9 @@ public class AgentServiceImpl implements IAgentService
         requireSession(sessionId);
         QueryWrapper<ChatMessage> query = new QueryWrapper<>();
         query.eq("session_id", sessionId).orderByAsc("id");
-        return chatMessageMapper.selectList(query);
+        List<ChatMessage> messages = chatMessageMapper.selectList(query);
+        restoreToolCalls(messages);
+        return messages;
     }
 
     /**
@@ -155,6 +160,7 @@ public class AgentServiceImpl implements IAgentService
         AgentContext.open(session.getId(), userId);
         String answer;
         List<ToolCallView> toolCalls;
+        List<Long> toolCallLogIds;
         ReservationDraftView draft;
         try
         {
@@ -162,6 +168,8 @@ public class AgentServiceImpl implements IAgentService
             // 工具执行过程中会把调用摘要放进 Context，这里复制给前端展示。
             AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
+            toolCallLogIds = context == null ? Collections.emptyList()
+                    : new ArrayList<>(context.getToolCallLogIds());
             draft = context == null ? null : context.getDraft();
         }
         catch (Exception e)
@@ -170,6 +178,8 @@ public class AgentServiceImpl implements IAgentService
                     : e.getMessage());
             AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
+            toolCallLogIds = context == null ? Collections.emptyList()
+                    : new ArrayList<>(context.getToolCallLogIds());
             draft = context == null ? null : context.getDraft();
         }
         finally
@@ -185,6 +195,7 @@ public class AgentServiceImpl implements IAgentService
         assistantMessage.setContent(answer);
         assistantMessage.setCreateTime(new Date());
         chatMessageMapper.insert(assistantMessage);
+        bindToolCalls(assistantMessage.getId(), toolCallLogIds);
 
         ChatReply reply = new ChatReply();
         reply.setSessionId(session.getId());
@@ -195,6 +206,71 @@ public class AgentServiceImpl implements IAgentService
         session.setUpdateTime(new Date());
         chatSessionMapper.updateById(session);
         return reply;
+    }
+
+    /**
+     * 将本次请求产生的工具审计记录绑定到对应的助手消息。
+     *
+     * <p>工具调用发生在模型生成最终回答之前，此时助手消息尚未落库，
+     * 因此先收集审计主键，等消息取得主键后再批量回填。</p>
+     */
+    private void bindToolCalls(Long messageId, List<Long> toolCallLogIds)
+    {
+        if (messageId == null || toolCallLogIds == null || toolCallLogIds.isEmpty())
+        {
+            return;
+        }
+        UpdateWrapper<ToolCallLog> update = new UpdateWrapper<>();
+        update.in("id", toolCallLogIds)
+                .set("message_id", messageId);
+        toolCallLogMapper.update(null, update);
+    }
+
+    /**
+     * 查询历史消息时批量恢复每条助手消息关联的工具调用，避免逐条查询。
+     */
+    private void restoreToolCalls(List<ChatMessage> messages)
+    {
+        List<Long> assistantMessageIds = new ArrayList<>();
+        for (ChatMessage message : messages)
+        {
+            message.setToolCalls(new ArrayList<>());
+            if (ChatMessage.ROLE_ASSISTANT.equals(message.getRole()) && message.getId() != null)
+            {
+                assistantMessageIds.add(message.getId());
+            }
+        }
+        if (assistantMessageIds.isEmpty())
+        {
+            return;
+        }
+
+        QueryWrapper<ToolCallLog> query = new QueryWrapper<>();
+        query.in("message_id", assistantMessageIds).orderByAsc("id");
+        List<ToolCallLog> logs = toolCallLogMapper.selectList(query);
+        Map<Long, List<ToolCallView>> toolCallsByMessage = new HashMap<>();
+        for (ToolCallLog log : logs)
+        {
+            toolCallsByMessage.computeIfAbsent(log.getMessageId(), key -> new ArrayList<>()).add(toView(log));
+        }
+        for (ChatMessage message : messages)
+        {
+            if (ChatMessage.ROLE_ASSISTANT.equals(message.getRole()))
+            {
+                message.setToolCalls(toolCallsByMessage.getOrDefault(message.getId(), Collections.emptyList()));
+            }
+        }
+    }
+
+    private ToolCallView toView(ToolCallLog log)
+    {
+        ToolCallView view = new ToolCallView();
+        view.setToolName(log.getToolName());
+        view.setArguments(log.getArguments());
+        view.setResult(log.getResult());
+        view.setSuccess("1".equals(log.getSuccess()));
+        view.setCostMs(log.getCostMs());
+        return view;
     }
 
     /**

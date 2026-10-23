@@ -80,6 +80,9 @@ public final class AgentContext
         /** 本次请求期间的工具调用摘要，用于返回前端展示。 */
         private final List<ToolCallView> toolCalls = new ArrayList<>();
 
+        /** 本次请求写入的工具审计主键，用于绑定助手消息。 */
+        private final List<Long> toolCallLogIds = new ArrayList<>();
+
         /** 本次请求创建的预约草稿。 */
         private ReservationDraftView draft;
 
@@ -96,6 +99,11 @@ public final class AgentContext
         public List<ToolCallView> getToolCalls()
         {
             return toolCalls;
+        }
+
+        public List<Long> getToolCallLogIds()
+        {
+            return toolCallLogIds;
         }
 
         public ReservationDraftView getDraft()
