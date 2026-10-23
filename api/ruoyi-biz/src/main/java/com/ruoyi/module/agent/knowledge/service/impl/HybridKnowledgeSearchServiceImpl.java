@@ -140,7 +140,11 @@ public class HybridKnowledgeSearchServiceImpl implements IKnowledgeSearchService
             {
                 continue;
             }
-            double hybridScore = lexicalScore * 0.65D + vectorScore * 0.35D;
+            // 标题和关键词是人工维护的高置信结构信号，单独加权可避免正文中的相邻主题抢占结果。
+            double titleCoverage = coverage(queryTerms, tokenize(document.getTitle()));
+            double keywordCoverage = coverage(queryTerms, tokenize(chunk.getKeywords()));
+            double structuralScore = titleCoverage * 0.75D + keywordCoverage * 0.25D;
+            double hybridScore = lexicalScore * 0.55D + vectorScore * 0.25D + structuralScore * 0.20D;
             KnowledgeSearchResult result = new KnowledgeSearchResult();
             result.setDocumentId(document.getId());
             result.setDocumentTitle(document.getTitle());
@@ -290,5 +294,15 @@ public class HybridKnowledgeSearchServiceImpl implements IKnowledgeSearchService
             result.put(term, count);
         }
         return result;
+    }
+
+    private double coverage(Set<String> queryTerms, Set<String> targetTerms)
+    {
+        if (queryTerms.isEmpty() || targetTerms.isEmpty())
+        {
+            return 0D;
+        }
+        long hits = targetTerms.stream().filter(queryTerms::contains).count();
+        return hits * 1D / targetTerms.size();
     }
 }
