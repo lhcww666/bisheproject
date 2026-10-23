@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ruoyi.common.annotation.RateLimiter;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.enums.LimitType;
 import com.ruoyi.module.agent.domain.ChatRequest;
 import com.ruoyi.module.agent.role.AgentRole;
 import com.ruoyi.module.agent.role.AgentRoleService;
@@ -73,7 +75,10 @@ public class AgentController extends BaseController
 
     /**
      * 使用最小提示词验证真实模型接口，不写业务数据。
+     *
+     * <p>该接口会产生真实模型费用，按来源 IP 限制为每分钟 5 次。</p>
      */
+    @RateLimiter(time = 60, count = 5, limitType = LimitType.IP)
     @PreAuthorize("@ss.hasPermi('module:agent:use')")
     @PostMapping("/model-check")
     public AjaxResult modelCheck()
@@ -116,8 +121,10 @@ public class AgentController extends BaseController
      * 发送一条用户消息，并同步等待 Agent 回复。
      *
      * <p>当前阶段使用同步调用，后续可以替换为 SSE/Flux 流式返回；
-     * Controller 的职责和前端协议可以保持不变。</p>
+     * Controller 的职责和前端协议可以保持不变。聊天会消耗真实模型额度，
+     * 因此按来源 IP 限制为每分钟 12 次，避免脚本重复请求造成费用和线程占用。</p>
      */
+    @RateLimiter(time = 60, count = 12, limitType = LimitType.IP)
     @PreAuthorize("@ss.hasPermi('module:agent:use')")
     @PostMapping("/chat")
     public AjaxResult chat(@Validated @RequestBody ChatRequest request)
