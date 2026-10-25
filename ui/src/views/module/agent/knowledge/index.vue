@@ -2,8 +2,8 @@
   <div class="app-container knowledge-admin-page">
     <div class="page-heading">
       <div>
-        <h3>安全知识库管理</h3>
-        <p>维护文档和知识片段。停用或删除后，智能助手检索会立即读取最新状态。</p>
+        <h3>Agent 知识库管理</h3>
+        <p>维护安全知识和平台使用说明。可见范围决定哪些角色能在智能助手中检索到内容。</p>
       </div>
       <el-tag type="info" effect="plain">{{ documents.length }} 篇文档</el-tag>
     </div>
@@ -29,6 +29,20 @@
             <el-input v-model="documentQuery.title" placeholder="文档标题" clearable @keyup.enter="loadDocuments" />
           </el-form-item>
           <el-form-item>
+            <el-select v-model="documentQuery.knowledgeType" placeholder="类型" clearable style="width: 120px">
+              <el-option label="安全知识" value="SAFETY" />
+              <el-option label="平台帮助" value="PLATFORM" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-select v-model="documentQuery.audience" placeholder="可见范围" clearable style="width: 120px">
+              <el-option label="全部角色" value="ALL" />
+              <el-option label="学生" value="STUDENT" />
+              <el-option label="教师" value="TEACHER" />
+              <el-option label="管理员" value="ADMIN" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
             <el-select v-model="documentQuery.status" placeholder="状态" clearable style="width: 110px">
               <el-option label="启用" value="0" />
               <el-option label="停用" value="1" />
@@ -47,6 +61,16 @@
         >
           <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
           <el-table-column prop="category" label="分类" width="100" />
+          <el-table-column label="类型" width="88" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.knowledgeType === 'PLATFORM' ? 'warning' : 'success'">
+                {{ row.knowledgeType === 'PLATFORM' ? '平台帮助' : '安全知识' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="可见" width="76" align="center">
+            <template #default="{ row }">{{ audienceLabel(row.audience) }}</template>
+          </el-table-column>
           <el-table-column prop="chunkCount" label="片段" width="62" align="center" />
           <el-table-column label="状态" width="72" align="center">
             <template #default="{ row }">
@@ -143,6 +167,20 @@
         <el-form-item label="分类">
           <el-input v-model="documentForm.category" maxlength="50" placeholder="例如：设备安全" />
         </el-form-item>
+        <el-form-item label="知识类型">
+          <el-radio-group v-model="documentForm.knowledgeType">
+            <el-radio value="SAFETY">安全知识</el-radio>
+            <el-radio value="PLATFORM">平台帮助</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="可见范围">
+          <el-select v-model="documentForm.audience" style="width: 100%">
+            <el-option label="全部角色" value="ALL" />
+            <el-option label="仅学生" value="STUDENT" />
+            <el-option label="仅教师" value="TEACHER" />
+            <el-option label="仅管理员" value="ADMIN" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="来源">
           <el-input v-model="documentForm.source" maxlength="300" placeholder="制度名称或资料出处" />
         </el-form-item>
@@ -221,7 +259,7 @@ const documentDialogOpen = ref(false);
 const chunkDialogOpen = ref(false);
 const documentFormRef = ref(null);
 const chunkFormRef = ref(null);
-const documentQuery = reactive({ title: "", status: "" });
+const documentQuery = reactive({ title: "", knowledgeType: "", audience: "", status: "" });
 const documentForm = reactive(emptyDocument());
 const chunkForm = reactive(emptyChunk());
 const documentRules = {
@@ -234,7 +272,16 @@ const chunkRules = {
 onMounted(loadDocuments);
 
 function emptyDocument() {
-  return { id: null, title: "", category: "", source: "", status: "0", remark: "" };
+  return {
+    id: null,
+    title: "",
+    category: "",
+    knowledgeType: "SAFETY",
+    audience: "ALL",
+    source: "",
+    status: "0",
+    remark: ""
+  };
 }
 
 function emptyChunk() {
@@ -347,6 +394,16 @@ function removeChunk(row) {
     loadChunks();
     loadDocuments();
   }).catch(() => {});
+}
+
+function audienceLabel(audience) {
+  const labels = {
+    ALL: "全部",
+    STUDENT: "学生",
+    TEACHER: "教师",
+    ADMIN: "管理员"
+  };
+  return labels[audience] || "全部";
 }
 </script>
 

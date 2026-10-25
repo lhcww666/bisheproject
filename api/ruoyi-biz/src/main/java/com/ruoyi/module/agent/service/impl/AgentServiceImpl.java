@@ -31,10 +31,13 @@ import com.ruoyi.module.agent.draft.domain.ReservationDraftView;
 import com.ruoyi.module.agent.mapper.ChatMessageMapper;
 import com.ruoyi.module.agent.mapper.ChatSessionMapper;
 import com.ruoyi.module.agent.mapper.ToolCallLogMapper;
+import com.ruoyi.module.agent.role.AgentRole;
+import com.ruoyi.module.agent.role.AgentRoleService;
 import com.ruoyi.module.agent.service.AgentContext;
 import com.ruoyi.module.agent.service.AgentChatClientRouter;
 import com.ruoyi.module.agent.service.AgentPromptContext;
 import com.ruoyi.module.agent.service.IAgentService;
+import com.ruoyi.module.agent.tool.CommonAgentTools;
 
 import lombok.RequiredArgsConstructor;
 
@@ -66,6 +69,10 @@ public class AgentServiceImpl implements IAgentService
     private final ToolCallLogMapper toolCallLogMapper;
 
     private final AgentChatClientRouter chatClientRouter;
+
+    private final AgentRoleService agentRoleService;
+
+    private final CommonAgentTools commonAgentTools;
 
     /**
      * 真实 Key 由环境变量注入；not-configured 只用于本地无 Key 启动。
@@ -164,7 +171,15 @@ public class AgentServiceImpl implements IAgentService
         ReservationDraftView draft;
         try
         {
-            answer = isConfigured() ? askModel(session.getId()) : missingKeyMessage();
+            answer = platformHelpAnswer(request.getMessage());
+            if (answer == null)
+            {
+                answer = incompleteReservationGuidance(request.getMessage());
+            }
+            if (answer == null)
+            {
+                answer = isConfigured() ? askModel(session.getId()) : missingKeyChatMessage();
+            }
             // 工具执行过程中会把调用摘要放进 Context，这里复制给前端展示。
             AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
@@ -174,8 +189,7 @@ public class AgentServiceImpl implements IAgentService
         }
         catch (Exception e)
         {
-            answer = "智能助手暂时不可用：" + (StringUtils.isEmpty(e.getMessage()) ? e.getClass().getSimpleName()
-                    : e.getMessage());
+            answer = chatErrorMessage(e);
             AgentContext.Context context = AgentContext.current();
             toolCalls = context == null ? Collections.emptyList() : new ArrayList<>(context.getToolCalls());
             toolCallLogIds = context == null ? Collections.emptyList()
@@ -404,6 +418,106 @@ public class AgentServiceImpl implements IAgentService
     {
         return "智能助手尚未配置模型密钥。请在启动后端前设置环境变量 DEEPSEEK_API_KEY，"
                 + "然后重启后端；当前的会话和工具审计功能已经可以正常使用。";
+    }
+
+    /**
+     * 普通用户只看到可操作的服务状态，不暴露模型和部署信息。
+     */
+    private String missingKeyChatMessage()
+    {
+        if (agentRoleService.currentRole() == AgentRole.ADMIN)
+        {
+            return missingKeyMessage();
+        }
+        return "智能助手暂时无法回答，请稍后重试；如果持续不可用，请联系平台管理员。";
+    }
+
+    private String chatErrorMessage(Exception error)
+    {
+        if (agentRoleService.currentRole() == AgentRole.ADMIN)
+        {
+            return "智能助手暂时不可用：" + (StringUtils.isEmpty(error.getMessage())
+                    ? error.getClass().getSimpleName() : error.getMessage());
+        }
+        return "智能助手暂时无法完成这次查询，请稍后重试。";
+    }
+
+    /**
+     * 平台使用说明采用确定性路由，避免模型把知识库、设备档案等页面说明误判为业务外问题。
+     */
+    private String platformHelpAnswer(String question)
+    {
+        if (!isPlatformHelpQuestion(question))
+        {
+            return null;
+        }
+        return commonAgentTools.searchPlatformHelp(question, 2);
+    }
+
+    private boolean isPlatformHelpQuestion(String question)
+    {
+        if (StringUtils.isEmpty(question))
+        {
+            return false;
+        }
+        String text = question.trim();
+        return text.contains("知识库")
+                || text.contains("设备档案")
+                || text.contains("实验室档案")
+                || text.contains("预约流程")
+                || text.contains("确认预约草稿")
+                || text.contains("确认草稿")
+                || text.contains("草稿在哪里确认")
+                || text.contains("助手能做什么")
+                || text.contains("智能助手是什么")
+                || text.contains("页面入口")
+                || text.contains("平台怎么用");
+    }
+
+    /**
+     * 学生只表达预约意向但没给时间时，先展示当前可约情况，再只追问剩余条件。
+     */
+    private String incompleteReservationGuidance(String question)
+    {
+        if (StringUtils.isEmpty(question))
+        {
+            return null;
+        }
+        String text = question.trim();
+        if (!text.contains("预约") || !text.contains("实验室") || containsConcreteTime(text)
+                || agentRoleService.currentRole() != AgentRole.STUDENT)
+        {
+            return null;
+        }
+        String availability = commonAgentTools.queryAvailableRoomsNow(null, roomKeyword(text));
+        return availability + "\n如需继续准备预约，请补充使用日期、具体时段、参与人数和实验名称。";
+    }
+
+    private boolean containsConcreteTime(String text)
+    {
+        return text.contains("今天")
+                || text.contains("明天")
+                || text.contains("后天")
+                || text.contains("下周")
+                || text.contains("周")
+                || text.contains("上午")
+                || text.contains("下午")
+                || text.contains("晚上")
+                || text.contains("点")
+                || text.contains(":")
+                || text.contains("：");
+    }
+
+    private String roomKeyword(String text)
+    {
+        for (String keyword : List.of("计算机", "软件", "电子", "材料", "生物", "有机"))
+        {
+            if (text.contains(keyword))
+            {
+                return keyword;
+            }
+        }
+        return null;
     }
 
     private ChatSessionView toView(ChatSession session)

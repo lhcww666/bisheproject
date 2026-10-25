@@ -63,7 +63,7 @@
           </el-dropdown>
           <el-button size="small" plain icon="Search" @click="knowledgeOpen = true">知识库</el-button>
           <el-button
-            v-if="!modelStatusLoading && modelConfigured"
+            v-if="isAdmin && !modelStatusLoading && modelConfigured"
             size="small"
             type="success"
             plain
@@ -74,7 +74,7 @@
             测试模型连接
           </el-button>
           <el-button
-            v-if="!modelStatusLoading && !modelConfigured"
+            v-if="isAdmin && !modelStatusLoading && !modelConfigured"
             size="small"
             type="warning"
             plain
@@ -83,7 +83,7 @@
           >
             配置模型 Key
           </el-button>
-          <span v-if="!modelStatusLoading" class="model-state" :class="{ ready: modelConfigured }">
+          <span v-if="isAdmin && !modelStatusLoading" class="model-state" :class="{ ready: modelConfigured }">
             <i></i>
             {{ modelConfigured ? (modelName || 'DeepSeek') + ' 已配置' : '未配置模型密钥' }}
           </span>
@@ -91,7 +91,7 @@
       </header>
 
       <el-alert
-        v-if="!modelStatusLoading && !modelConfigured"
+        v-if="isAdmin && !modelStatusLoading && !modelConfigured"
         class="model-alert"
         type="warning"
         :closable="false"
@@ -102,6 +102,14 @@
           <el-button link type="primary" @click="configOpen = true">查看填写位置</el-button>
         </template>
       </el-alert>
+      <el-alert
+        v-if="!isAdmin && !modelStatusLoading && !modelConfigured"
+        class="model-alert"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="助手服务暂未就绪，请稍后重试；如果持续不可用，请联系平台管理员。"
+      />
       <el-alert
         v-if="statusError"
         class="model-alert"
@@ -130,11 +138,12 @@
       <AgentMessagePanel
         :messages="messages"
         :loading="loading"
-        :sending="sending"
+        :sending="waitingForFirstChunk"
         :examples="examples"
         :assistant-title="assistantTitle"
         :draft-loading="draftLoading"
         :skin="skin"
+        :show-technical-details="isAdmin"
         @example="useExample"
         @confirm-draft="confirmDraft"
         @cancel-draft="cancelDraft"
@@ -168,7 +177,7 @@
     <!-- 不经过模型也能验证 RAG 召回结果的知识库检索弹窗。 -->
     <AgentKnowledgeDialog v-model="knowledgeOpen" />
 
-    <el-dialog title="配置 DeepSeek API Key" v-model="configOpen" width="700px" append-to-body>
+    <el-dialog v-if="isAdmin" title="配置 DeepSeek API Key" v-model="configOpen" width="700px" append-to-body>
       <el-alert
         type="info"
         :closable="false"
@@ -199,7 +208,7 @@
 import AgentKnowledgeDialog from "./components/KnowledgeDialog.vue";
 import AgentMessagePanel from "./components/MessagePanel.vue";
 import AgentSessionPanel from "./components/SessionPanel.vue";
-import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession, listAgentMessages, chatWithAgent, deleteAgentSession, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
+import { getAgentStatus, checkAgentModel, listAgentSessions, createAgentSession, listAgentMessages, streamAgentChat, deleteAgentSession, confirmAgentDraft, cancelAgentDraft, listPendingAgentDrafts } from "@/api/module/agent";
 
 /**
  * 页面状态：
@@ -215,6 +224,7 @@ const messages = ref([]);
 const input = ref("");
 const loading = ref(false);
 const sending = ref(false);
+const streamingStarted = ref(false);
 const modelConfigured = ref(false);
 const modelStatusLoading = ref(true);
 const statusError = ref("");
@@ -237,6 +247,8 @@ const skinOptions = [
 const savedSkin = window.localStorage.getItem("agent-page-skin");
 const skin = ref(skinOptions.some(option => option.key === savedSkin) ? savedSkin : "fresh");
 const currentSkin = computed(() => skinOptions.find(option => option.key === skin.value) || skinOptions[0]);
+const waitingForFirstChunk = computed(() => sending.value && !streamingStarted.value);
+const isAdmin = computed(() => assistantRole.value === "admin");
 
 const examples = ref([
   "我通过安全考试了吗？",
@@ -267,7 +279,7 @@ function loadAgentStatus() {
       examples.value = status.examples;
     }
   }).catch(error => {
-    statusError.value = "助手状态加载失败：" + (error?.message || "请检查后端服务");
+    statusError.value = "助手状态加载失败，请稍后重试";
   }).finally(() => {
     modelStatusLoading.value = false;
   });
@@ -330,11 +342,14 @@ function selectSession(session) {
           content: "这份预约草稿还没有确认，请核对信息后点击下方按钮。",
           createTime: new Date().toISOString(),
           toolCalls: [],
-          draft
+          draft,
+          streaming: false
         });
       });
     }).catch(error => {
-      messageError.value = "待确认草稿加载失败：" + (error?.message || "请重新进入会话");
+      messageError.value = isAdmin.value
+        ? "待确认草稿加载失败：" + (error?.message || "请重新进入会话")
+        : "待确认草稿加载失败，请重新进入会话";
     }).finally(() => {
     });
   }).catch(error => {
@@ -403,8 +418,30 @@ function send() {
   const content = input.value.trim();
   if (!content || sending.value) return;
   input.value = "";
-  messages.value.push({ role: "USER", content, createTime: new Date().toISOString(), toolCalls: [] });
+  messages.value.push({
+    role: "USER",
+    content,
+    createTime: new Date().toISOString(),
+    toolCalls: [],
+    streaming: false
+  });
   sending.value = true;
+  streamingStarted.value = false;
+  let assistantIndex = -1;
+  const ensureAssistantMessage = () => {
+    if (assistantIndex >= 0) return messages.value[assistantIndex];
+    messages.value.push({
+      role: "ASSISTANT",
+      content: "",
+      createTime: new Date().toISOString(),
+      toolCalls: [],
+      draft: null,
+      streaming: true
+    });
+    assistantIndex = messages.value.length - 1;
+    streamingStarted.value = true;
+    return messages.value[assistantIndex];
+  };
 
   const request = currentSession.value
     ? Promise.resolve(currentSession.value)
@@ -414,32 +451,50 @@ function send() {
         return response.data;
       });
 
-  request.then(session => chatWithAgent({ sessionId: session.id, message: content })).then(response => {
-    const data = response.data || {};
-    if (data.sessionId && (!currentSession.value || currentSession.value.id !== data.sessionId)) {
-      currentSession.value = { id: data.sessionId, title: content.slice(0, 30) };
+  request.then(session => streamAgentChat({ sessionId: session.id, message: content }, {
+    onThinking: () => {
+      scrollToBottom();
+    },
+    onChunk: text => {
+      const message = ensureAssistantMessage();
+      message.content += text;
+      scrollToBottom();
+    },
+    onDone: data => {
+      const message = ensureAssistantMessage();
+      message.streaming = false;
+      message.toolCalls = data.toolCalls || [];
+      message.draft = data.draft || null;
+      if (data.sessionId && (!currentSession.value || currentSession.value.id !== data.sessionId)) {
+        currentSession.value = { id: data.sessionId, title: content.slice(0, 30) };
+      }
+      if (String(message.content || "").includes("尚未配置模型密钥")) {
+        modelConfigured.value = false;
+      }
+      refreshSessionsOnly();
     }
-    messages.value.push({
-      role: "ASSISTANT",
-      content: data.content || "模型没有返回内容。",
-      createTime: new Date().toISOString(),
-      toolCalls: data.toolCalls || [],
-      draft: data.draft || null
-    });
-    if (String(data.content || "").includes("尚未配置模型密钥")) {
-      modelConfigured.value = false;
+  })).catch(error => {
+    const message = ensureAssistantMessage();
+    message.streaming = false;
+    if (!message.content) {
+      message.content = isAdmin.value
+        ? "请求失败：" + (error && error.message ? error.message : "请稍后重试")
+        : "助手暂时没有完成这次查询，请稍后重试";
     }
-    refreshSessionsOnly();
-  }).catch(error => {
-    messages.value.push({
-      role: "ASSISTANT",
-      content: "请求失败：" + (error && error.message ? error.message : "请稍后重试"),
-      createTime: new Date().toISOString(),
-      toolCalls: [],
-      draft: null
-    });
   }).finally(() => {
     sending.value = false;
+    streamingStarted.value = false;
+    scrollToBottom();
+  });
+}
+
+function scrollToBottom() {
+  // 消息区组件会自动跟随内容增长；发送结束后保留一次主动滚动以兼容慢速渲染。
+  nextTick(() => {
+    const box = document.querySelector('.message-box');
+    if (box) {
+      box.scrollTop = box.scrollHeight;
+    }
   });
 }
 
@@ -464,7 +519,7 @@ function confirmDraft(message) {
   draftLoading.value = message.draft.id;
   confirmAgentDraft(message.draft.id).then(response => {
     message.draft = response.data || message.draft;
-    proxy.$modal.msgSuccess("预约已提交，后端已完成二次校验");
+    proxy.$modal.msgSuccess("预约已提交，系统已完成最终检查");
   }).catch(error => {
     proxy.$modal.msgError("预约草稿提交失败：" + (error?.message || "请重新检查预约信息"));
   }).finally(() => {

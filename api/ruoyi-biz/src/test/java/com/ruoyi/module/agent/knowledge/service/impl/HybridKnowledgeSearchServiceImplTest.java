@@ -4,18 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ruoyi.module.agent.knowledge.domain.KnowledgeChunk;
 import com.ruoyi.module.agent.knowledge.domain.KnowledgeDocument;
 import com.ruoyi.module.agent.knowledge.domain.KnowledgeSearchResult;
 import com.ruoyi.module.agent.knowledge.mapper.KnowledgeChunkMapper;
 import com.ruoyi.module.agent.knowledge.mapper.KnowledgeDocumentMapper;
+import com.ruoyi.module.agent.role.AgentRole;
+import com.ruoyi.module.agent.role.AgentRoleService;
 
 /**
  * 轻量 RAG 混合检索测试。
@@ -59,6 +64,8 @@ class HybridKnowledgeSearchServiceImplTest
     {
         KnowledgeDocumentMapper documentMapper = mock(KnowledgeDocumentMapper.class);
         KnowledgeChunkMapper chunkMapper = mock(KnowledgeChunkMapper.class);
+        AgentRoleService roleService = mock(AgentRoleService.class);
+        when(roleService.currentRole()).thenReturn(AgentRole.STUDENT);
         KnowledgeDocument centrifuge = document(1006L, "离心机安全操作");
         KnowledgeDocument autoclave = document(1009L, "高压灭菌锅安全操作");
         KnowledgeDocument bioWaste = document(1050L, "生物废物与实验动物管理");
@@ -73,13 +80,38 @@ class HybridKnowledgeSearchServiceImplTest
                                 + "实验区域还应落实生物安全、消毒、动物实验和污染区管理要求。")));
 
         HybridKnowledgeSearchServiceImpl service =
-                new HybridKnowledgeSearchServiceImpl(documentMapper, chunkMapper);
+                new HybridKnowledgeSearchServiceImpl(documentMapper, chunkMapper, roleService);
 
         List<KnowledgeSearchResult> centrifugeResults = service.search("离心机操作安全注意事项", 1);
         List<KnowledgeSearchResult> autoclaveResults = service.search("高压灭菌锅怎么用？", 1);
 
         assertEquals("离心机安全操作", centrifugeResults.get(0).getDocumentTitle());
         assertEquals("高压灭菌锅安全操作", autoclaveResults.get(0).getDocumentTitle());
+    }
+
+    @Test
+    void platformSearchAppliesTypeAndRoleScope()
+    {
+        KnowledgeDocumentMapper documentMapper = mock(KnowledgeDocumentMapper.class);
+        KnowledgeChunkMapper chunkMapper = mock(KnowledgeChunkMapper.class);
+        AgentRoleService roleService = mock(AgentRoleService.class);
+        when(roleService.currentRole()).thenReturn(AgentRole.STUDENT);
+        when(documentMapper.selectList(any())).thenReturn(List.of());
+        when(chunkMapper.selectList(any())).thenReturn(List.of());
+        HybridKnowledgeSearchServiceImpl service =
+                new HybridKnowledgeSearchServiceImpl(documentMapper, chunkMapper, roleService);
+
+        service.search("设备档案是什么", 3, "PLATFORM");
+
+        ArgumentCaptor<QueryWrapper<KnowledgeDocument>> captor =
+                ArgumentCaptor.forClass(QueryWrapper.class);
+        verify(documentMapper).selectList(captor.capture());
+        String sql = captor.getValue().getSqlSegment();
+        assertTrue(sql.contains("knowledge_type"));
+        assertTrue(sql.contains("audience"));
+        assertTrue(captor.getValue().getParamNameValuePairs().containsValue("PLATFORM"));
+        assertTrue(captor.getValue().getParamNameValuePairs().containsValue("STUDENT"));
+        assertTrue(captor.getValue().getParamNameValuePairs().containsValue("ALL"));
     }
 
     private KnowledgeDocument document(Long id, String title)
@@ -89,6 +121,8 @@ class HybridKnowledgeSearchServiceImplTest
         document.setTitle(title);
         document.setSource("测试");
         document.setStatus("0");
+        document.setKnowledgeType("SAFETY");
+        document.setAudience("ALL");
         return document;
     }
 

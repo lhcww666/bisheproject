@@ -12,7 +12,8 @@ import com.ruoyi.module.agent.knowledge.domain.KnowledgeDocument;
  */
 public interface IKnowledgeAdminService
 {
-    List<KnowledgeDocument> listDocuments(String title, String category, String status);
+    List<KnowledgeDocument> listDocuments(String title, String category, String knowledgeType,
+            String audience, String status);
 
     KnowledgeDocument getDocument(Long id);
 

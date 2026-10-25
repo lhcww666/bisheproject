@@ -73,7 +73,7 @@ function search() {
   searchAgentKnowledge(keyword, 3).then(response => {
     results.value = response.data || [];
   }).catch(requestError => {
-    error.value = "知识库检索失败：" + (requestError?.message || "请检查后端服务");
+    error.value = "知识库检索失败，请稍后重试";
   }).finally(() => {
     loading.value = false;
     searched.value = true;

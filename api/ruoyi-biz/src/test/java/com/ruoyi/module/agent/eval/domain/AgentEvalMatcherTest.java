@@ -55,4 +55,12 @@ class AgentEvalMatcherTest
         assertFalse(AgentEvalMatcher.toolMatches(
                 "queryAvailableRooms", List.of("searchSafetyKnowledge")));
     }
+
+    @Test
+    void detectsTechnicalTermsInNonAdminAnswers()
+    {
+        assertTrue(AgentEvalMatcher.hasTechnicalTermLeak("请到前端提交，后端会校验。"));
+        assertTrue(AgentEvalMatcher.hasTechnicalTermLeak("已调用工具调用接口。"));
+        assertFalse(AgentEvalMatcher.hasTechnicalTermLeak("请在预约页面确认，系统会再次检查。"));
+    }
 }

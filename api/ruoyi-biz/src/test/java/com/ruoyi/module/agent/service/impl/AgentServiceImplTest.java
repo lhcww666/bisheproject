@@ -32,8 +32,11 @@ import com.ruoyi.module.agent.domain.ToolCallLog;
 import com.ruoyi.module.agent.mapper.ChatMessageMapper;
 import com.ruoyi.module.agent.mapper.ChatSessionMapper;
 import com.ruoyi.module.agent.mapper.ToolCallLogMapper;
+import com.ruoyi.module.agent.role.AgentRole;
+import com.ruoyi.module.agent.role.AgentRoleService;
 import com.ruoyi.module.agent.service.AgentChatClientRouter;
 import com.ruoyi.module.agent.service.AgentContext;
+import com.ruoyi.module.agent.tool.CommonAgentTools;
 
 /**
  * 智能助手模型连接测试。
@@ -52,7 +55,7 @@ class AgentServiceImplTest
     @Test
     void missingKeyReturnsActionableStatus()
     {
-        AgentServiceImpl service = new AgentServiceImpl(null, null, null, null);
+        AgentServiceImpl service = new AgentServiceImpl(null, null, null, null, null, null);
         ReflectionTestUtils.setField(service, "apiKey", "not-configured");
         ReflectionTestUtils.setField(service, "modelName", "deepseek-chat");
 
@@ -70,7 +73,7 @@ class AgentServiceImplTest
         when(chatClient.prompt().system(anyString()).user(anyString()).call().content()).thenReturn("OK");
         AgentChatClientRouter router = mock(AgentChatClientRouter.class);
         when(router.current()).thenReturn(chatClient);
-        AgentServiceImpl service = new AgentServiceImpl(null, null, null, router);
+        AgentServiceImpl service = new AgentServiceImpl(null, null, null, router, null, null);
         ReflectionTestUtils.setField(service, "apiKey", "sk-test");
         ReflectionTestUtils.setField(service, "modelName", "deepseek-chat");
 
@@ -107,7 +110,8 @@ class AgentServiceImplTest
         when(toolCallLogMapper.selectList(any())).thenReturn(List.of(log));
 
         authenticate(42L);
-        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper, null);
+        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper,
+                null, null, null);
         List<ChatMessage> messages = service.listMessages(7L);
 
         assertTrue(messages.get(0).getToolCalls().isEmpty());
@@ -145,7 +149,8 @@ class AgentServiceImplTest
         when(router.current()).thenReturn(chatClient);
 
         authenticate(42L);
-        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper, router);
+        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper,
+                router, null, null);
         ReflectionTestUtils.setField(service, "apiKey", "sk-test");
         ChatRequest request = new ChatRequest();
         request.setSessionId(7L);
@@ -158,6 +163,108 @@ class AgentServiceImplTest
         verify(toolCallLogMapper).update(any(), updateCaptor.capture());
         assertTrue(updateCaptor.getValue().getSqlSet().contains("message_id"));
         assertTrue(updateCaptor.getValue().getParamNameValuePairs().containsValue(900L));
+    }
+
+    @Test
+    void studentMissingKeyResponseDoesNotExposeDeploymentDetails()
+    {
+        ChatSessionMapper sessionMapper = mock(ChatSessionMapper.class);
+        ChatMessageMapper messageMapper = mock(ChatMessageMapper.class);
+        ToolCallLogMapper toolCallLogMapper = mock(ToolCallLogMapper.class);
+        ChatSession session = new ChatSession();
+        session.setId(7L);
+        session.setUserId(42L);
+        session.setTitle("已有会话");
+        when(sessionMapper.selectById(7L)).thenReturn(session);
+        when(messageMapper.insert(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            message.setId(801L);
+            return 1;
+        });
+        AgentRoleService roleService = mock(AgentRoleService.class);
+        when(roleService.currentRole()).thenReturn(AgentRole.STUDENT);
+        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper,
+                null, roleService, null);
+        ReflectionTestUtils.setField(service, "apiKey", "not-configured");
+        ChatRequest request = new ChatRequest();
+        request.setSessionId(7L);
+        request.setMessage("帮我查一下预约");
+        authenticate(42L);
+
+        String answer = service.chat(request).getContent();
+
+        assertTrue(answer.contains("请联系平台管理员"));
+        assertFalse(answer.contains("DEEPSEEK"));
+        assertFalse(answer.contains("后端"));
+    }
+
+    @Test
+    void platformHelpQuestionUsesDeterministicKnowledgeAnswer()
+    {
+        ChatSessionMapper sessionMapper = mock(ChatSessionMapper.class);
+        ChatMessageMapper messageMapper = mock(ChatMessageMapper.class);
+        ToolCallLogMapper toolCallLogMapper = mock(ToolCallLogMapper.class);
+        ChatSession session = new ChatSession();
+        session.setId(7L);
+        session.setUserId(42L);
+        session.setTitle("已有会话");
+        when(sessionMapper.selectById(7L)).thenReturn(session);
+        when(messageMapper.insert(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            message.setId(802L);
+            return 1;
+        });
+        CommonAgentTools commonTools = mock(CommonAgentTools.class);
+        when(commonTools.searchPlatformHelp("这个 Agent 知识库是什么？", 2))
+                .thenReturn("平台使用说明：知识库由文档和知识片段组成。");
+        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper,
+                null, null, commonTools);
+        ReflectionTestUtils.setField(service, "apiKey", "not-configured");
+        ChatRequest request = new ChatRequest();
+        request.setSessionId(7L);
+        request.setMessage("这个 Agent 知识库是什么？");
+        authenticate(42L);
+
+        String answer = service.chat(request).getContent();
+
+        assertTrue(answer.contains("知识库由文档和知识片段组成"));
+        assertFalse(answer.contains("DEEPSEEK"));
+    }
+
+    @Test
+    void incompleteStudentReservationShowsCurrentAvailabilityBeforeFollowUp()
+    {
+        ChatSessionMapper sessionMapper = mock(ChatSessionMapper.class);
+        ChatMessageMapper messageMapper = mock(ChatMessageMapper.class);
+        ToolCallLogMapper toolCallLogMapper = mock(ToolCallLogMapper.class);
+        ChatSession session = new ChatSession();
+        session.setId(7L);
+        session.setUserId(42L);
+        session.setTitle("已有会话");
+        when(sessionMapper.selectById(7L)).thenReturn(session);
+        when(messageMapper.insert(any(ChatMessage.class))).thenAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            message.setId(803L);
+            return 1;
+        });
+        AgentRoleService roleService = mock(AgentRoleService.class);
+        when(roleService.currentRole()).thenReturn(AgentRole.STUDENT);
+        CommonAgentTools commonTools = mock(CommonAgentTools.class);
+        when(commonTools.queryAvailableRoomsNow(null, "计算机"))
+                .thenReturn("当前可预约实验室：E105 计算机实验室。");
+        AgentServiceImpl service = new AgentServiceImpl(sessionMapper, messageMapper, toolCallLogMapper,
+                null, roleService, commonTools);
+        ReflectionTestUtils.setField(service, "apiKey", "not-configured");
+        ChatRequest request = new ChatRequest();
+        request.setSessionId(7L);
+        request.setMessage("我想预约计算机实验室");
+        authenticate(42L);
+
+        String answer = service.chat(request).getContent();
+
+        assertTrue(answer.contains("E105 计算机实验室"));
+        assertTrue(answer.contains("使用日期"));
+        assertFalse(answer.contains("DEEPSEEK"));
     }
 
     private ChatMessage message(Long id, String role, String content)

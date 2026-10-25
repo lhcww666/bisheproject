@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.agent.service.AgentContext;
 import com.ruoyi.module.agent.service.ToolAuditService;
 import com.ruoyi.module.agent.knowledge.domain.KnowledgeSearchResult;
@@ -109,11 +110,13 @@ public class LabAgentTools
      * 按服务器当前时间查询未来一小时的可预约实验室。
      */
     @Tool(name = "queryAvailableRoomsNow",
-            description = "使用服务器当前时间查询未来1小时的实验室，不要求用户提供起止时间。")
+            description = "使用服务器当前时间查询未来1小时的实验室，不要求用户提供起止时间，可按名称关键词过滤。")
     public String queryAvailableRoomsNow(
-            @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount)
+            @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount,
+            @ToolParam(required = false, description = "实验室编号或名称关键词，可为空") String roomKeyword)
     {
-        return execute("queryAvailableRoomsNow", "participantCount=" + participantCount, () -> {
+        return execute("queryAvailableRoomsNow",
+                "participantCount=" + participantCount + ", roomKeyword=" + roomKeyword, () -> {
             Long userId = AgentContext.require().getUserId();
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime start = now.withSecond(0).withNano(0);
@@ -128,9 +131,17 @@ public class LabAgentTools
             Date endTime = Date.from(end.atZone(ZoneId.systemDefault()).toInstant());
             List<Room> rooms = reservationService.selectAvailableRooms(userId, startTime, endTime,
                     participantCount == null ? null : participantCount.longValue());
+            if (StringUtils.isNotEmpty(roomKeyword))
+            {
+                String keyword = roomKeyword.trim();
+                rooms = rooms.stream()
+                        .filter(room -> containsIgnoreCase(room.getRoomCode(), keyword)
+                                || containsIgnoreCase(room.getRoomName(), keyword))
+                        .toList();
+            }
 
             SimpleDateFormat display = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-            StringBuilder result = new StringBuilder("服务器当前时间：").append(display.format(new Date()))
+            StringBuilder result = new StringBuilder("当前时间：").append(display.format(new Date()))
                     .append("\n查询区间：").append(display.format(startTime)).append(" 至 ").append(display.format(endTime))
                     .append("\n");
             if (rooms.isEmpty())
@@ -395,31 +406,35 @@ public class LabAgentTools
             @ToolParam(required = false, description = "返回条数，默认3") Integer topK)
     {
         return execute("searchSafetyKnowledge", "question=" + question + ", topK=" + topK, () -> {
-            List<KnowledgeSearchResult> results = knowledgeSearchService.search(question,
-                    topK == null ? 3 : topK);
-            if (results.isEmpty())
-            {
-                return "未检索到可靠的安全知识资料，请提示用户咨询实验室管理员或查阅正式安全制度。";
-            }
-            StringBuilder result = new StringBuilder("安全知识检索结果：\n");
-            for (KnowledgeSearchResult item : results)
-            {
-                result.append("【来源：").append(item.getDocumentTitle())
-                        .append(" / ").append(item.getSource()).append("】\n")
-                        .append(item.getContent()).append("\n")
-                        .append("相关度：").append(item.getScore()).append("\n\n");
-            }
-            return result.toString();
+            return formatKnowledgeResults(knowledgeSearchService.search(question,
+                    topK == null ? 3 : topK, "SAFETY"), "安全知识检索结果：",
+                    "未检索到可靠的安全知识资料，请提示用户咨询实验室管理员或查阅正式安全制度。");
+        });
+    }
+
+    /**
+     * 检索平台使用方法、页面入口和助手能力说明。
+     */
+    @Tool(name = "searchPlatformHelp",
+            description = "检索平台使用说明。用户询问知识库、设备档案、预约流程、页面入口或助手能力时使用。")
+    public String searchPlatformHelp(
+            @ToolParam(description = "要检索的平台使用问题") String question,
+            @ToolParam(required = false, description = "返回条数，默认3") Integer topK)
+    {
+        return execute("searchPlatformHelp", "question=" + question + ", topK=" + topK, () -> {
+            return formatKnowledgeResults(knowledgeSearchService.search(question,
+                    topK == null ? 3 : topK, "PLATFORM"), "平台使用说明：",
+                    "暂未检索到这项平台说明，请提示用户联系平台管理员。");
         });
     }
 
     /**
      * 创建预约草稿。
      *
-     * <p>工具只落草稿，不直接创建预约；创建成功后会提示用户在前端确认。</p>
+     * <p>工具只落草稿，不直接创建预约；创建成功后会提示用户在预约页面确认。</p>
      */
     @Tool(name = "createReservationDraft",
-            description = "创建实验室预约草稿。只是待确认草稿，不代表预约成功；用户必须在前端确认后才会提交。")
+            description = "创建实验室预约草稿。只是待确认草稿，不代表预约成功；用户必须在预约页面确认后才会提交。")
     public String createReservationDraft(
             @ToolParam(description = "实验室ID") Long roomId,
             @ToolParam(description = "实验名称") String experimentName,
@@ -449,25 +464,6 @@ public class LabAgentTools
     }
 
     /**
-     * 确认预约草稿。
-     *
-     * <p>模型只能在用户明确说“确认提交”后调用；前端按钮是更推荐的确认入口。</p>
-     */
-    @Tool(name = "confirmReservation",
-            description = "确认并提交一个已经展示给用户的预约草稿。只有用户明确确认后才能调用。")
-    public String confirmReservation(
-            @ToolParam(description = "预约草稿ID") Long draftId)
-    {
-        return execute("confirmReservation", "draftId=" + draftId, () -> {
-            AgentContext.Context context = AgentContext.require();
-            ReservationDraftView draft = reservationDraftService.confirmDraft(draftId, context.getUserId());
-            context.setDraft(draft);
-            return "预约已提交，预约编号 " + draft.getReservationNo()
-                    + "，当前状态 " + draft.getReservationStatus() + "。";
-        });
-    }
-
-    /**
      * 工具执行模板：统一处理成功、失败和审计日志。
      */
     private String execute(String toolName, String arguments, Supplier<String> action)
@@ -481,10 +477,31 @@ public class LabAgentTools
         }
         catch (Exception e)
         {
-            String result = "工具调用失败：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            String result = "查询未完成：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
             toolAuditService.record(toolName, arguments, result, false, System.currentTimeMillis() - started);
             return result;
         }
+    }
+
+    private String formatKnowledgeResults(List<KnowledgeSearchResult> results, String heading, String emptyMessage)
+    {
+        if (results.isEmpty())
+        {
+            return emptyMessage;
+        }
+        StringBuilder result = new StringBuilder(heading).append("\n");
+        for (KnowledgeSearchResult item : results)
+        {
+            result.append("- 来源：").append(item.getDocumentTitle())
+                    .append("（").append(item.getSource()).append("）\n")
+                    .append("  ").append(item.getContent()).append("\n");
+        }
+        return result.toString();
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword)
+    {
+        return value != null && value.toLowerCase().contains(keyword.toLowerCase());
     }
 
     /**

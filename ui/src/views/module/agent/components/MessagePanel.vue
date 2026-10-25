@@ -19,7 +19,7 @@
       <p>基于平台真实业务数据回答，复杂操作会调用受控工具完成。</p>
       <div class="welcome-capabilities">
         <span>真实数据</span>
-        <span>工具可追溯</span>
+        <span>{{ showTechnicalDetails ? '工具可追溯' : '查询可核对' }}</span>
         <span>写操作需确认</span>
       </div>
       <div class="example-list">
@@ -52,7 +52,11 @@
         </svg>
       </div>
       <div class="message-content">
-        <div v-if="message.role === 'ASSISTANT'" class="bubble markdown-bubble">
+        <div
+          v-if="message.role === 'ASSISTANT'"
+          class="bubble markdown-bubble"
+          :class="{ streaming: message.streaming }"
+        >
           <template v-for="(block, blockIndex) in parseMarkdown(message.content)" :key="blockIndex">
             <h4 v-if="block.type === 'heading'" class="md-heading">
               <template v-for="(segment, segmentIndex) in block.segments" :key="segmentIndex">
@@ -120,18 +124,33 @@
         <div class="message-meta">{{ formatTime(message.createTime) }}</div>
 
         <el-collapse v-if="message.toolCalls && message.toolCalls.length" class="tool-collapse">
-          <el-collapse-item :title="'本次查询记录 · ' + message.toolCalls.length + ' 次工具调用'">
-            <div v-for="(tool, toolIndex) in message.toolCalls" :key="toolIndex" class="tool-item">
-              <div class="tool-name">
-                <el-tag size="small" :type="tool.success ? 'success' : 'danger'">
-                  {{ tool.toolName }}
-                </el-tag>
-                <span>{{ tool.costMs }} ms</span>
+          <el-collapse-item
+            :title="showTechnicalDetails
+              ? '本次查询记录 · ' + message.toolCalls.length + ' 次工具调用'
+              : '本次查询依据 · 已核对 ' + message.toolCalls.length + ' 项业务信息'"
+          >
+            <template v-if="showTechnicalDetails">
+              <div v-for="(tool, toolIndex) in message.toolCalls" :key="toolIndex" class="tool-item">
+                <div class="tool-name">
+                  <el-tag size="small" :type="tool.success ? 'success' : 'danger'">
+                    {{ tool.toolName }}
+                  </el-tag>
+                  <span>{{ tool.costMs }} ms</span>
+                </div>
+                <div class="tool-label">参数</div>
+                <pre>{{ tool.arguments }}</pre>
+                <div class="tool-label">返回</div>
+                <pre>{{ tool.result }}</pre>
               </div>
-              <div class="tool-label">参数</div>
-              <pre>{{ tool.arguments }}</pre>
-              <div class="tool-label">返回</div>
-              <pre>{{ tool.result }}</pre>
+            </template>
+            <div v-if="!showTechnicalDetails" class="query-evidence">
+              <div v-for="(tool, toolIndex) in message.toolCalls" :key="'friendly-' + toolIndex">
+                <el-tag size="small" :type="tool.success ? 'success' : 'danger'">
+                  {{ toolDisplayName(tool.toolName) }}
+                </el-tag>
+                <span>{{ tool.success ? '已查询' : '未完成' }}</span>
+              </div>
+              <p>查询结果已用于本次回答，具体业务数据以页面展示为准。</p>
             </div>
           </el-collapse-item>
         </el-collapse>
@@ -185,6 +204,10 @@ const props = defineProps({
   skin: {
     type: String,
     default: "fresh"
+  },
+  showTechnicalDetails: {
+    type: Boolean,
+    default: false
   }
 });
 const emit = defineEmits(["example", "confirm-draft", "cancel-draft"]);
@@ -192,7 +215,11 @@ const { proxy } = getCurrentInstance();
 const messageBoxRef = ref(null);
 
 watch(
-  [() => props.messages.length, () => props.sending],
+  [
+    () => props.messages.length,
+    () => props.sending,
+    () => props.messages.map(item => item.content || "").join("").length
+  ],
   () => scrollToBottom(),
   { flush: "post" }
 );
@@ -239,6 +266,27 @@ function reservationStatusLabel(status) {
     "6": "已爽约"
   };
   return labels[status] || status || "未知";
+}
+
+function toolDisplayName(toolName) {
+  const labels = {
+    checkSafetyExamStatus: "安全考试状态",
+    queryMyCredit: "个人信用信息",
+    checkMyReservationEligibility: "预约资格",
+    queryMyReservations: "我的预约",
+    queryReservationReview: "预约审核结果",
+    queryAvailableRooms: "实验室时段",
+    queryAvailableRoomsNow: "当前实验室时段",
+    queryAvailableDevices: "实验设备",
+    searchSafetyKnowledge: "安全知识",
+    searchPlatformHelp: "平台使用说明",
+    createReservationDraft: "预约草稿",
+    queryPendingReservations: "待审核预约",
+    queryStudentQualification: "学生资质",
+    queryReservationForReview: "预约详情",
+    queryClassStudentStatistics: "班级统计"
+  };
+  return labels[toolName] || "业务信息";
 }
 
 /**
@@ -514,6 +562,15 @@ function parseInlineMarkdown(text) {
 .markdown-bubble {
   width: 100%;
 }
+.markdown-bubble.streaming::after {
+  content: "▍";
+  margin-left: 2px;
+  color: #3b82f6;
+  animation: caret-blink 0.9s steps(2, start) infinite;
+}
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
 .md-heading {
   margin: 13px 0 7px;
   color: #1f2d3d;
@@ -598,6 +655,23 @@ function parseInlineMarkdown(text) {
   word-break: break-word;
   max-height: 160px;
   overflow: auto;
+}
+.query-evidence {
+  display: grid;
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+.query-evidence > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b778b;
+  font-size: 12px;
+}
+.query-evidence p {
+  margin: 2px 0 0;
+  color: #9aa6b8;
+  font-size: 11px;
 }
 .draft-card {
   margin-top: 10px;

@@ -1,9 +1,11 @@
 package com.ruoyi.module.agent.controller;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,8 +25,10 @@ import com.ruoyi.module.agent.domain.ChatRequest;
 import com.ruoyi.module.agent.role.AgentRole;
 import com.ruoyi.module.agent.role.AgentRoleService;
 import com.ruoyi.module.agent.service.IAgentService;
+import com.ruoyi.module.agent.service.AgentStreamService;
 
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 
 /**
  * 智能助手 HTTP 入口。
@@ -42,6 +46,8 @@ public class AgentController extends BaseController
     private final IAgentService agentService;
 
     private final AgentRoleService agentRoleService;
+
+    private final AgentStreamService agentStreamService;
 
     /**
      * 只用于检查模型是否配置，不返回真实 Key。
@@ -63,14 +69,18 @@ public class AgentController extends BaseController
         // 只返回布尔值，绝不把 apiKey 返回给前端。
         boolean configured = apiKey != null && !apiKey.isBlank() && !"not-configured".equals(apiKey.trim());
         AgentRole role = agentRoleService.currentRole();
-        return success(Map.of(
-                "configured", configured,
-                "model", modelName,
-                "role", role.getCode(),
-                "roleLabel", role.getLabel(),
-                "assistantTitle", role.getTitle(),
-                "assistantDescription", role.getDescription(),
-                "examples", role.getExamples()));
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("configured", configured);
+        status.put("role", role.getCode());
+        status.put("roleLabel", role.getLabel());
+        status.put("assistantTitle", role.getTitle());
+        status.put("assistantDescription", role.getDescription());
+        status.put("examples", role.getExamples());
+        if (role == AgentRole.ADMIN)
+        {
+            status.put("model", modelName);
+        }
+        return success(status);
     }
 
     /**
@@ -79,7 +89,7 @@ public class AgentController extends BaseController
      * <p>该接口会产生真实模型费用，按来源 IP 限制为每分钟 5 次。</p>
      */
     @RateLimiter(time = 60, count = 5, limitType = LimitType.IP)
-    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @PreAuthorize("@ss.hasPermi('module:agent:audit')")
     @PostMapping("/model-check")
     public AjaxResult modelCheck()
     {
@@ -130,6 +140,18 @@ public class AgentController extends BaseController
     public AjaxResult chat(@Validated @RequestBody ChatRequest request)
     {
         return success(agentService.chat(request));
+    }
+
+    /**
+     * 以 SSE 分块返回 Agent 回复，兼容不支持流式读取的旧导航器时可以继续使用同步聊天接口。
+     */
+    @RateLimiter(time = 60, count = 12, limitType = LimitType.IP)
+    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @PostMapping(value = "/chat/stream", produces = "text/event-stream")
+    public Flux<ServerSentEvent<Object>> chatStream(
+            @Validated @RequestBody ChatRequest request)
+    {
+        return agentStreamService.stream(request);
     }
 
     /**

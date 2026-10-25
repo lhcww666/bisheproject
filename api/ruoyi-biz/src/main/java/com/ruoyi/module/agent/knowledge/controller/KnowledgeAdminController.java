@@ -38,9 +38,11 @@ public class KnowledgeAdminController extends BaseController
     @GetMapping("/documents")
     public AjaxResult listDocuments(@RequestParam(required = false) String title,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String knowledgeType,
+            @RequestParam(required = false) String audience,
             @RequestParam(required = false) String status)
     {
-        return success(knowledgeAdminService.listDocuments(title, category, status));
+        return success(knowledgeAdminService.listDocuments(title, category, knowledgeType, audience, status));
     }
 
     @PreAuthorize("@ss.hasPermi('module:agent:knowledge:query')")

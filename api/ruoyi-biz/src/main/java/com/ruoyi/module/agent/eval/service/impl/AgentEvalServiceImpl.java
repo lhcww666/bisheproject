@@ -112,10 +112,14 @@ public class AgentEvalServiceImpl implements IAgentEvalService
             boolean toolHit = AgentEvalMatcher.toolMatches(item.getExpectedTool(), routedTools);
             boolean keywordHit = true;
             String answer = "离线路由：" + actualTool;
-            if (LocalIntentRouter.SAFETY.equals(item.getExpectedIntent()))
+            if (LocalIntentRouter.SAFETY.equals(item.getExpectedIntent())
+                    || LocalIntentRouter.PLATFORM_HELP.equals(item.getExpectedIntent()))
             {
                 ragCases++;
-                List<KnowledgeSearchResult> searchResults = knowledgeSearchService.search(item.getQuestion(), 3);
+                String knowledgeType = LocalIntentRouter.SAFETY.equals(item.getExpectedIntent())
+                        ? "SAFETY" : "PLATFORM";
+                List<KnowledgeSearchResult> searchResults =
+                        knowledgeSearchService.search(item.getQuestion(), 3, knowledgeType);
                 toolHit = toolHit && !searchResults.isEmpty();
                 answer = searchResults.isEmpty() ? "未检索到知识片段"
                         : searchResults.get(0).getDocumentTitle() + "：" + searchResults.get(0).getContent();
@@ -208,6 +212,7 @@ public class AgentEvalServiceImpl implements IAgentEvalService
             boolean intentHit = false;
             boolean toolHit = false;
             boolean keywordHit = true;
+            boolean toneHit = true;
             List<ToolCallView> calls = Collections.emptyList();
             AgentContext.open(null, userId);
             try
@@ -230,7 +235,8 @@ public class AgentEvalServiceImpl implements IAgentEvalService
                         item.getExpectedIntent(), item.getExpectedTool(), calledTools);
                 intentHit = AgentEvalMatcher.intentMatches(item.getExpectedIntent(), calledTools);
                 toolHit = AgentEvalMatcher.toolMatches(item.getExpectedTool(), successfulTools);
-                if (LocalIntentRouter.SAFETY.equals(item.getExpectedIntent()))
+                if (LocalIntentRouter.SAFETY.equals(item.getExpectedIntent())
+                        || LocalIntentRouter.PLATFORM_HELP.equals(item.getExpectedIntent()))
                 {
                     ragCases++;
                     String evidence = answer + " " + calls.stream()
@@ -243,6 +249,11 @@ public class AgentEvalServiceImpl implements IAgentEvalService
                         ragHits++;
                     }
                 }
+                if (role != AgentRole.ADMIN && AgentEvalMatcher.hasTechnicalTermLeak(answer))
+                {
+                    toneHit = false;
+                    errorMessage = "回答包含普通用户不可见的技术术语";
+                }
             }
             catch (Exception e)
             {
@@ -254,7 +265,7 @@ public class AgentEvalServiceImpl implements IAgentEvalService
             }
 
             boolean casePassed = errorMessage == null && StringUtils.isNotEmpty(answer)
-                    && intentHit && toolHit && keywordHit;
+                    && intentHit && toolHit && keywordHit && toneHit;
             if (intentHit)
             {
                 intentHits++;
@@ -330,7 +341,8 @@ public class AgentEvalServiceImpl implements IAgentEvalService
     private Set<String> allowedTools(AgentRole role)
     {
         Set<String> tools = new HashSet<>(List.of("unknown", "queryAvailableRooms",
-                "queryAvailableRoomsNow", "queryAvailableDevices", "searchSafetyKnowledge"));
+                "queryAvailableRoomsNow", "queryAvailableDevices", "searchSafetyKnowledge",
+                "searchPlatformHelp"));
         if (role == AgentRole.TEACHER || role == AgentRole.ADMIN)
         {
             tools.addAll(List.of("queryPendingReservations", "queryStudentQualification",
@@ -340,7 +352,7 @@ public class AgentEvalServiceImpl implements IAgentEvalService
         {
             tools.addAll(List.of("checkSafetyExamStatus", "queryMyCredit",
                     "checkMyReservationEligibility", "queryMyReservations",
-                    "queryReservationReview", "createReservationDraft", "confirmReservation"));
+                    "queryReservationReview", "createReservationDraft"));
         }
         return tools;
     }

@@ -61,11 +61,15 @@ class KnowledgeAdminServiceImplTest
         KnowledgeAdminServiceImpl service = new KnowledgeAdminServiceImpl(documentMapper, mock(KnowledgeChunkMapper.class));
         KnowledgeDocument document = document("  化学品泄漏处置  ");
         document.setStatus("invalid");
+        document.setKnowledgeType("invalid");
+        document.setAudience("invalid");
 
         service.createDocument(document);
 
         assertEquals("化学品泄漏处置", document.getTitle());
         assertEquals("0", document.getStatus());
+        assertEquals("SAFETY", document.getKnowledgeType());
+        assertEquals("ALL", document.getAudience());
         assertEquals("admin", document.getCreateBy());
         verify(documentMapper).insert(document);
     }

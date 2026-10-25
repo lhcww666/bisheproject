@@ -61,6 +61,21 @@ class LocalIntentRouterTest
     }
 
     @Test
+    void routesPlatformHelpBeforeBusinessKeywords()
+    {
+        assertEquals(LocalIntentRouter.PLATFORM_HELP, LocalIntentRouter.route("这个 Agent 知识库是什么？"));
+        assertEquals(LocalIntentRouter.PLATFORM_HELP, LocalIntentRouter.route("设备档案是什么，存的是什么数据？"));
+        assertEquals("searchPlatformHelp", LocalIntentRouter.toolFor(LocalIntentRouter.PLATFORM_HELP));
+    }
+
+    @Test
+    void incompleteReservationQuestionUsesCurrentAvailability()
+    {
+        assertEquals(LocalIntentRouter.ROOMS_NOW, LocalIntentRouter.route("我想预约计算机实验室"));
+        assertEquals(LocalIntentRouter.ROOMS_NOW, LocalIntentRouter.route("现在可以预约哪些实验室和设备？"));
+    }
+
+    @Test
     void routesExpandedSafetyQuestions()
     {
         assertEquals(LocalIntentRouter.SAFETY, LocalIntentRouter.route("水银温度计打碎怎么办？"));

@@ -24,6 +24,9 @@ public final class AgentEvalMatcher
     private static final Set<String> ROOM_AVAILABILITY_INTENTS =
             Set.of(LocalIntentRouter.QUERY_ROOMS, LocalIntentRouter.ROOMS_NOW);
 
+    private static final Set<String> NON_ADMIN_TECHNICAL_TERMS =
+            Set.of("前端", "后端", "数据库", "接口", "API Key", "模型调用", "工具调用", "DeepSeek");
+
     private AgentEvalMatcher()
     {
     }
@@ -87,6 +90,18 @@ public final class AgentEvalMatcher
             }
         }
         return LocalIntentRouter.intentForTool(calledTools.iterator().next());
+    }
+
+    /**
+     * 学生和教师回答中不应出现部署、接口或模型实现术语。
+     */
+    public static boolean hasTechnicalTermLeak(String answer)
+    {
+        if (StringUtils.isEmpty(answer))
+        {
+            return false;
+        }
+        return NON_ADMIN_TECHNICAL_TERMS.stream().anyMatch(answer::contains);
     }
 
     private static boolean equivalentIntent(String expected, String actual)

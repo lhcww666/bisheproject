@@ -26,6 +26,12 @@ public class KnowledgeDocument
 
     private String category;
 
+    /** SAFETY 表示安全知识，PLATFORM 表示平台使用说明。 */
+    private String knowledgeType;
+
+    /** ALL、STUDENT、TEACHER 或 ADMIN。 */
+    private String audience;
+
     private String source;
 
     private String status;

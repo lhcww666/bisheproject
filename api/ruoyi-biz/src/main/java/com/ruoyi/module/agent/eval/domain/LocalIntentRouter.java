@@ -18,6 +18,7 @@ public final class LocalIntentRouter
     public static final String SAFETY = "SAFETY";
     public static final String DEVICES = "DEVICES";
     public static final String MY_RESERVATIONS = "MY_RESERVATIONS";
+    public static final String PLATFORM_HELP = "PLATFORM_HELP";
     public static final String ROOMS_NOW = "ROOMS_NOW";
     public static final String QUERY_ROOMS = "QUERY_ROOMS";
     public static final String UNKNOWN = "UNKNOWN";
@@ -34,10 +35,16 @@ public final class LocalIntentRouter
         {
             return REVIEW;
         }
-        if (containsAny(text, "现在还能预约", "现在可以预约", "现在能预约", "当前时间",
-                "现在哪个", "现在哪些", "当前还有", "现在还有", "现在可用"))
+        if ((text.contains("想预约") && text.contains("实验室"))
+                || containsAny(text, "现在还能预约", "现在可以预约", "现在能预约", "当前时间",
+                "现在哪个", "现在哪些", "当前还有", "现在还有", "现在可用", "现在想预约"))
         {
             return ROOMS_NOW;
+        }
+        if ((text.contains("安全考试") || text.contains("信用分"))
+                && containsAny(text, "说明", "规则", "影响", "关系", "怎么"))
+        {
+            return PLATFORM_HELP;
         }
         if (containsAny(text, "可以预约", "能预约", "能否预约", "能不能预约", "预约资格",
                 "没通过安全考试", "没有通过安全考试", "没有安全考试", "安全考试不合格",
@@ -52,6 +59,11 @@ public final class LocalIntentRouter
         if (containsAny(text, "信用分", "信用", "预约资格"))
         {
             return CREDIT;
+        }
+        if (containsAny(text, "知识库", "设备档案", "实验室档案", "预约流程", "确认预约草稿",
+                "草稿在哪里确认", "助手能做什么", "智能助手是什么", "页面入口", "怎么使用"))
+        {
+            return PLATFORM_HELP;
         }
         if (containsAny(text, "草稿", "帮我预约", "帮我约", "先帮我"))
         {
@@ -91,6 +103,7 @@ public final class LocalIntentRouter
             case SAFETY -> "searchSafetyKnowledge";
             case DEVICES -> "queryAvailableDevices";
             case MY_RESERVATIONS -> "queryMyReservations";
+            case PLATFORM_HELP -> "searchPlatformHelp";
             case ROOMS_NOW -> "queryAvailableRoomsNow";
             case QUERY_ROOMS -> "queryAvailableRooms";
             default -> "unknown";
@@ -112,6 +125,7 @@ public final class LocalIntentRouter
             case "searchSafetyKnowledge" -> SAFETY;
             case "queryAvailableDevices" -> DEVICES;
             case "queryMyReservations" -> MY_RESERVATIONS;
+            case "searchPlatformHelp" -> PLATFORM_HELP;
             case "queryAvailableRoomsNow" -> ROOMS_NOW;
             case "queryAvailableRooms" -> QUERY_ROOMS;
             default -> UNKNOWN;

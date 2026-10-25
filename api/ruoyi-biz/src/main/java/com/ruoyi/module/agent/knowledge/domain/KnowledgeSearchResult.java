@@ -14,6 +14,10 @@ public class KnowledgeSearchResult
 
     private String documentTitle;
 
+    private String knowledgeType;
+
+    private String audience;
+
     private Long chunkId;
 
     private String content;

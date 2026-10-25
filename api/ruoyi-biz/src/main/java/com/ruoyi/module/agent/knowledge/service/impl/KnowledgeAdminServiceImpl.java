@@ -37,7 +37,8 @@ public class KnowledgeAdminServiceImpl implements IKnowledgeAdminService
     private final KnowledgeChunkMapper chunkMapper;
 
     @Override
-    public List<KnowledgeDocument> listDocuments(String title, String category, String status)
+    public List<KnowledgeDocument> listDocuments(String title, String category, String knowledgeType,
+            String audience, String status)
     {
         QueryWrapper<KnowledgeDocument> query = new QueryWrapper<>();
         if (StringUtils.isNotEmpty(title))
@@ -47,6 +48,14 @@ public class KnowledgeAdminServiceImpl implements IKnowledgeAdminService
         if (StringUtils.isNotEmpty(category))
         {
             query.eq("category", category.trim());
+        }
+        if (StringUtils.isNotEmpty(knowledgeType))
+        {
+            query.eq("knowledge_type", knowledgeType);
+        }
+        if (StringUtils.isNotEmpty(audience))
+        {
+            query.eq("audience", audience);
         }
         if (StringUtils.isNotEmpty(status))
         {
@@ -73,6 +82,8 @@ public class KnowledgeAdminServiceImpl implements IKnowledgeAdminService
     {
         validateDocument(document, null);
         Date now = new Date();
+        document.setKnowledgeType(normalizeKnowledgeType(document.getKnowledgeType()));
+        document.setAudience(normalizeAudience(document.getAudience()));
         document.setStatus(normalizeStatus(document.getStatus()));
         document.setCreateBy(SecurityUtils.getUsername());
         document.setCreateTime(now);
@@ -87,6 +98,8 @@ public class KnowledgeAdminServiceImpl implements IKnowledgeAdminService
     {
         requireDocument(document == null ? null : document.getId());
         validateDocument(document, document.getId());
+        document.setKnowledgeType(normalizeKnowledgeType(document.getKnowledgeType()));
+        document.setAudience(normalizeAudience(document.getAudience()));
         document.setStatus(normalizeStatus(document.getStatus()));
         document.setUpdateBy(SecurityUtils.getUsername());
         document.setUpdateTime(new Date());
@@ -194,6 +207,8 @@ public class KnowledgeAdminServiceImpl implements IKnowledgeAdminService
         }
         document.setTitle(document.getTitle().trim());
         document.setCategory(trimToNull(document.getCategory()));
+        document.setKnowledgeType(normalizeKnowledgeType(document.getKnowledgeType()));
+        document.setAudience(normalizeAudience(document.getAudience()));
         document.setSource(trimToNull(document.getSource()));
         document.setRemark(trimToNull(document.getRemark()));
     }
@@ -276,6 +291,25 @@ public class KnowledgeAdminServiceImpl implements IKnowledgeAdminService
     private String normalizeStatus(String status)
     {
         return "1".equals(status) ? "1" : STATUS_ENABLED;
+    }
+
+    private String normalizeKnowledgeType(String knowledgeType)
+    {
+        return "PLATFORM".equalsIgnoreCase(knowledgeType) ? "PLATFORM" : "SAFETY";
+    }
+
+    private String normalizeAudience(String audience)
+    {
+        if (StringUtils.isEmpty(audience))
+        {
+            return "ALL";
+        }
+        String normalized = audience.trim().toUpperCase();
+        return switch (normalized)
+        {
+            case "STUDENT", "TEACHER", "ADMIN" -> normalized;
+            default -> "ALL";
+        };
     }
 
     private String trimToNull(String value)

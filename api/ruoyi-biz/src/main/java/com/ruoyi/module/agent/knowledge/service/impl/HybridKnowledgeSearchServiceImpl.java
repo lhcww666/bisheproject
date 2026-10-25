@@ -20,6 +20,8 @@ import com.ruoyi.module.agent.knowledge.domain.KnowledgeSearchResult;
 import com.ruoyi.module.agent.knowledge.mapper.KnowledgeChunkMapper;
 import com.ruoyi.module.agent.knowledge.mapper.KnowledgeDocumentMapper;
 import com.ruoyi.module.agent.knowledge.service.IKnowledgeSearchService;
+import com.ruoyi.module.agent.role.AgentRole;
+import com.ruoyi.module.agent.role.AgentRoleService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -54,8 +56,16 @@ public class HybridKnowledgeSearchServiceImpl implements IKnowledgeSearchService
 
     private final KnowledgeChunkMapper chunkMapper;
 
+    private final AgentRoleService roleService;
+
     @Override
     public List<KnowledgeSearchResult> search(String question, int topK)
+    {
+        return search(question, topK, null);
+    }
+
+    @Override
+    public List<KnowledgeSearchResult> search(String question, int topK, String knowledgeType)
     {
         if (StringUtils.isEmpty(question))
         {
@@ -69,7 +79,12 @@ public class HybridKnowledgeSearchServiceImpl implements IKnowledgeSearchService
         double[] queryVector = encodeTerms(expandTerms(queryTerms));
 
         QueryWrapper<KnowledgeDocument> documentQuery = new QueryWrapper<>();
-        documentQuery.eq("status", "0");
+        documentQuery.eq("status", "0")
+                .in("audience", allowedAudiences(roleService.currentRole()));
+        if (StringUtils.isNotEmpty(knowledgeType))
+        {
+            documentQuery.eq("knowledge_type", knowledgeType);
+        }
         Map<Long, KnowledgeDocument> documents = new HashMap<>();
         for (KnowledgeDocument document : documentMapper.selectList(documentQuery))
         {
@@ -148,6 +163,8 @@ public class HybridKnowledgeSearchServiceImpl implements IKnowledgeSearchService
             KnowledgeSearchResult result = new KnowledgeSearchResult();
             result.setDocumentId(document.getId());
             result.setDocumentTitle(document.getTitle());
+            result.setKnowledgeType(document.getKnowledgeType());
+            result.setAudience(document.getAudience());
             result.setChunkId(chunk.getId());
             result.setContent(chunk.getContent());
             result.setSource(document.getSource());
@@ -167,6 +184,23 @@ public class HybridKnowledgeSearchServiceImpl implements IKnowledgeSearchService
         double threshold = Math.max(0.05D, results.get(0).getScore() * 0.35D);
         results.removeIf(item -> item.getScore() < threshold);
         return results.size() <= limit ? results : new ArrayList<>(results.subList(0, limit));
+    }
+
+    private List<String> allowedAudiences(AgentRole role)
+    {
+        if (role == AgentRole.ADMIN)
+        {
+            return List.of("ALL", "ADMIN");
+        }
+        if (role == AgentRole.TEACHER)
+        {
+            return List.of("ALL", "TEACHER");
+        }
+        if (role == AgentRole.STUDENT)
+        {
+            return List.of("ALL", "STUDENT");
+        }
+        return List.of("ALL");
     }
 
     /**

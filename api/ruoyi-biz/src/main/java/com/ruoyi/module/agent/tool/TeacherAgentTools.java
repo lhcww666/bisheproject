@@ -217,7 +217,7 @@ public class TeacherAgentTools
         }
         catch (Exception e)
         {
-            String result = "工具调用失败：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            String result = "查询未完成：" + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
             toolAuditService.record(toolName, arguments, result, false, System.currentTimeMillis() - started);
             return result;
         }

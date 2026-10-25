@@ -28,11 +28,12 @@ public class CommonAgentTools
     }
 
     @Tool(name = "queryAvailableRoomsNow",
-            description = "使用服务器当前时间查询未来1小时的可预约实验室，适合用户说现在、当前时间或今天还能约什么。")
+            description = "使用服务器当前时间查询未来1小时的可预约实验室，适合用户说现在、当前时间或今天还能约什么。可按实验室名称关键词过滤。")
     public String queryAvailableRoomsNow(
-            @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount)
+            @ToolParam(required = false, description = "参与人数，可为空") Integer participantCount,
+            @ToolParam(required = false, description = "实验室编号或名称关键词，可为空") String roomKeyword)
     {
-        return delegate.queryAvailableRoomsNow(participantCount);
+        return delegate.queryAvailableRoomsNow(participantCount, roomKeyword);
     }
 
     @Tool(name = "queryAvailableDevices",
@@ -52,5 +53,14 @@ public class CommonAgentTools
             @ToolParam(required = false, description = "返回条数，默认3") Integer topK)
     {
         return delegate.searchSafetyKnowledge(question, topK);
+    }
+
+    @Tool(name = "searchPlatformHelp",
+            description = "检索平台使用说明。用户询问知识库、设备档案、实验室档案、预约流程、页面入口、助手能力或考试信用规则时使用。")
+    public String searchPlatformHelp(
+            @ToolParam(description = "要检索的平台使用问题") String question,
+            @ToolParam(required = false, description = "返回条数，默认3") Integer topK)
+    {
+        return delegate.searchPlatformHelp(question, topK);
     }
 }

@@ -46,8 +46,8 @@ class LabAgentToolsTest
         AgentContext.open(100L, 1L);
         try
         {
-            String result = tools.queryAvailableRoomsNow(2);
-            assertTrue(result.contains("服务器当前时间"));
+            String result = tools.queryAvailableRoomsNow(2, null);
+            assertTrue(result.contains("当前时间"));
             assertTrue(result.contains("查询区间"));
             assertTrue(result.contains("R301 分析实验室"));
         }

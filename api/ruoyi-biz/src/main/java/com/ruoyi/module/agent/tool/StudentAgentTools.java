@@ -71,12 +71,4 @@ public class StudentAgentTools
         return delegate.createReservationDraft(roomId, experimentName, startTime, endTime, participantCount,
                 deviceIds, remark);
     }
-
-    @Tool(name = "confirmReservation",
-            description = "确认并提交当前学生已经看到并明确确认的预约草稿。")
-    public String confirmReservation(
-            @ToolParam(description = "预约草稿ID") Long draftId)
-    {
-        return delegate.confirmReservation(draftId);
-    }
 }
