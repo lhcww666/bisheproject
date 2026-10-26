@@ -212,6 +212,48 @@ export const dynamicRoutes = [
         meta: { title: '修改预约', activeMenu: '/module/reservation' }
       }
     ]
+  },
+  {
+    path: '/materialApplyAdd',
+    component: Layout,
+    hidden: true,
+    permissions: ['module:material:apply'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/module/material/applyAdd'),
+        name: 'MaterialApplyAdd',
+        meta: { title: '申请领用耗材', activeMenu: '/module/material-apply' }
+      }
+    ]
+  },
+  {
+    path: '/materialApplyView',
+    component: Layout,
+    hidden: true,
+    permissions: ['module:material:apply:query'],
+    children: [
+      {
+        path: ':id',
+        component: () => import('@/views/module/material/applyView'),
+        name: 'MaterialApplyView',
+        meta: { title: '耗材领用详情', activeMenu: '/module/material-apply' }
+      }
+    ]
+  },
+  {
+    path: '/materialStockView',
+    component: Layout,
+    hidden: true,
+    permissions: ['module:material:stock:query'],
+    children: [
+      {
+        path: ':id',
+        component: () => import('@/views/module/material/stockView'),
+        name: 'MaterialStockView',
+        meta: { title: '库存流水详情', activeMenu: '/module/material-stock' }
+      }
+    ]
   }
 ]
 
@@ -238,7 +280,8 @@ const businessPageLabels = {
   roomAccess: "实验室准入",
   violationRecord: "违规记录",
   safetyQuestion: "题库管理",
-  safetyExam: "安全考试"
+  safetyExam: "安全考试",
+  material: "耗材库存"
 };
 
 const businessPageActions = {

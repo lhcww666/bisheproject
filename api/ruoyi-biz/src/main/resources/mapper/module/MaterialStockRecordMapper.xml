@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.module.material.mapper.MaterialStockRecordMapper">
+    <resultMap type="MaterialStockRecord" id="MaterialStockRecordResult">
+        <result property="id" column="id"/>
+        <result property="materialId" column="material_id"/>
+        <result property="changeType" column="change_type"/>
+        <result property="changeQuantity" column="change_quantity"/>
+        <result property="beforeQuantity" column="before_quantity"/>
+        <result property="afterQuantity" column="after_quantity"/>
+        <result property="applyId" column="apply_id"/>
+        <result property="reservationId" column="reservation_id"/>
+        <result property="operatorId" column="operator_id"/>
+        <result property="operatorName" column="operator_name"/>
+        <result property="reason" column="reason"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+</mapper>

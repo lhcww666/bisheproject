@@ -46,6 +46,7 @@ import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.reservation.service.IReservationRuleService;
 import com.ruoyi.module.device.domain.Device;
 import com.ruoyi.module.device.mapper.DeviceMapper;
+import com.ruoyi.module.material.service.IMaterialApplyService;
 import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.module.room.mapper.RoomMapper;
 import com.ruoyi.module.roomaccess.service.IRoomAccessService;
@@ -82,6 +83,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     private final ModuleDataScopeService moduleDataScopeService;
     private final ISysUserService sysUserService;
     private final ISysDeptService sysDeptService;
+    private final IMaterialApplyService materialApplyService;
     protected final Validator validator;
 
     @Override
@@ -260,6 +262,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
         int rows = reservationMapper.updateById(reservation);
         logStatus(reservation.getId(), fromStatus, ReservationStatus.CANCELED, ReservationStatusAction.CANCEL,
                 reservation.getCancelReason());
+        materialApplyService.releaseForCanceledReservation(reservation.getId());
         if (lateCancel)
         {
             violationRecordService.recordSystemViolation(reservation.getApplicantId(), reservation.getId(),
@@ -597,6 +600,9 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
             if (existing != null && (ReservationStatus.APPROVED.equals(existing.getStatus())
                     || ReservationStatus.CHECKED_IN.equals(existing.getStatus()))) {
                 throw new ServiceException("已通过或已签到的预约不能直接删除，请先取消或弃审");
+            }
+            if (materialApplyService.hasRecordsForReservation(id)) {
+                throw new ServiceException("该预约存在耗材领用记录，不能删除，请保留审计数据");
             }
             QueryWrapper<ViolationRecord> violationQuery = new QueryWrapper<>();
             violationQuery.eq("reservation_id", id);
