@@ -15,7 +15,7 @@
 
 实施节奏是“业务系统先行，AI 后接入”：先把实验室、设备、预约、审核、安全考试、信用分的业务闭环做通，再把已有后端能力封装成受控工具交给 Agent 调用。不要为了演示 AI 而跳过业务规则。
 
-当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板首页、30 台实验室演示设备、预约设备多选和统一业务菜单图标已实现；`springai` 分支已接入 Spring AI 会话、学生/教师/管理员三套角色助手、按角色隔离的工具白名单、综合预约资格与当前时段可约查询、工具调用审计、MySQL 关键词/TF-IDF 的 RAG 检索基线、受控预约草稿确认、管理员 Agent 审计页、40 篇/100 片段的实验室安全知识库、58 条 Agent 离线评测基线和 DeepSeek 连接自检，向量 embedding 与 LangChain4j 对比分支尚未实现。
+当前进度：第一期的 7 张业务表（`room`、`device`、`reservation`、`reservation_device`、`reservation_review`、`safety_exam_record`、`credit_record`）已生成前后端 CRUD 并跑通页面。预约冲突校验、审核流转、实验室准入、班级预约、签到/完成/爽约、信用账户与违规记录、安全考试题库与在线答题、角色感知的数据看板首页、多类型演示设备、预约设备多选、统一业务菜单图标和耗材领用库存闭环已实现；`springai` 分支已接入 Spring AI 会话、学生/教师/管理员三套角色助手、按角色隔离的工具白名单、综合预约资格与当前时段可约查询、工具调用审计、MySQL 关键词/TF-IDF/本地特征哈希向量的 RAG 混合检索、平台帮助知识、受控预约草稿确认、管理员 Agent 审计与知识库管理页、58 篇知识文档、60 条 Agent 评测基线、真实模型评测和 DeepSeek 连接自检。外部 Embedding 服务与 LangChain4j 对比分支尚未接入。
 
 ## 二、技术栈与版本
 
@@ -157,7 +157,7 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 - `02` 必须在“导入表”之后执行，`01` 必须在“生成代码”之前执行，否则包路径、字典绑定会回到默认值。
 - 每次重新导入表后，`01` 和 `02` 都要重跑；菜单 SQL 生成后要再执行一次 `00-module-menu-directory.sql`，否则菜单会落回“系统工具”目录。
 - 生成器配置口径：模块名 `module`、包路径 `com.ruoyi.module`、模板类型 `element-plus`、作者 `itjialu`。
-- 实验室准入、班级预约、审核状态、数据维护菜单与预约页面结构脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`、`sql/module/14-menu-data-maintenance.sql`、`sql/module/15-reservation-page-structure.sql`；预约生命周期、信用违规、安全考试、数据看板、智能助手、RAG、预约草稿、Agent 审计、离线评测、知识库扩充、资格工具、当前时段查询、设备扩充、导航调整、菜单图标、测试角色收窄、第二轮知识库扩充、工具调用消息绑定、知识库管理和平台帮助与角色可见范围脚本继续执行 `sql/module/20-reservation-lifecycle.sql`、`sql/module/21-credit-violation.sql`、`sql/module/22-safety-exam.sql`、`sql/module/23-stats-dashboard.sql`、`sql/module/24-agent.sql`、`sql/module/25-agent-menu-rename.sql`、`sql/module/26-agent-rag.sql`、`sql/module/27-agent-reservation-draft.sql`、`sql/module/28-agent-audit.sql`、`sql/module/29-agent-eval.sql`、`sql/module/30-agent-knowledge-expansion.sql`、`sql/module/31-agent-eval-heldout.sql`、`sql/module/32-agent-eligibility-tool.sql`、`sql/module/33-agent-current-room.sql`、`sql/module/34-device-expansion.sql`、`sql/module/35-menu-navigation.sql`、`sql/module/36-menu-icons.sql`、`sql/module/37-trim-hjl-test-role.sql`、`sql/module/38-agent-knowledge-vector-expansion.sql`、`sql/module/39-agent-tool-message-link.sql`、`sql/module/40-agent-knowledge-management.sql`、`sql/module/41-agent-platform-help.sql`。以上脚本均可重复执行。
+- 实验室准入、班级预约、审核状态、数据维护菜单与预约页面结构脚本在菜单脚本之后按顺序执行：`sql/module/10-room-access.sql`、`sql/module/11-class-representative.sql`、`sql/module/12-demo-class-data.sql`、`sql/module/13-reservation-audit.sql`、`sql/module/14-menu-data-maintenance.sql`、`sql/module/15-reservation-page-structure.sql`；预约生命周期、信用违规、安全考试、数据看板、智能助手、RAG、预约草稿、Agent 审计、离线评测、知识库扩充、资格工具、当前时段查询、设备扩充、导航调整、菜单图标、测试角色收窄、第二轮知识库扩充、工具调用消息绑定、知识库管理、平台帮助与角色可见范围、耗材领用与库存脚本继续执行 `sql/module/20-reservation-lifecycle.sql`、`sql/module/21-credit-violation.sql`、`sql/module/22-safety-exam.sql`、`sql/module/23-stats-dashboard.sql`、`sql/module/24-agent.sql`、`sql/module/25-agent-menu-rename.sql`、`sql/module/26-agent-rag.sql`、`sql/module/27-agent-reservation-draft.sql`、`sql/module/28-agent-audit.sql`、`sql/module/29-agent-eval.sql`、`sql/module/30-agent-knowledge-expansion.sql`、`sql/module/31-agent-eval-heldout.sql`、`sql/module/32-agent-eligibility-tool.sql`、`sql/module/33-agent-current-room.sql`、`sql/module/34-device-expansion.sql`、`sql/module/35-menu-navigation.sql`、`sql/module/36-menu-icons.sql`、`sql/module/37-trim-hjl-test-role.sql`、`sql/module/38-agent-knowledge-vector-expansion.sql`、`sql/module/39-agent-tool-message-link.sql`、`sql/module/40-agent-knowledge-management.sql`、`sql/module/41-agent-platform-help.sql`、`sql/module/42-material.sql`。以上脚本均可重复执行。
 
 ## 七、编码约定
 
@@ -220,6 +220,9 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 | `docs/03-接口设计说明书.md` | 接口约定与业务规则 |
 | `docs/04-本地开发指导书.md` | 环境、启动、登录调试 |
 | `docs/05-代码生成与模块落地说明.md` | 从建表到页面的完整落地过程与已验证结论 |
+| `docs/06-智能助手页面视觉设计方案.md` | 智能助手页面布局、主题与交互视觉规范 |
+| `docs/07-系统功能介绍手册.md` | 面向答辩与交付的系统定位、功能、技术特点和使用边界 |
+| `docs/08-系统操作手册.md` | 面向学生、教师、管理员的完整操作步骤、常见问题与演示流程 |
 | `docs/代码生成配置-最终版.md` | 各表生成器配置对照表 |
 | `docs/数据库设计说明-核心版.md`、`docs/数据库设计说明.md` | 表结构设计（命名以《命名规范-最终版》为准） |
 | `docs/页面原型说明.md` | 页面原型 |
