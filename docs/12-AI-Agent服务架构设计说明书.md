@@ -463,10 +463,12 @@ requestId -> sessionId -> traceId -> toolCallId
 - Java 可用实验室/设备查询工具和对应 LangChain 工具封装。
 - 预约时间、人数、实验和设备需求的结构化抽取。
 - 结合历史消息补全预约参数，参数完整后调用可用实验室工具。
+- Java 预约草稿创建、归属校验、幂等、过期、查询和取消。
+- 草稿确认调用原预约 Service 重新执行业务校验，重复确认不重复写入。
+- Python `createReservationDraft` LangChain 工具。
 
 尚未完成：
 
 - SSE 流式转发。
 - Dify 工作流。
-- 预约草稿接口和确认流程。
 - Agent 前端页面。

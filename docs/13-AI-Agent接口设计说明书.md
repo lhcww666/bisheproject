@@ -620,12 +620,15 @@ Dify 输出必须经过 Spring Boot 归一化后才能发送给前端。
 | GET | `/internal/agent/tools/credit/current` | 已实现 |
 | POST | `/internal/agent/tools/rooms/available` | 已实现 |
 | POST | `/internal/agent/tools/devices/available` | 已实现 |
+| POST | `/internal/agent/tools/reservation-drafts` | 已实现 |
+| GET | `/module/agent/drafts/{draftId}` | 已实现 |
+| POST | `/module/agent/drafts/{draftId}/cancel` | 已实现 |
+| POST | `/module/agent/drafts/{draftId}/confirm` | 已实现 |
 
 设计完成、尚未实现：
 
 - SSE 流式对话。
 - FastAPI 流式对话和预约分析接口。
 - Dify 工作流调用。
-- 预约草稿确认。
-- 内部业务工具。
+- 其他内部业务工具，例如审核结果和设备状态查询。
 - Agent 审计查询页面。
