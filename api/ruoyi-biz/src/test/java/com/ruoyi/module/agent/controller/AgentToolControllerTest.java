@@ -6,9 +6,13 @@ import com.ruoyi.module.agent.domain.AgentContextClaims;
 import com.ruoyi.module.agent.service.AgentContextService;
 import com.ruoyi.module.agent.service.AgentToolAuditService;
 import com.ruoyi.module.agent.service.AgentToolPolicyService;
+import com.ruoyi.module.credit.domain.CreditSummary;
+import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
+import com.ruoyi.module.safety.domain.SafetyExamStatusView;
+import com.ruoyi.module.safety.service.ISafetyExamService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,11 +34,15 @@ class AgentToolControllerTest
         AgentToolPolicyService policyService = mock(AgentToolPolicyService.class);
         AgentToolAuditService auditService = mock(AgentToolAuditService.class);
         IReservationService reservationService = mock(IReservationService.class);
+        ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
+        ICreditService creditService = mock(ICreditService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
                 auditService,
-                reservationService);
+                reservationService,
+                safetyExamService,
+                creditService);
         AgentContextClaims context = new AgentContextClaims();
         context.setUserId(7L);
         context.setRole("STUDENT");
@@ -73,5 +81,74 @@ class AgentToolControllerTest
                 eq(null),
                 eq(null),
                 eq(null));
+    }
+
+    @Test
+    void queriesSafetyExamStatusForContextUser()
+    {
+        AgentContextService contextService = mock(AgentContextService.class);
+        AgentToolPolicyService policyService = mock(AgentToolPolicyService.class);
+        AgentToolAuditService auditService = mock(AgentToolAuditService.class);
+        IReservationService reservationService = mock(IReservationService.class);
+        ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
+        ICreditService creditService = mock(ICreditService.class);
+        AgentToolController controller = new AgentToolController(
+                contextService,
+                policyService,
+                auditService,
+                reservationService,
+                safetyExamService,
+                creditService);
+        AgentContextClaims context = studentContext();
+        when(contextService.verify("token", "trace-1")).thenReturn(context);
+        SafetyExamStatusView status = new SafetyExamStatusView();
+        status.setHasValidPass(true);
+        when(safetyExamService.getStatus(7L)).thenReturn(status);
+
+        AjaxResult result = controller.safetyExamStatus("token", "trace-1");
+
+        assertEquals(200, result.get(AjaxResult.CODE_TAG));
+        verify(policyService).requireAllowed("STUDENT", "checkSafetyExamStatus");
+        verify(safetyExamService).getStatus(7L);
+    }
+
+    @Test
+    void queriesCurrentCreditForContextUser()
+    {
+        AgentContextService contextService = mock(AgentContextService.class);
+        AgentToolPolicyService policyService = mock(AgentToolPolicyService.class);
+        AgentToolAuditService auditService = mock(AgentToolAuditService.class);
+        IReservationService reservationService = mock(IReservationService.class);
+        ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
+        ICreditService creditService = mock(ICreditService.class);
+        AgentToolController controller = new AgentToolController(
+                contextService,
+                policyService,
+                auditService,
+                reservationService,
+                safetyExamService,
+                creditService);
+        AgentContextClaims context = studentContext();
+        when(contextService.verify("token", "trace-1")).thenReturn(context);
+        CreditSummary summary = new CreditSummary();
+        summary.setScore(100);
+        summary.setMinScore(60);
+        summary.setCanBook(true);
+        when(creditService.getSummary(7L)).thenReturn(summary);
+
+        AjaxResult result = controller.currentCredit("token", "trace-1");
+
+        assertEquals(200, result.get(AjaxResult.CODE_TAG));
+        verify(policyService).requireAllowed("STUDENT", "queryMyCredit");
+        verify(creditService).getSummary(7L);
+    }
+
+    private AgentContextClaims studentContext()
+    {
+        AgentContextClaims context = new AgentContextClaims();
+        context.setUserId(7L);
+        context.setRole("STUDENT");
+        context.setTraceId("trace-1");
+        return context;
     }
 }

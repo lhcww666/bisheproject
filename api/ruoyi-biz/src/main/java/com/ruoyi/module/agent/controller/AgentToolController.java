@@ -11,9 +11,13 @@ import com.ruoyi.module.agent.domain.AgentReservationSummary;
 import com.ruoyi.module.agent.service.AgentContextService;
 import com.ruoyi.module.agent.service.AgentToolPolicyService;
 import com.ruoyi.module.agent.service.AgentToolAuditService;
+import com.ruoyi.module.credit.domain.CreditSummary;
+import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
+import com.ruoyi.module.safety.domain.SafetyExamStatusView;
+import com.ruoyi.module.safety.service.ISafetyExamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -41,6 +45,10 @@ public class AgentToolController extends BaseController
     private final AgentToolAuditService auditService;
 
     private final IReservationService reservationService;
+
+    private final ISafetyExamService safetyExamService;
+
+    private final ICreditService creditService;
 
     @GetMapping("/reservations/my")
     public AjaxResult myReservations(
@@ -95,6 +103,82 @@ public class AgentToolController extends BaseController
                     requestId,
                     "queryMyReservations",
                     arguments,
+                    "AGENT_TOOL_FAILED",
+                    exception.getMessage(),
+                    elapsedMs(startedAt));
+            throw exception;
+        }
+    }
+
+    @GetMapping("/safety-exam/status")
+    public AjaxResult safetyExamStatus(
+            @RequestHeader(value = "X-Agent-Context", required = false) String contextToken,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId)
+    {
+        long startedAt = System.nanoTime();
+        AgentContextClaims context = null;
+        try
+        {
+            context = contextService.verify(contextToken, requestId);
+            toolPolicyService.requireAllowed(context.getRole(), "checkSafetyExamStatus");
+            SafetyExamStatusView status = safetyExamService.getStatus(context.getUserId());
+            auditService.success(
+                    context,
+                    requestId,
+                    "checkSafetyExamStatus",
+                    Map.of(),
+                    Map.of("hasValidPass", Boolean.TRUE.equals(status.getHasValidPass())),
+                    elapsedMs(startedAt));
+            return success(status);
+        }
+        catch (ServiceException exception)
+        {
+            auditService.failure(
+                    context,
+                    requestId,
+                    "checkSafetyExamStatus",
+                    Map.of(),
+                    "AGENT_TOOL_FAILED",
+                    exception.getMessage(),
+                    elapsedMs(startedAt));
+            throw exception;
+        }
+    }
+
+    @GetMapping("/credit/current")
+    public AjaxResult currentCredit(
+            @RequestHeader(value = "X-Agent-Context", required = false) String contextToken,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId)
+    {
+        long startedAt = System.nanoTime();
+        AgentContextClaims context = null;
+        try
+        {
+            context = contextService.verify(contextToken, requestId);
+            toolPolicyService.requireAllowed(context.getRole(), "queryMyCredit");
+            CreditSummary summary = creditService.getSummary(context.getUserId());
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("score", summary.getScore());
+            data.put("minScore", summary.getMinScore());
+            data.put("canBook", summary.getCanBook());
+            auditService.success(
+                    context,
+                    requestId,
+                    "queryMyCredit",
+                    Map.of(),
+                    Map.of(
+                            "score", summary.getScore(),
+                            "canBook", Boolean.TRUE.equals(summary.getCanBook())),
+                    elapsedMs(startedAt));
+            return success(data);
+        }
+        catch (ServiceException exception)
+        {
+            auditService.failure(
+                    context,
+                    requestId,
+                    "queryMyCredit",
+                    Map.of(),
                     "AGENT_TOOL_FAILED",
                     exception.getMessage(),
                     elapsedMs(startedAt));
