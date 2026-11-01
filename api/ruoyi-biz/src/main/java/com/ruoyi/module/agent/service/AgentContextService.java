@@ -1,6 +1,7 @@
 package com.ruoyi.module.agent.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.agent.config.AgentProperties;
@@ -125,6 +126,16 @@ public class AgentContextService
         }
     }
 
+    public AgentContextClaims verify(String token, String requestId)
+    {
+        AgentContextClaims claims = verify(token);
+        if (StringUtils.isEmpty(requestId) || !requestId.equals(claims.getTraceId()))
+        {
+            throw invalidContext();
+        }
+        return claims;
+    }
+
     private String requireSecret()
     {
         String secret = properties.getContextSecret();
@@ -162,6 +173,6 @@ public class AgentContextService
 
     private ServiceException invalidContext()
     {
-        return new ServiceException("Agent 服务上下文无效或已过期");
+        return new ServiceException("Agent 服务上下文无效或已过期", HttpStatus.UNAUTHORIZED);
     }
 }

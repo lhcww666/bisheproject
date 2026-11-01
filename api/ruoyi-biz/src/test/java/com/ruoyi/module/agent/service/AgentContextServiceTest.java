@@ -47,6 +47,15 @@ class AgentContextServiceTest
     }
 
     @Test
+    void rejectMismatchedRequestId()
+    {
+        AgentContextService service = serviceAt(NOW);
+        String token = service.issue(7L, "student", 101L, "trace-1", List.of());
+
+        assertThrows(ServiceException.class, () -> service.verify(token, "trace-2"));
+    }
+
+    @Test
     void rejectExpiredContext()
     {
         AgentContextService issuer = serviceAt(NOW);

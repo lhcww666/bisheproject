@@ -205,8 +205,23 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper,Reserv
     @Override
     public IPage<ReservationView> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime)
     {
+        return pageMyReservationForUser(page, SecurityUtils.getUserId(), status, startTime, endTime);
+    }
+
+    @Override
+    public IPage<ReservationView> pageMyReservationForUser(
+            Page<Reservation> page,
+            Long userId,
+            String status,
+            Date startTime,
+            Date endTime)
+    {
+        if (userId == null)
+        {
+            throw new ServiceException("用户身份不能为空");
+        }
         QueryWrapper<Reservation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("applicant_id", SecurityUtils.getUserId());
+        queryWrapper.eq("applicant_id", userId);
         if (StringUtils.isNotEmpty(status))
         {
             queryWrapper.eq("status", status);

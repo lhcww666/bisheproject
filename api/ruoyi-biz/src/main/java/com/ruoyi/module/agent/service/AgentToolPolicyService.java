@@ -1,5 +1,7 @@
 package com.ruoyi.module.agent.service;
 
+import com.ruoyi.common.constant.HttpStatus;
+import com.ruoyi.common.exception.ServiceException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -43,5 +45,13 @@ public class AgentToolPolicyService
     public List<String> allowedTools(String role)
     {
         return TOOLS_BY_ROLE.getOrDefault(role, TOOLS_BY_ROLE.get("USER"));
+    }
+
+    public void requireAllowed(String role, String toolName)
+    {
+        if (!allowedTools(role).contains(toolName))
+        {
+            throw new ServiceException("当前角色无权调用该工具", HttpStatus.FORBIDDEN);
+        }
     }
 }

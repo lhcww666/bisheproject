@@ -49,6 +49,16 @@ public interface IReservationService extends IService<Reservation> {
     public IPage<ReservationView> pageMyReservation(Page<Reservation> page, String status, Date startTime, Date endTime);
 
     /**
+     * 按显式用户查询本人预约，供受信任的内部 Agent 工具使用。
+     */
+    public IPage<ReservationView> pageMyReservationForUser(
+            Page<Reservation> page,
+            Long userId,
+            String status,
+            Date startTime,
+            Date endTime);
+
+    /**
      * 查询指定时段可用的实验室
      *
      * @param userId           当前学生用户主键
