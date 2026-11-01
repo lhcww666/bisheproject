@@ -168,7 +168,9 @@ Python 和 Dify 调用 Spring Boot 内部工具时必须携带：
 
 `GET /module/agent/sessions/{sessionId}/messages`
 
-请求前必须验证会话归属。响应消息中的 `references` 表示知识引用，`toolCalls` 表示脱敏后的工具摘要。
+请求前必须验证会话归属。助手消息的 `referenceJson` 保存知识引用 JSON 数组，
+`toolCalls` 表示脱敏后的工具摘要。前端读取历史消息时需要将 `referenceJson`
+解析为 `citations` 后再展示。
 
 ### 4.5 删除会话
 
@@ -210,7 +212,15 @@ Python 和 Dify 调用 Spring Boot 内部工具时必须携带：
         "error": null
       }
     ],
-    "references": [],
+    "citations": [
+      {
+        "documentId": "f62c4c4f1b2bd8a9",
+        "title": "校园实验室安全基础",
+        "source": "lab-safety.md",
+        "snippet": "电气设备着火时不得直接用水扑救……",
+        "score": 0.91
+      }
+    ],
     "traceId": "trace-20261101-001"
   }
 }
@@ -251,8 +261,11 @@ data: {"type":"tool","toolName":"queryMyReservations","status":"running","toolCa
 
 ```text
 event: citation
-data: {"type":"citation","items":[{"documentId":"doc-01","title":"实验室安全守则","score":0.91}]}
+data: {"type":"citation","sessionId":101,"traceId":"trace-20261101-001","citation":{"documentId":"doc-01","title":"实验室安全守则","source":"lab-safety.md","snippet":"电气设备着火时不得直接用水扑救。","score":0.91}}
 ```
+
+每个可靠知识片段发送一次 `citation` 事件。没有达到相关性阈值时不发送该事件，
+最终回答应明确说明知识库依据不足。
 
 #### 预约草稿
 
@@ -265,7 +278,7 @@ data: {"type":"draft","draftId":"draft-001","status":"PENDING","expiresAt":"2026
 
 ```text
 event: done
-data: {"type":"done","messageId":"9001","traceId":"trace-20261101-001"}
+data: {"type":"done","messageId":"9001","sessionId":101,"traceId":"trace-20261101-001","answer":"……[1]","intent":"SAFETY_KNOWLEDGE","toolCalls":[],"citations":[{"documentId":"doc-01","title":"实验室安全守则","source":"lab-safety.md","snippet":"电气设备着火时不得直接用水扑救。","score":0.91}],"draft":null,"model":"deepseek-chat"}
 ```
 
 当预约草稿创建成功时，完成事件还会携带 `draft` 对象，前端据此打开确认弹窗；草稿不会因模型或 SSE 完成而自动提交。
@@ -409,6 +422,43 @@ Python 返回与 Gateway 相同语义的 SSE 事件。Spring Boot 可以补充�
 | `ineligible` | 当前用户不满足预约条件 |
 | `no_resource` | 没有可用资源 |
 | `rejected` | 请求不符合受控业务边界 |
+
+### 5.4 安全知识检索
+
+`POST /api/ai/knowledge/search`
+
+供 Python Agent、Dify HTTP 节点或其他内部工作流复用本地知识检索。请求必须携带
+`X-Agent-Context`，且 `sessionId` 必须与签名上下文一致。
+
+请求：
+
+```json
+{
+  "sessionId": 101,
+  "query": "电气设备着火应该怎么处理"
+}
+```
+
+响应：
+
+```json
+{
+  "sessionId": 101,
+  "traceId": "trace-20261101-001",
+  "citations": [
+    {
+      "documentId": "f62c4c4f1b2bd8a9",
+      "title": "校园实验室安全基础",
+      "source": "lab-safety.md",
+      "snippet": "电气设备着火时不得直接用水扑救。",
+      "score": 0.91
+    }
+  ]
+}
+```
+
+该接口只返回知识片段，不生成回答，也不执行预约或其他写操作。没有可靠结果时返回空
+`citations` 数组。
 
 ## 6. Spring Boot 内部受控工具
 

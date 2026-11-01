@@ -105,7 +105,9 @@
 - 封装 DeepSeek 或其他 OpenAI 兼容模型。
 - 定义模型可见的工具名称、描述和参数结构。
 - 生成结构化输出并解析工具调用。
-- 在扩展阶段提供文档加载、切分和向量检索组件。
+- 使用 `langchain-text-splitters` 完成知识文档切片。
+- 当前 Python 路径使用本地 Markdown/TXT 知识目录和中文字符二元组 BM25 检索。
+- 返回知识片段、标题、来源、稳定文档 ID 和相关性分数。
 - 不负责决定最终业务权限。
 
 ### 6.3 LangGraph
@@ -143,7 +145,8 @@ POST /module/agent/chat/stream
   -> 创建 traceId 和签名 Agent 上下文
   -> FastAPI /api/ai/chat/stream
   -> LangGraph 识别意图
-  -> LangChain 选择工具
+  -> 安全知识：检索本地知识片段 -> 仅依据片段生成回答或安全拒答
+  -> 业务/预约：LangChain 选择工具
   -> Spring Boot 内部工具
   -> 业务 Service 执行权限与规则校验
   -> SSE 返回工具状态、引用、消息和完成事件
@@ -314,16 +317,23 @@ Redis 只保存可过期的会话工作状态。MySQL 中的 `chat_message` 是�
 
 ## 12. 知识库与 RAG
 
-第一版权威知识源为 Dify Knowledge：
+当前 Python 引擎使用可离线运行的项目知识目录作为演示知识源：
 
 ```text
-审核后的安全文档
-  -> Dify 知识库导入与切分
-  -> 服务端检索 API
+ai/data/knowledge/**/*.md|txt
+  -> LangChain 递归字符切片
+  -> 中文 BM25 检索
   -> 相关性阈值过滤
   -> 模型根据片段生成回答
   -> 返回标题、片段和引用信息
 ```
+
+本地知识检索不依赖 Embedding 服务，便于离线演示。Spring Boot 将 citation 写入
+`agent_chat_message.reference_json`，刷新会话后仍可恢复引用。
+
+Dify 接入后可将 `ai/data/knowledge` 中经审核的文档导入 Dify Knowledge，并让 Dify
+HTTP 节点调用 FastAPI `/api/ai/knowledge/search`，复用同一检索与引用结构。两类引擎
+可以在不同会话中并存，但同一请求只使用一个知识源，避免重复召回和引用冲突。
 
 回答约束：
 
@@ -469,7 +479,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 智能助手前端会话栏、消息区、同步聊天和意图展示。
 - 服务未连接、请求失败和手动刷新状态。
 - 同步对话中展示工具名称及成功、失败状态。
-- FastAPI `start/tool/message.delta/done/error` SSE 事件。
+- FastAPI `start/tool/citation/message.delta/done/error` SSE 事件。
 - Java Gateway 异步代理 SSE，并在完成后保存助手消息。
 - 前端 fetch 流解析、消息增量更新和工具状态即时追加。
 - 用户明确选择可用实验室后，LangGraph 匹配设备和房间并创建待确认草稿。
@@ -479,8 +489,13 @@ requestId -> sessionId -> traceId -> toolCallId
 - Java 同步对话支持 `engine=dify`，按安全/预约场景选择对应工作流密钥。
 - Python 结构化预约分析接口和多状态 Dify 预约分支工作流。
 - 前端新建会话可选择 Python 或 Dify，Python 使用 SSE，Dify 使用同步 Workflow。
+- 本地 Markdown/TXT 知识加载、LangChain 切片、中文 BM25 检索和相关性阈值过滤。
+- LangGraph 安全知识检索节点；有可靠片段时基于片段回答，无结果时不调用模型并安全拒答。
+- FastAPI `/api/ai/knowledge/search` 独立检索接口，可供 Dify 或其他工作流复用。
+- Python 同步响应、SSE `citation` 事件和 Java Gateway 均透传 `citations`。
+- 助手消息通过 `reference_json` 持久化知识引用，前端支持引用详情和历史恢复。
 
 尚未完成：
 
 - Dify 工作流实际导入、安全知识库绑定和运行联调。
-- Agent 知识引用展示。
+- BGE、pgvector 或 Qdrant 等向量检索方案的对比实验。
