@@ -331,6 +331,20 @@ ai/data/knowledge/**/*.md|txt
 本地知识检索不依赖 Embedding 服务，便于离线演示。Spring Boot 将 citation 写入
 `agent_chat_message.reference_json`，刷新会话后仍可恢复引用。
 
+知识文件可通过简单 front matter 声明可见角色：
+
+```markdown
+---
+title: 管理员安全处置
+allowed_roles: ADMIN, TEACHER
+---
+```
+
+允许角色固定为 `STUDENT`、`TEACHER`、`ADMIN`、`USER`。未声明
+`allowed_roles` 的文档视为对所有已登录角色公开；角色只能来自 Spring Boot
+签发的 `X-Agent-Context`。不可见文档在 BM25 打分前即被排除，不会通过片段、
+来源或分数泄露。
+
 Dify 接入后可将 `ai/data/knowledge` 中经审核的文档导入 Dify Knowledge，并让 Dify
 HTTP 节点调用 FastAPI `/api/ai/knowledge/search`，复用同一检索与引用结构。两类引擎
 可以在不同会话中并存，但同一请求只使用一个知识源，避免重复召回和引用冲突。
@@ -490,6 +504,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - Python 结构化预约分析接口和多状态 Dify 预约分支工作流。
 - 前端新建会话可选择 Python 或 Dify，Python 使用 SSE，Dify 使用同步 Workflow。
 - 本地 Markdown/TXT 知识加载、LangChain 切片、中文 BM25 检索和相关性阈值过滤。
+- 知识文档 `allowed_roles` 元数据校验，以及在 BM25 打分前执行角色可见性过滤。
 - LangGraph 安全知识检索节点；有可靠片段时基于片段回答，无结果时不调用模型并安全拒答。
 - FastAPI `/api/ai/knowledge/search` 独立检索接口，可供 Dify 或其他工作流复用。
 - Python 同步响应、SSE `citation` 事件和 Java Gateway 均透传 `citations`。

@@ -428,7 +428,8 @@ Python 返回与 Gateway 相同语义的 SSE 事件。Spring Boot 可以补充�
 `POST /api/ai/knowledge/search`
 
 供 Python Agent、Dify HTTP 节点或其他内部工作流复用本地知识检索。请求必须携带
-`X-Agent-Context`，且 `sessionId` 必须与签名上下文一致。
+`X-Agent-Context`，且 `sessionId` 必须与签名上下文一致。服务只使用上下文中的
+`role` 检索，不接受调用方传入角色覆盖值。
 
 请求：
 
@@ -459,6 +460,19 @@ Python 返回与 Gateway 相同语义的 SSE 事件。Spring Boot 可以补充�
 
 该接口只返回知识片段，不生成回答，也不执行预约或其他写操作。没有可靠结果时返回空
 `citations` 数组。
+
+知识文件可以声明可见角色：
+
+```markdown
+---
+title: 管理员安全处置
+allowed_roles: ADMIN, TEACHER
+---
+```
+
+- 角色值只允许 `STUDENT`、`TEACHER`、`ADMIN`、`USER`。
+- 未声明 `allowed_roles` 时，文档对所有已登录角色公开。
+- 不可见文档不参与 BM25 打分，不得返回标题、来源、摘要或相关性分数。
 
 ## 6. Spring Boot 内部受控工具
 
