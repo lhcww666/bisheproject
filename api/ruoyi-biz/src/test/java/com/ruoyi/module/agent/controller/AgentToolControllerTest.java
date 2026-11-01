@@ -8,6 +8,7 @@ import com.ruoyi.module.agent.domain.AgentAvailableRoomRequest;
 import com.ruoyi.module.agent.service.AgentContextService;
 import com.ruoyi.module.agent.service.AgentToolAuditService;
 import com.ruoyi.module.agent.service.AgentToolPolicyService;
+import com.ruoyi.module.agent.service.IReservationDraftService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.device.domain.Device;
@@ -41,13 +42,15 @@ class AgentToolControllerTest
         IReservationService reservationService = mock(IReservationService.class);
         ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
         ICreditService creditService = mock(ICreditService.class);
+        IReservationDraftService draftService = mock(IReservationDraftService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
                 auditService,
                 reservationService,
                 safetyExamService,
-                creditService);
+                creditService,
+                draftService);
         AgentContextClaims context = new AgentContextClaims();
         context.setUserId(7L);
         context.setRole("STUDENT");
@@ -97,13 +100,15 @@ class AgentToolControllerTest
         IReservationService reservationService = mock(IReservationService.class);
         ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
         ICreditService creditService = mock(ICreditService.class);
+        IReservationDraftService draftService = mock(IReservationDraftService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
                 auditService,
                 reservationService,
                 safetyExamService,
-                creditService);
+                creditService,
+                draftService);
         AgentContextClaims context = studentContext();
         when(contextService.verify("token", "trace-1")).thenReturn(context);
         SafetyExamStatusView status = new SafetyExamStatusView();
@@ -126,13 +131,15 @@ class AgentToolControllerTest
         IReservationService reservationService = mock(IReservationService.class);
         ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
         ICreditService creditService = mock(ICreditService.class);
+        IReservationDraftService draftService = mock(IReservationDraftService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
                 auditService,
                 reservationService,
                 safetyExamService,
-                creditService);
+                creditService,
+                draftService);
         AgentContextClaims context = studentContext();
         when(contextService.verify("token", "trace-1")).thenReturn(context);
         CreditSummary summary = new CreditSummary();
@@ -157,13 +164,15 @@ class AgentToolControllerTest
         IReservationService reservationService = mock(IReservationService.class);
         ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
         ICreditService creditService = mock(ICreditService.class);
+        IReservationDraftService draftService = mock(IReservationDraftService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
                 auditService,
                 reservationService,
                 safetyExamService,
-                creditService);
+                creditService,
+                draftService);
         AgentContextClaims context = studentContext();
         when(contextService.verify("token", "trace-1")).thenReturn(context);
         Room room = new Room();
@@ -200,13 +209,15 @@ class AgentToolControllerTest
         IReservationService reservationService = mock(IReservationService.class);
         ISafetyExamService safetyExamService = mock(ISafetyExamService.class);
         ICreditService creditService = mock(ICreditService.class);
+        IReservationDraftService draftService = mock(IReservationDraftService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
                 auditService,
                 reservationService,
                 safetyExamService,
-                creditService);
+                creditService,
+                draftService);
         AgentContextClaims context = studentContext();
         when(contextService.verify("token", "trace-1")).thenReturn(context);
         Device device = new Device();

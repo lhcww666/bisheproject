@@ -26,6 +26,8 @@ public class AgentProperties
 
     private long pythonTimeoutSeconds = 60;
 
+    private long draftTtlMinutes = 30;
+
     public String normalizedEngine()
     {
         return engine == null || engine.isBlank() ? "python" : engine.trim().toLowerCase();

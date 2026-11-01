@@ -11,10 +11,12 @@ import com.ruoyi.module.agent.domain.AgentAvailableDeviceRequest;
 import com.ruoyi.module.agent.domain.AgentAvailableRoomRequest;
 import com.ruoyi.module.agent.domain.AgentDeviceSummary;
 import com.ruoyi.module.agent.domain.AgentReservationSummary;
+import com.ruoyi.module.agent.domain.AgentReservationDraftCreateRequest;
 import com.ruoyi.module.agent.domain.AgentRoomSummary;
 import com.ruoyi.module.agent.service.AgentContextService;
 import com.ruoyi.module.agent.service.AgentToolPolicyService;
 import com.ruoyi.module.agent.service.AgentToolAuditService;
+import com.ruoyi.module.agent.service.IReservationDraftService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
 import com.ruoyi.module.device.domain.Device;
@@ -61,6 +63,8 @@ public class AgentToolController extends BaseController
     private final ISafetyExamService safetyExamService;
 
     private final ICreditService creditService;
+
+    private final IReservationDraftService reservationDraftService;
 
     @GetMapping("/reservations/my")
     public AjaxResult myReservations(
@@ -279,6 +283,56 @@ public class AgentToolController extends BaseController
                     context,
                     requestId,
                     "queryAvailableDevices",
+                    arguments,
+                    "AGENT_TOOL_FAILED",
+                    exception.getMessage(),
+                    elapsedMs(startedAt));
+            throw exception;
+        }
+    }
+
+    @PostMapping("/reservation-drafts")
+    public AjaxResult createReservationDraft(
+            @RequestHeader(value = "X-Agent-Context", required = false) String contextToken,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody AgentReservationDraftCreateRequest request)
+    {
+        long startedAt = System.nanoTime();
+        AgentContextClaims context = null;
+        Map<String, Object> arguments = Map.of(
+                "sessionId", request.getSessionId(),
+                "roomId", request.getRoomId(),
+                "startTime", request.getStartTime(),
+                "endTime", request.getEndTime(),
+                "participantCount", request.getParticipantCount());
+        try
+        {
+            context = contextService.verify(contextToken, requestId);
+            toolPolicyService.requireAllowed(context.getRole(), "createReservationDraft");
+            if (!context.getSessionId().equals(request.getSessionId()))
+            {
+                throw new ServiceException("预约草稿会话上下文不匹配");
+            }
+            var draft = reservationDraftService.create(
+                    context.getUserId(),
+                    idempotencyKey,
+                    request);
+            auditService.success(
+                    context,
+                    requestId,
+                    "createReservationDraft",
+                    arguments,
+                    Map.of("draftId", draft.getId(), "status", draft.getStatus()),
+                    elapsedMs(startedAt));
+            return success(draft);
+        }
+        catch (ServiceException exception)
+        {
+            auditService.failure(
+                    context,
+                    requestId,
+                    "createReservationDraft",
                     arguments,
                     "AGENT_TOOL_FAILED",
                     exception.getMessage(),
