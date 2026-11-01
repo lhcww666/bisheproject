@@ -137,6 +137,8 @@ bishe:
     python-base-url: http://127.0.0.1:8091
     dify-base-url:
     dify-api-key: ${DIFY_API_KEY:}
+    dify-safety-api-key: ${DIFY_SAFETY_API_KEY:}
+    dify-reservation-api-key: ${DIFY_RESERVATION_API_KEY:}
     context-secret: ${AGENT_CONTEXT_SECRET:}
     context-ttl-seconds: 300
     python-timeout-seconds: 60

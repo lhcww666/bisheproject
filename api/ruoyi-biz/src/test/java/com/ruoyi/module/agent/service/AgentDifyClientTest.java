@@ -47,6 +47,7 @@ class AgentDifyClientTest
         context.setTraceId("trace-1");
 
         DifyWorkflowResult result = client.runWorkflow(
+                "safety",
                 context,
                 "signed-context",
                 "你好",

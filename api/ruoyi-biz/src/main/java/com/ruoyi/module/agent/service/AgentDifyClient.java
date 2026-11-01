@@ -50,13 +50,15 @@ public class AgentDifyClient
     }
 
     public DifyWorkflowResult runWorkflow(
+            String workflowKey,
             AgentContextClaims context,
             String contextToken,
             String query,
             List<AgentHistoryItem> history)
     {
+        String apiKey = resolveApiKey(workflowKey);
         if (StringUtils.isEmpty(properties.getDifyBaseUrl())
-                || StringUtils.isEmpty(properties.getDifyApiKey()))
+                || StringUtils.isEmpty(apiKey))
         {
             throw unavailable("Dify 服务地址或 API Key 未配置");
         }
@@ -67,7 +69,7 @@ public class AgentDifyClient
             inputs.put("session_id", String.valueOf(context.getSessionId()));
             inputs.put("trace_id", context.getTraceId());
             inputs.put("role", context.getRole());
-            inputs.put("history", history);
+            inputs.put("history", objectMapper.writeValueAsString(history));
             inputs.put("agent_context", contextToken);
 
             Map<String, Object> body = new LinkedHashMap<>();
@@ -78,7 +80,7 @@ public class AgentDifyClient
             String baseUrl = properties.getDifyBaseUrl().replaceAll("/+$", "");
             HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/v1/workflows/run"))
                     .timeout(Duration.ofSeconds(Math.max(properties.getDifyTimeoutSeconds(), 1)))
-                    .header("Authorization", "Bearer " + properties.getDifyApiKey())
+                    .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
@@ -120,6 +122,21 @@ public class AgentDifyClient
         {
             throw unavailable("Dify 工作流调用失败");
         }
+    }
+
+    private String resolveApiKey(String workflowKey)
+    {
+        if ("safety".equalsIgnoreCase(workflowKey)
+                && StringUtils.isNotEmpty(properties.getDifySafetyApiKey()))
+        {
+            return properties.getDifySafetyApiKey();
+        }
+        if ("reservation".equalsIgnoreCase(workflowKey)
+                && StringUtils.isNotEmpty(properties.getDifyReservationApiKey()))
+        {
+            return properties.getDifyReservationApiKey();
+        }
+        return properties.getDifyApiKey();
     }
 
     private String readErrorMessage(String body, int statusCode)

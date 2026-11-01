@@ -22,6 +22,10 @@ public class AgentProperties
 
     private String difyApiKey;
 
+    private String difySafetyApiKey;
+
+    private String difyReservationApiKey;
+
     private String contextSecret;
 
     private long contextTtlSeconds = 300;
