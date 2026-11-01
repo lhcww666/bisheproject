@@ -98,6 +98,9 @@ public class AgentChatService
                 request.getSessionId(),
                 pythonResponse.getAnswer(),
                 pythonResponse.getIntent(),
+                pythonResponse.getToolCalls() == null
+                        ? List.of()
+                        : pythonResponse.getToolCalls(),
                 traceId,
                 pythonResponse.getModel());
     }

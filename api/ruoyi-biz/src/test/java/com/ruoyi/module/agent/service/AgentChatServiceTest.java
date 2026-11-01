@@ -7,6 +7,7 @@ import com.ruoyi.module.agent.domain.ChatMessage;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.domain.PythonChatRequest;
 import com.ruoyi.module.agent.domain.PythonChatResponse;
+import com.ruoyi.module.agent.domain.AgentToolCallSummary;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -59,6 +60,10 @@ class AgentChatServiceTest
                     PythonChatResponse response = new PythonChatResponse();
                     response.setAnswer("模型回答");
                     response.setIntent("GENERAL");
+                    AgentToolCallSummary toolCall = new AgentToolCallSummary();
+                    toolCall.setToolName("queryMyReservations");
+                    toolCall.setStatus("succeeded");
+                    response.setToolCalls(List.of(toolCall));
                     response.setSessionId(request.getSessionId());
                     response.setTraceId(((String) invocation.getArgument(1)));
                     response.setModel("test-model");
@@ -73,6 +78,7 @@ class AgentChatServiceTest
         assertEquals(205L, result.getMessageId());
         assertEquals("模型回答", result.getAnswer());
         assertEquals("GENERAL", result.getIntent());
+        assertEquals("queryMyReservations", result.getToolCalls().get(0).getToolName());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("USER"), eq("你好"), any());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("ASSISTANT"), eq("模型回答"), any());
     }

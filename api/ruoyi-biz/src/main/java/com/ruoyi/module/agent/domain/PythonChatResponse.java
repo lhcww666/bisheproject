@@ -2,6 +2,8 @@ package com.ruoyi.module.agent.domain;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * FastAPI 同步对话响应。
  */
@@ -11,6 +13,8 @@ public class PythonChatResponse
     private String answer;
 
     private String intent;
+
+    private List<AgentToolCallSummary> toolCalls;
 
     private Long sessionId;
 
