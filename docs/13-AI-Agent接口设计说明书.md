@@ -215,8 +215,8 @@ Python 和 Dify 调用 Spring Boot 内部工具时必须携带：
     "citations": [
       {
         "documentId": "f62c4c4f1b2bd8a9",
-        "title": "校园实验室安全基础",
-        "source": "lab-safety.md",
+        "title": "校园实验室火灾与电气安全",
+        "source": "fire-safety.md",
         "snippet": "电气设备着火时不得直接用水扑救……",
         "score": 0.91
       }
@@ -261,7 +261,7 @@ data: {"type":"tool","toolName":"queryMyReservations","status":"running","toolCa
 
 ```text
 event: citation
-data: {"type":"citation","sessionId":101,"traceId":"trace-20261101-001","citation":{"documentId":"doc-01","title":"实验室安全守则","source":"lab-safety.md","snippet":"电气设备着火时不得直接用水扑救。","score":0.91}}
+data: {"type":"citation","sessionId":101,"traceId":"trace-20261101-001","citation":{"documentId":"doc-01","title":"校园实验室火灾与电气安全","source":"fire-safety.md","snippet":"电气设备着火时不得直接用水扑救。","score":0.91}}
 ```
 
 每个可靠知识片段发送一次 `citation` 事件。没有达到相关性阈值时不发送该事件，
@@ -278,7 +278,7 @@ data: {"type":"draft","draftId":"draft-001","status":"PENDING","expiresAt":"2026
 
 ```text
 event: done
-data: {"type":"done","messageId":"9001","sessionId":101,"traceId":"trace-20261101-001","answer":"……[1]","intent":"SAFETY_KNOWLEDGE","toolCalls":[],"citations":[{"documentId":"doc-01","title":"实验室安全守则","source":"lab-safety.md","snippet":"电气设备着火时不得直接用水扑救。","score":0.91}],"draft":null,"model":"deepseek-chat"}
+data: {"type":"done","messageId":"9001","sessionId":101,"traceId":"trace-20261101-001","answer":"……[1]","intent":"SAFETY_KNOWLEDGE","toolCalls":[],"citations":[{"documentId":"doc-01","title":"校园实验室火灾与电气安全","source":"fire-safety.md","snippet":"电气设备着火时不得直接用水扑救。","score":0.91}],"draft":null,"model":"deepseek-chat"}
 ```
 
 当预约草稿创建成功时，完成事件还会携带 `draft` 对象，前端据此打开确认弹窗；草稿不会因模型或 SSE 完成而自动提交。
@@ -449,8 +449,8 @@ Python 返回与 Gateway 相同语义的 SSE 事件。Spring Boot 可以补充�
   "citations": [
     {
       "documentId": "f62c4c4f1b2bd8a9",
-      "title": "校园实验室安全基础",
-      "source": "lab-safety.md",
+      "title": "校园实验室火灾与电气安全",
+      "source": "fire-safety.md",
       "snippet": "电气设备着火时不得直接用水扑救。",
       "score": 0.91
     }
@@ -458,8 +458,8 @@ Python 返回与 Gateway 相同语义的 SSE 事件。Spring Boot 可以补充�
 }
 ```
 
-该接口只返回知识片段，不生成回答，也不执行预约或其他写操作。没有可靠结果时返回空
-`citations` 数组。
+该接口只返回知识片段，不生成回答，也不执行预约或其他写操作。没有可靠结果，
+或查询词覆盖率低于 `AI_KNOWLEDGE_MIN_COVERAGE` 时，返回空 `citations` 数组。
 
 知识文件可以声明可见角色：
 

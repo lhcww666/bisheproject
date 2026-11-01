@@ -345,6 +345,29 @@ allowed_roles: ADMIN, TEACHER
 签发的 `X-Agent-Context`。不可见文档在 BM25 打分前即被排除，不会通过片段、
 来源或分数泄露。
 
+中文检索使用二元组而不是单字作为主要词项，并要求查询词覆盖率达到
+`AI_KNOWLEDGE_MIN_COVERAGE`（默认 `0.15`）。该阈值用于过滤只命中一个常见词、
+但整体与问题无关的文档，降低无关问题被召回的概率。
+
+离线评测集位于 `ai/evaluation/rag_cases.jsonl`，包含 25 条用例：
+
+- 15 条公开安全知识查询。
+- 5 条角色可见性查询。
+- 5 条知识库外问题，用于验证无依据拒答。
+
+运行命令：
+
+```powershell
+cd ai
+.\.venv\Scripts\python.exe -m evaluation.run_rag_eval
+```
+
+当前基线为 25/25 通过，Top-1、召回、拒答和角色隔离均为 100%，MRR 为 1.0。
+该结果只代表当前小型人工评测集上的离线检索表现，不代表开放世界问答泛化能力。
+
+评测脚本不调用大模型，只检查检索、引用来源、角色隔离和拒答，因此可以在离线环境
+稳定复现。
+
 Dify 接入后可将 `ai/data/knowledge` 中经审核的文档导入 Dify Knowledge，并让 Dify
 HTTP 节点调用 FastAPI `/api/ai/knowledge/search`，复用同一检索与引用结构。两类引擎
 可以在不同会话中并存，但同一请求只使用一个知识源，避免重复召回和引用冲突。
@@ -437,6 +460,11 @@ requestId -> sessionId -> traceId -> toolCallId
 | 越权拦截率 | 越权场景是否全部拒绝 |
 | 响应时间 | 模型、检索、工具和总链路耗时 |
 | 调用成本 | 模型 token 和平台调用成本 |
+| RAG Top-1 准确率 | 可回答问题的首条引用是否来自预期文档 |
+| RAG 召回命中率 | 预期文档是否出现在引用列表中 |
+| RAG MRR | 预期文档在引用列表中的平均倒数排名 |
+| RAG 拒答准确率 | 知识库外问题是否返回空引用并拒绝生成 |
+| RAG 角色隔离率 | 无权限文档是否在所有受限角色查询中均未返回 |
 
 ## 17. 实施顺序
 
@@ -505,6 +533,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 前端新建会话可选择 Python 或 Dify，Python 使用 SSE，Dify 使用同步 Workflow。
 - 本地 Markdown/TXT 知识加载、LangChain 切片、中文 BM25 检索和相关性阈值过滤。
 - 知识文档 `allowed_roles` 元数据校验，以及在 BM25 打分前执行角色可见性过滤。
+- 25 条离线 RAG 评测集、查询覆盖率阈值和 Top-1/召回/MRR/拒答/角色隔离指标。
 - LangGraph 安全知识检索节点；有可靠片段时基于片段回答，无结果时不调用模型并安全拒答。
 - FastAPI `/api/ai/knowledge/search` 独立检索接口，可供 Dify 或其他工作流复用。
 - Python 同步响应、SSE `citation` 事件和 Java Gateway 均透传 `citations`。
@@ -514,3 +543,4 @@ requestId -> sessionId -> traceId -> toolCallId
 
 - Dify 工作流实际导入、安全知识库绑定和运行联调。
 - BGE、pgvector 或 Qdrant 等向量检索方案的对比实验。
+- 意图、工具、预约参数和端到端链路的统一评测。
