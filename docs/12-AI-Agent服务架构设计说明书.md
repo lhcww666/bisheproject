@@ -469,9 +469,11 @@ requestId -> sessionId -> traceId -> toolCallId
 - 智能助手前端会话栏、消息区、同步聊天和意图展示。
 - 服务未连接、请求失败和手动刷新状态。
 - 同步对话中展示工具名称及成功、失败状态。
+- FastAPI `start/tool/message.delta/done/error` SSE 事件。
+- Java Gateway 异步代理 SSE，并在完成后保存助手消息。
+- 前端 fetch 流解析、消息增量更新和工具状态即时追加。
 
 尚未完成：
 
-- SSE 流式转发。
 - Dify 工作流。
-- Agent SSE 工具事件、引用展示和预约草稿确认弹窗。
+- Agent 引用展示、预约草稿事件和草稿确认弹窗。
