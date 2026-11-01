@@ -2,6 +2,7 @@ from typing import TypedDict
 
 from schemas.agent import AgentAuthContext
 from schemas.chat import ChatHistoryItem
+from schemas.reservation import ReservationExtraction
 
 
 class AgentState(TypedDict, total=False):
@@ -11,4 +12,7 @@ class AgentState(TypedDict, total=False):
     intent: str
     tool_result: dict | None
     tool_error: str | None
+    reservation: ReservationExtraction
+    missing_fields: list[str]
+    available_rooms: dict | None
     answer: str

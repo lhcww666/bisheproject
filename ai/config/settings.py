@@ -36,6 +36,10 @@ class Settings(BaseSettings):
         default="http://127.0.0.1:8087",
         validation_alias=AliasChoices("AI_JAVA_BASE_URL"),
     )
+    timezone_offset_hours: float = Field(
+        default=8.0,
+        validation_alias=AliasChoices("AI_TIMEZONE_OFFSET_HOURS"),
+    )
     model_config = SettingsConfigDict(
         env_prefix="AI_",
         env_file=".env",

@@ -8,6 +8,11 @@ from agent.state import AgentState
 from config.settings import Settings
 from integrations.java_api import JavaToolError
 from integrations.llm import create_chat_model
+from services.reservation_service import (
+    ReservationExtractionError,
+    ReservationExtractionService,
+    missing_field_message,
+)
 from tools.business_tools import BusinessToolService
 
 BASE_PROMPT = (
@@ -24,8 +29,8 @@ PROMPTS = {
     ),
     "RESERVATION": (
         BASE_PROMPT
-        + "当前可约资源工具尚未接入。不得声称实验室或设备可预约，"
-        "只能帮助用户整理预约需求，并说明提交前必须由系统重新校验。"
+        + "只能根据可约资源工具返回的数据介绍实验室。"
+        "工具没有返回的实验室、设备或时段不能声称可预约。"
     ),
     "SAFETY_KNOWLEDGE": (
         BASE_PROMPT
@@ -46,6 +51,10 @@ class AgentNodes:
         self.settings = settings
         self.model_factory = model_factory
         self.business_tools = business_tools
+        self.reservation_extractor = ReservationExtractionService(
+            settings,
+            model_factory,
+        )
 
     def route_intent(self, state: AgentState) -> dict[str, str]:
         message = state["message"].lower()
@@ -115,7 +124,60 @@ class AgentNodes:
             return {"tool_error": str(exception)}
 
     async def answer_reservation(self, state: AgentState) -> dict[str, str]:
+        if state.get("tool_error"):
+            return {
+                "answer": (
+                    "暂时无法查询可用实验室。"
+                    "请稍后重试，或前往预约页面查询。"
+                )
+            }
+        rooms = state.get("available_rooms")
+        if rooms is not None:
+            prompt = (
+                PROMPTS["RESERVATION"]
+                + "以下是可用实验室工具返回的结果："
+                + json.dumps(rooms, ensure_ascii=False)
+            )
+            return {"answer": await self._answer(state, prompt)}
         return {"answer": await self._answer(state, PROMPTS["RESERVATION"])}
+
+    async def extract_reservation(self, state: AgentState) -> dict:
+        try:
+            reservation, missing_fields = await self.reservation_extractor.extract(
+                state["message"]
+            )
+            return {
+                "reservation": reservation,
+                "missing_fields": missing_fields,
+            }
+        except ReservationExtractionError:
+            return {
+                "missing_fields": ["start_time", "end_time", "participant_count"],
+            }
+
+    def next_reservation_step(self, state: AgentState) -> str:
+        return "ask" if state.get("missing_fields") else "query"
+
+    async def ask_reservation_fields(self, state: AgentState) -> dict[str, str]:
+        return {"answer": missing_field_message(state.get("missing_fields", []))}
+
+    async def query_reservation_rooms(self, state: AgentState) -> dict:
+        if self.business_tools is None:
+            return {"tool_error": "可用实验室工具未配置"}
+        reservation = state["reservation"]
+        try:
+            rooms = await self.business_tools.invoke_tool(
+                state["auth"],
+                "queryAvailableRooms",
+                {
+                    "start_time": reservation.start_time,
+                    "end_time": reservation.end_time,
+                    "participant_count": reservation.participant_count,
+                },
+            )
+            return {"available_rooms": rooms, "tool_error": None}
+        except Exception as exception:
+            return {"tool_error": str(exception)}
 
     async def answer_safety(self, state: AgentState) -> dict[str, str]:
         return {"answer": await self._answer(state, PROMPTS["SAFETY_KNOWLEDGE"])}

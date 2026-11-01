@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import pytest
 from fastapi import HTTPException
@@ -41,17 +42,39 @@ class FakeBusinessTools:
         self.error = error
         self.auth = None
         self.tool_calls = []
+        self.tool_arguments = []
 
     async def invoke_tool(self, auth, tool_name, arguments=None):
         self.auth = auth
         self.tool_calls.append(tool_name)
+        self.tool_arguments.append(arguments)
         if self.error:
             raise JavaToolError(self.error)
         if tool_name == "queryMyCredit":
             return {"score": 100, "minScore": 60, "canBook": True}
         if tool_name == "checkSafetyExamStatus":
             return {"hasValidPass": True}
+        if tool_name == "queryAvailableRooms":
+            return {
+                "list": [{"roomName": "化学实验室 A101"}],
+                "total": 1,
+            }
         return self.result
+
+
+class ReservationFakeModel(FakeModel):
+    def __init__(self, extraction: dict, answer: str = "已找到可用实验室") -> None:
+        super().__init__(answer)
+        self.extraction = extraction
+        self.calls = []
+
+    async def ainvoke(self, messages):
+        self.calls.append(messages)
+        if "预约参数抽取器" in str(messages[0].content):
+            return AIMessage(
+                content=json.dumps(self.extraction, ensure_ascii=False)
+            )
+        return AIMessage(content=self.answer)
 
 
 def settings(api_key: str = "test-key") -> Settings:
@@ -205,3 +228,67 @@ def test_business_query_selects_expected_tools(
     )
 
     assert business_tools.tool_calls == expected_tools
+
+
+def test_complete_reservation_queries_available_rooms() -> None:
+    model = ReservationFakeModel(
+        {
+            "start_time": "2026-11-11 14:00",
+            "end_time": "2026-11-11 16:00",
+            "participant_count": 2,
+            "experiment_name": "萃取实验",
+            "room_type": "化学",
+            "device_names": [],
+        }
+    )
+    business_tools = FakeBusinessTools()
+    service = ChatService(settings(), lambda _: model, business_tools)
+
+    response = asyncio.run(
+        service.chat(
+            ChatRequest(
+                sessionId=101,
+                message="下周三下午两点到四点预约化学实验室，两个人",
+            ),
+            context(),
+        )
+    )
+
+    assert response.intent == "RESERVATION"
+    assert response.answer == "已找到可用实验室"
+    assert business_tools.tool_calls == ["queryAvailableRooms"]
+    assert business_tools.tool_arguments[0] == {
+        "start_time": "2026-11-11 14:00:00",
+        "end_time": "2026-11-11 16:00:00",
+        "participant_count": 2,
+    }
+
+
+def test_incomplete_reservation_asks_without_querying_tools() -> None:
+    model = ReservationFakeModel(
+        {
+            "start_time": None,
+            "end_time": None,
+            "participant_count": 2,
+            "experiment_name": "萃取实验",
+            "room_type": "化学",
+            "device_names": [],
+        }
+    )
+    business_tools = FakeBusinessTools()
+    service = ChatService(settings(), lambda _: model, business_tools)
+
+    response = asyncio.run(
+        service.chat(
+            ChatRequest(
+                sessionId=101,
+                message="我想预约化学实验室，两个人",
+            ),
+            context(),
+        )
+    )
+
+    assert response.intent == "RESERVATION"
+    assert "开始时间" in response.answer
+    assert "结束时间" in response.answer
+    assert business_tools.tool_calls == []
