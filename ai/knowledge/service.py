@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from functools import lru_cache
 from pathlib import Path
 
@@ -22,9 +23,14 @@ class KnowledgeService:
     def search(
         self,
         query: str,
+        roles: Collection[str] | None = None,
         top_k: int | None = None,
     ) -> list[KnowledgeCitation]:
-        return self.retriever.search(query, top_k=top_k or self.top_k)
+        return self.retriever.search(
+            query,
+            roles=roles,
+            top_k=top_k or self.top_k,
+        )
 
 
 @lru_cache

@@ -19,7 +19,10 @@ async def search_knowledge(
     if auth.claims.session_id != request.session_id:
         raise HTTPException(status_code=403, detail="会话上下文不匹配")
     return KnowledgeSearchResponse(
-        citations=service.search(request.query),
+        citations=service.search(
+            request.query,
+            roles={auth.claims.role},
+        ),
         session_id=request.session_id,
         trace_id=auth.claims.trace_id,
     )

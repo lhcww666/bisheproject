@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Collection
 
 import pytest
 from fastapi import HTTPException
@@ -11,9 +12,15 @@ from schemas.knowledge import KnowledgeCitation, KnowledgeSearchRequest
 class FakeKnowledgeService:
     def __init__(self) -> None:
         self.query = ""
+        self.roles: set[str] = set()
 
-    def search(self, query: str) -> list[KnowledgeCitation]:
+    def search(
+        self,
+        query: str,
+        roles: Collection[str] | None = None,
+    ) -> list[KnowledgeCitation]:
         self.query = query
+        self.roles = set(roles or [])
         return [
             KnowledgeCitation(
                 documentId="safety-1",
@@ -54,6 +61,7 @@ def test_knowledge_search_returns_citations() -> None:
     )
 
     assert service.query == "电气着火怎么办"
+    assert service.roles == {"STUDENT"}
     assert response.session_id == 101
     assert response.trace_id == "trace-1"
     assert response.citations[0].document_id == "safety-1"

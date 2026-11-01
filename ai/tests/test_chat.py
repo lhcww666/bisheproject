@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections.abc import Collection
 
 import pytest
 from fastapi import HTTPException
@@ -93,9 +94,15 @@ class FakeKnowledgeService:
     def __init__(self, citations: list[KnowledgeCitation] | None = None) -> None:
         self.citations = citations or []
         self.query = ""
+        self.roles: set[str] = set()
 
-    def search(self, query: str) -> list[KnowledgeCitation]:
+    def search(
+        self,
+        query: str,
+        roles: Collection[str] | None = None,
+    ) -> list[KnowledgeCitation]:
         self.query = query
+        self.roles = set(roles or [])
         return self.citations
 
 
@@ -281,6 +288,7 @@ def test_safety_question_uses_retrieved_knowledge_and_returns_citations() -> Non
     assert response.intent == "SAFETY_KNOWLEDGE"
     assert response.citations == [citation]
     assert knowledge.query == "电气着火可以用水吗"
+    assert knowledge.roles == {"STUDENT"}
     assert "[1] 实验室火灾处置" in model.messages[0].content
     assert citation.snippet in model.messages[0].content
 

@@ -1,3 +1,8 @@
+---
+title: 校园实验室安全基础
+allowed_roles: STUDENT, TEACHER, ADMIN, USER
+---
+
 # 校园实验室安全基础
 
 > 本文件为项目演示知识资料，正式部署时应替换为指导教师或学校审核后的实验室安全制度。

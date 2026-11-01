@@ -385,7 +385,12 @@ class AgentNodes:
     def retrieve_safety_knowledge(self, state: AgentState) -> dict:
         if self.knowledge_service is None:
             return {"citations": []}
-        return {"citations": self.knowledge_service.search(state["message"])}
+        return {
+            "citations": self.knowledge_service.search(
+                state["message"],
+                roles={state["auth"].claims.role},
+            )
+        }
 
     async def answer_safety(self, state: AgentState) -> dict[str, str]:
         citations = state.get("citations", [])
