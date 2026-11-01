@@ -1,0 +1,212 @@
+app:
+  description: 校园实验室预约咨询，调用 FastAPI + LangGraph 完成参数收集和草稿创建。
+  icon: 📅
+  icon_background: '#E7F8F2'
+  mode: workflow
+  name: 实验室预约分析
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: start
+          targetType: http-request
+        id: start-to-python
+        source: start_node
+        sourceHandle: source
+        target: http_node
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: http-request
+          targetType: end
+        id: python-to-end
+        source: http_node
+        sourceHandle: source
+        target: end_node
+        targetHandle: target
+        type: custom
+        zIndex: 0
+    nodes:
+      - data:
+          desc: ''
+          selected: false
+          title: 开始
+          type: start
+          variables:
+            - label: 用户问题
+              max_length: 8000
+              options: []
+              required: true
+              type: text-input
+              variable: query
+            - label: 会话 ID
+              max_length: 40
+              options: []
+              required: true
+              type: text-input
+              variable: session_id
+            - label: 链路 ID
+              max_length: 80
+              options: []
+              required: true
+              type: text-input
+              variable: trace_id
+            - label: 用户角色
+              max_length: 20
+              options: []
+              required: true
+              type: text-input
+              variable: role
+            - label: 历史消息 JSON
+              max_length: null
+              options: []
+              required: false
+              type: paragraph
+              variable: history
+            - label: Agent 服务上下文
+              max_length: null
+              options: []
+              required: true
+              type: paragraph
+              variable: agent_context
+        height: 220
+        id: start_node
+        position:
+          x: 30
+          y: 220
+        positionAbsolute:
+          x: 30
+          y: 220
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          authorization:
+            config: null
+            type: no-auth
+          body:
+            data:
+              - id: body-session
+                key: sessionId
+                type: text
+                value: '{{#start_node.session_id#}}'
+              - id: body-message
+                key: message
+                type: text
+                value: '{{#start_node.query#}}'
+              - id: body-history
+                key: history
+                type: text
+                value: '{{#start_node.history#}}'
+            type: json
+          desc: 调用 Python LangGraph 服务
+          headers: |
+            X-Agent-Context: "{{#start_node.agent_context#}}"
+            X-Request-Id: "{{#start_node.trace_id#}}"
+            Content-Type: "application/json"
+          method: post
+          params: ''
+          retry_config:
+            max_retries: 1
+            retry_enabled: true
+            retry_interval: 100
+          selected: false
+          ssl_verify: true
+          timeout:
+            max_connect_timeout: 10
+            max_read_timeout: 60
+            max_write_timeout: 30
+          title: 调用 Python Agent
+          type: http-request
+          url: 'http://host.docker.internal:8091/api/ai/chat'
+          variables: []
+        height: 120
+        id: http_node
+        position:
+          x: 350
+          y: 220
+        positionAbsolute:
+          x: 350
+          y: 220
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          desc: ''
+          outputs:
+            - value_selector:
+                - http_node
+                - body
+                - answer
+              value_type: string
+              variable: answer
+            - value_selector:
+                - http_node
+                - body
+                - intent
+              value_type: string
+              variable: intent
+            - value_selector:
+                - http_node
+                - body
+                - toolCalls
+              value_type: object
+              variable: tool_calls
+            - value_selector:
+                - http_node
+                - body
+                - draft
+              value_type: object
+              variable: draft
+          selected: false
+          title: 结束
+          type: end
+        height: 120
+        id: end_node
+        position:
+          x: 670
+          y: 220
+        positionAbsolute:
+          x: 670
+          y: 220
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
