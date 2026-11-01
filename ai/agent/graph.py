@@ -18,7 +18,7 @@ def build_agent_graph(
     nodes = AgentNodes(settings, model_factory, business_tools)
     graph = StateGraph(AgentState)
     graph.add_node("route_intent", nodes.route_intent)
-    graph.add_node("query_my_reservations", nodes.query_my_reservations)
+    graph.add_node("query_business_tool", nodes.query_business_tool)
     graph.add_node("business_query", nodes.answer_business_query)
     graph.add_node("reservation", nodes.answer_reservation)
     graph.add_node("safety_knowledge", nodes.answer_safety)
@@ -28,13 +28,13 @@ def build_agent_graph(
         "route_intent",
         lambda state: state["intent"],
         {
-            "BUSINESS_QUERY": "query_my_reservations",
+            "BUSINESS_QUERY": "query_business_tool",
             "RESERVATION": "reservation",
             "SAFETY_KNOWLEDGE": "safety_knowledge",
             "GENERAL": "general",
         },
     )
-    graph.add_edge("query_my_reservations", "business_query")
+    graph.add_edge("query_business_tool", "business_query")
     graph.add_edge("business_query", END)
     graph.add_edge("reservation", END)
     graph.add_edge("safety_knowledge", END)

@@ -49,13 +49,21 @@ class AgentNodes:
 
     def route_intent(self, state: AgentState) -> dict[str, str]:
         message = state["message"].lower()
-        if any(keyword in message for keyword in ("安全", "着火", "泄漏", "防护", "应急")):
-            intent = "SAFETY_KNOWLEDGE"
-        elif any(
+        if any(
             keyword in message
-            for keyword in ("我的预约", "信用", "考试状态", "审核结果", "可用实验室", "设备状态")
+            for keyword in (
+                "我的预约",
+                "信用",
+                "考试",
+                "资格",
+                "审核结果",
+                "可用实验室",
+                "设备状态",
+            )
         ):
             intent = "BUSINESS_QUERY"
+        elif any(keyword in message for keyword in ("安全", "着火", "泄漏", "防护", "应急")):
+            intent = "SAFETY_KNOWLEDGE"
         elif any(keyword in message for keyword in ("预约", "约实验室", "约设备")):
             intent = "RESERVATION"
         else:
@@ -66,8 +74,8 @@ class AgentNodes:
         if state.get("tool_error"):
             return {
                 "answer": (
-                    "暂时无法查询实时预约数据。"
-                    "请稍后重试，或前往“我的预约”页面查看。"
+                    "暂时无法查询实时业务数据。"
+                    "请稍后重试，或前往对应业务页面查看。"
                 )
             }
         if state.get("tool_result") is not None:
@@ -79,13 +87,29 @@ class AgentNodes:
             return {"answer": await self._answer(state, prompt)}
         return {"answer": await self._answer(state, PROMPTS["BUSINESS_QUERY"])}
 
-    async def query_my_reservations(self, state: AgentState) -> dict:
+    async def query_business_tool(self, state: AgentState) -> dict:
         if self.business_tools is None:
-            return {"tool_error": "预约工具未配置"}
+            return {"tool_error": "业务查询工具未配置"}
         try:
-            result = await self.business_tools.invoke_query_my_reservations(
-                state["auth"]
-            )
+            message = state["message"]
+            if "预约资格" in message or "资格" in message:
+                tool_calls = [
+                    ("checkSafetyExamStatus", {}),
+                    ("queryMyCredit", {}),
+                ]
+            elif "信用" in message:
+                tool_calls = [("queryMyCredit", {})]
+            elif "考试" in message:
+                tool_calls = [("checkSafetyExamStatus", {})]
+            else:
+                tool_calls = [("queryMyReservations", {})]
+            result = {}
+            for tool_name, arguments in tool_calls:
+                result[tool_name] = await self.business_tools.invoke_tool(
+                    state["auth"],
+                    tool_name,
+                    arguments,
+                )
             return {"tool_result": result, "tool_error": None}
         except JavaToolError as exception:
             return {"tool_error": str(exception)}

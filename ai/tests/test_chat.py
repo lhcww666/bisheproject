@@ -40,11 +40,17 @@ class FakeBusinessTools:
         }
         self.error = error
         self.auth = None
+        self.tool_calls = []
 
-    async def invoke_query_my_reservations(self, auth, status=None):
+    async def invoke_tool(self, auth, tool_name, arguments=None):
         self.auth = auth
+        self.tool_calls.append(tool_name)
         if self.error:
             raise JavaToolError(self.error)
+        if tool_name == "queryMyCredit":
+            return {"score": 100, "minScore": 60, "canBook": True}
+        if tool_name == "checkSafetyExamStatus":
+            return {"hasValidPass": True}
         return self.result
 
 
@@ -96,6 +102,7 @@ def test_chat_service_builds_messages() -> None:
     assert "R-501" in model.messages[0].content
     assert model.messages[-1].content == "查询我的预约"
     assert business_tools.auth.token == "signed-context"
+    assert business_tools.tool_calls == ["queryMyReservations"]
 
 
 def test_chat_route_rejects_session_mismatch() -> None:
@@ -168,5 +175,33 @@ def test_business_tool_failure_returns_controlled_answer() -> None:
     )
 
     assert response.intent == "BUSINESS_QUERY"
-    assert "暂时无法查询实时预约数据" in response.answer
+    assert "暂时无法查询实时业务数据" in response.answer
     assert model.messages == []
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_tools"),
+    [
+        ("我的信用分是多少", ["queryMyCredit"]),
+        ("我的安全考试通过了吗", ["checkSafetyExamStatus"]),
+        (
+            "我有预约资格吗",
+            ["checkSafetyExamStatus", "queryMyCredit"],
+        ),
+    ],
+)
+def test_business_query_selects_expected_tools(
+    message: str,
+    expected_tools: list[str],
+) -> None:
+    business_tools = FakeBusinessTools()
+    service = ChatService(settings(), lambda _: FakeModel(), business_tools)
+
+    asyncio.run(
+        service.chat(
+            ChatRequest(sessionId=101, message=message),
+            context(),
+        )
+    )
+
+    assert business_tools.tool_calls == expected_tools
