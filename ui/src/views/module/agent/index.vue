@@ -92,6 +92,7 @@ import {
   getAgentMessages,
   getAgentStatus,
   listAgentSessions,
+  sendAgentChat,
   sendAgentChatStream
 } from "@/api/module/agent"
 import SessionPanel from "./components/SessionPanel.vue"
@@ -117,19 +118,34 @@ const currentSession = computed(() =>
   sessions.value.find(session => session.id === currentSessionId.value)
 )
 
+const activeEngine = computed(
+  () => currentSession.value?.engine || status.value.engine || "python"
+)
+
 const serviceLabel = computed(() => {
   if (!status.value.enabled) return "助手已停用"
+  if (activeEngine.value === "dify") {
+    return status.value.difyConfigured ? "Dify 已配置" : "Dify 未配置"
+  }
   if (status.value.pythonAvailable) return "Python 服务在线"
   return "Python 服务未连接"
 })
 
 const serviceTagType = computed(() => {
   if (!status.value.enabled) return "info"
+  if (activeEngine.value === "dify") {
+    return status.value.difyConfigured ? "success" : "warning"
+  }
   return status.value.pythonAvailable ? "success" : "warning"
 })
 
 const serviceMessage = computed(() => {
   if (!status.value.enabled) return "智能助手当前未启用。"
+  if (activeEngine.value === "dify") {
+    return status.value.difyConfigured
+      ? ""
+      : "Dify 服务地址或 App Key 尚未配置。"
+  }
   if (status.value.pythonAvailable) return ""
   return "Python Agent 服务未启动，或模型 Key 尚未配置。会话管理仍可使用。"
 })
@@ -166,10 +182,10 @@ async function loadSessions() {
   }
 }
 
-async function handleCreateSession() {
+async function handleCreateSession(engine = "python") {
   creatingSession.value = true
   try {
-    const response = await createAgentSession({ engine: "python" })
+    const response = await createAgentSession({ engine })
     await loadSessions()
     currentSessionId.value = response.data?.sessionId
     messages.value = []
@@ -239,38 +255,40 @@ async function handleSend() {
   messages.value.push(streamMessage)
   sending.value = true
   try {
-    await sendAgentChatStream(
-      {
+    if (activeEngine.value === "dify") {
+      const response = await sendAgentChat({
         sessionId,
         message: text,
-        engine: "python"
-      },
-      {
-        onTool(tool) {
-          streamMessage.toolCalls.push(tool)
+        engine: "dify"
+      })
+      const answer = response.data || {}
+      streamMessage.content = answer.answer || ""
+      applyAssistantAnswer(streamMessage, answer)
+    } else {
+      await sendAgentChatStream(
+        {
+          sessionId,
+          message: text,
+          engine: "python"
         },
-        onDelta(delta) {
-          streamMessage.content += delta.content || ""
-          streamMessage.intent = delta.intent || streamMessage.intent
-        },
-        onDone(answer) {
-          streamMessage.id = answer.messageId || streamMessage.id
-          streamMessage.intent = answer.intent || streamMessage.intent
-          streamMessage.toolCalls = answer.toolCalls || streamMessage.toolCalls
-          streamMessage.model = answer.model
-          streamMessage.traceId = answer.traceId
-          streamMessage.streaming = false
-          if (answer.draft) {
-            activeDraft.value = answer.draft
-            draftVisible.value = true
+        {
+          onTool(tool) {
+            streamMessage.toolCalls.push(tool)
+          },
+          onDelta(delta) {
+            streamMessage.content += delta.content || ""
+            streamMessage.intent = delta.intent || streamMessage.intent
+          },
+          onDone(answer) {
+            applyAssistantAnswer(streamMessage, answer)
+          },
+          onError(error) {
+            streamMessage.content = error.message || "助手响应失败"
+            streamMessage.streaming = false
           }
-        },
-        onError(error) {
-          streamMessage.content = error.message || "助手响应失败"
-          streamMessage.streaming = false
         }
-      }
-    )
+      )
+    }
     await loadSessions()
   } catch (error) {
     const detail = error?.response?.data?.msg || error?.message || "助手响应失败"
@@ -278,6 +296,19 @@ async function handleSend() {
     streamMessage.streaming = false
   } finally {
     sending.value = false
+  }
+}
+
+function applyAssistantAnswer(message, answer) {
+  message.id = answer.messageId || message.id
+  message.intent = answer.intent || message.intent
+  message.toolCalls = answer.toolCalls || message.toolCalls
+  message.model = answer.model
+  message.traceId = answer.traceId
+  message.streaming = false
+  if (answer.draft) {
+    activeDraft.value = answer.draft
+    draftVisible.value = true
   }
 }
 

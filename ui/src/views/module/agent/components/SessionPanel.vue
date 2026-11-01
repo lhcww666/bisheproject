@@ -5,7 +5,15 @@
         <div class="session-title">对话</div>
         <div class="session-subtitle">{{ sessions.length }} 个会话</div>
       </div>
-      <el-button type="primary" circle icon="Plus" :loading="creating" @click="$emit('create')" />
+      <el-dropdown trigger="click" @command="$emit('create', $event)">
+        <el-button type="primary" circle icon="Plus" :loading="creating" />
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="python">新建 Python 会话</el-dropdown-item>
+            <el-dropdown-item command="dify">新建 Dify 会话</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
 
     <el-scrollbar class="session-scroll">
@@ -35,7 +43,15 @@
       <div v-if="!loading && !sessions.length" class="session-empty">
         <el-icon><ChatDotRound /></el-icon>
         <span>还没有会话</span>
-        <el-button type="primary" plain @click="$emit('create')">新建会话</el-button>
+        <el-dropdown trigger="click" @command="$emit('create', $event)">
+          <el-button type="primary" plain>新建会话</el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="python">Python 会话</el-dropdown-item>
+              <el-dropdown-item command="dify">Dify 会话</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </el-scrollbar>
   </aside>
