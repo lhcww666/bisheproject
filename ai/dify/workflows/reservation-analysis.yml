@@ -1,5 +1,5 @@
 app:
-  description: 校园实验室预约咨询，调用 FastAPI + LangGraph 完成参数收集和草稿创建。
+  description: 校园实验室预约分析，包含参数缺失、资格不足、无资源和草稿就绪分支。
   icon: 📅
   icon_background: '#E7F8F2'
   mode: workflow
@@ -46,11 +46,119 @@ workflow:
           isInIteration: false
           isInLoop: false
           sourceType: http-request
-          targetType: end
-        id: python-to-end
+          targetType: code
+        id: python-to-code
         source: http_node
         sourceHandle: source
-        target: end_node
+        target: code_node
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: code
+          targetType: if-else
+        id: code-to-draft-check
+        source: code_node
+        sourceHandle: source
+        target: if_draft
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: end
+        id: draft-true
+        source: if_draft
+        sourceHandle: 'true'
+        target: end_draft
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: if-else
+        id: draft-false
+        source: if_draft
+        sourceHandle: 'false'
+        target: if_missing
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: end
+        id: missing-true
+        source: if_missing
+        sourceHandle: 'true'
+        target: end_missing
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: if-else
+        id: missing-false
+        source: if_missing
+        sourceHandle: 'false'
+        target: if_ineligible
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: end
+        id: ineligible-true
+        source: if_ineligible
+        sourceHandle: 'true'
+        target: end_ineligible
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: if-else
+        id: ineligible-false
+        source: if_ineligible
+        sourceHandle: 'false'
+        target: if_no_resource
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: end
+        id: no-resource-true
+        source: if_no_resource
+        sourceHandle: 'true'
+        target: end_no_resource
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: if-else
+          targetType: end
+        id: no-resource-false
+        source: if_no_resource
+        sourceHandle: 'false'
+        target: end_tool_error
         targetHandle: target
         type: custom
         zIndex: 0
@@ -101,10 +209,10 @@ workflow:
         id: start_node
         position:
           x: 30
-          y: 220
+          y: 280
         positionAbsolute:
           x: 30
-          y: 220
+          y: 280
         selected: false
         sourcePosition: right
         targetPosition: left
@@ -129,7 +237,7 @@ workflow:
                 type: text
                 value: '{{#start_node.history#}}'
             type: json
-          desc: 调用 Python LangGraph 服务
+          desc: 获取结构化预约分析结果
           headers: |
             X-Agent-Context: "{{#start_node.agent_context#}}"
             X-Request-Id: "{{#start_node.trace_id#}}"
@@ -146,17 +254,230 @@ workflow:
             max_connect_timeout: 10
             max_read_timeout: 60
             max_write_timeout: 30
-          title: 调用 Python Agent
+          title: 预约分析服务
           type: http-request
-          url: 'http://host.docker.internal:8091/api/ai/chat'
+          url: 'http://host.docker.internal:8091/api/ai/reservation/analyze'
           variables: []
         height: 120
         id: http_node
         position:
           x: 350
-          y: 220
+          y: 280
         positionAbsolute:
           x: 350
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          code: |
+            import json
+
+            def main(http_body) -> dict:
+                payload = json.loads(http_body) if isinstance(http_body, str) else http_body
+                draft = payload.get("draft")
+                return {
+                    "status": str(payload.get("status", "tool_error")),
+                    "reply": str(payload.get("reply", "预约分析失败，请稍后重试。")),
+                    "draft": draft,
+                    "draft_id": str(draft.get("id", "")) if draft else "",
+                    "tool_calls": payload.get("toolCalls") or [],
+                }
+          code_language: python3
+          desc: 解析 Python 返回的状态和草稿
+          outputs:
+            status:
+              children: null
+              type: string
+            reply:
+              children: null
+              type: string
+            draft:
+              children: null
+              type: object
+            draft_id:
+              children: null
+              type: string
+            tool_calls:
+              children: null
+              type: object
+          selected: false
+          title: 解析预约结果
+          type: code
+          variables:
+            - value_selector:
+                - http_node
+                - body
+              value_type: string
+              variable: http_body
+        height: 120
+        id: code_node
+        position:
+          x: 670
+          y: 280
+        positionAbsolute:
+          x: 670
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          cases:
+            - case_id: 'true'
+              conditions:
+                - comparison_operator: '='
+                  id: condition-draft-ready
+                  value: draft_ready
+                  varType: string
+                  variable_selector:
+                    - code_node
+                    - status
+              id: 'true'
+              logical_operator: and
+          desc: ''
+          selected: false
+          title: 草稿是否就绪
+          type: if-else
+        height: 126
+        id: if_draft
+        position:
+          x: 990
+          y: 280
+        positionAbsolute:
+          x: 990
+          y: 280
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          cases:
+            - case_id: 'true'
+              conditions:
+                - comparison_operator: '='
+                  id: condition-missing
+                  value: need_more_info
+                  varType: string
+                  variable_selector:
+                    - code_node
+                    - status
+              id: 'true'
+              logical_operator: and
+          desc: ''
+          selected: false
+          title: 是否缺少参数
+          type: if-else
+        height: 126
+        id: if_missing
+        position:
+          x: 1300
+          y: 470
+        positionAbsolute:
+          x: 1300
+          y: 470
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          cases:
+            - case_id: 'true'
+              conditions:
+                - comparison_operator: '='
+                  id: condition-ineligible
+                  value: ineligible
+                  varType: string
+                  variable_selector:
+                    - code_node
+                    - status
+              id: 'true'
+              logical_operator: and
+          desc: ''
+          selected: false
+          title: 是否资格不足
+          type: if-else
+        height: 126
+        id: if_ineligible
+        position:
+          x: 1610
+          y: 650
+        positionAbsolute:
+          x: 1610
+          y: 650
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          cases:
+            - case_id: 'true'
+              conditions:
+                - comparison_operator: '='
+                  id: condition-no-resource
+                  value: no_resource
+                  varType: string
+                  variable_selector:
+                    - code_node
+                    - status
+              id: 'true'
+              logical_operator: and
+          desc: ''
+          selected: false
+          title: 是否没有资源
+          type: if-else
+        height: 126
+        id: if_no_resource
+        position:
+          x: 1920
+          y: 820
+        positionAbsolute:
+          x: 1920
+          y: 820
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          desc: ''
+          outputs:
+            - value_selector:
+                - code_node
+                - reply
+              value_type: string
+              variable: answer
+            - value_selector:
+                - code_node
+                - status
+              value_type: string
+              variable: status
+            - value_selector:
+                - code_node
+                - draft
+              value_type: object
+              variable: draft
+            - value_selector:
+                - code_node
+                - tool_calls
+              value_type: object
+              variable: tool_calls
+          selected: false
+          title: 草稿已生成
+          type: end
+        height: 150
+        id: end_draft
+        position:
+          x: 1300
+          y: 220
+        positionAbsolute:
+          x: 1300
           y: 220
         selected: false
         sourcePosition: right
@@ -167,40 +488,118 @@ workflow:
           desc: ''
           outputs:
             - value_selector:
-                - http_node
-                - body
-                - answer
+                - code_node
+                - reply
               value_type: string
               variable: answer
             - value_selector:
-                - http_node
-                - body
-                - intent
+                - code_node
+                - status
               value_type: string
-              variable: intent
+              variable: status
             - value_selector:
-                - http_node
-                - body
-                - toolCalls
+                - code_node
+                - tool_calls
               value_type: object
               variable: tool_calls
-            - value_selector:
-                - http_node
-                - body
-                - draft
-              value_type: object
-              variable: draft
           selected: false
-          title: 结束
+          title: 需要补充信息
           type: end
-        height: 120
-        id: end_node
+        height: 130
+        id: end_missing
         position:
-          x: 670
-          y: 220
+          x: 1610
+          y: 410
         positionAbsolute:
-          x: 670
-          y: 220
+          x: 1610
+          y: 410
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          desc: ''
+          outputs:
+            - value_selector:
+                - code_node
+                - reply
+              value_type: string
+              variable: answer
+            - value_selector:
+                - code_node
+                - status
+              value_type: string
+              variable: status
+          selected: false
+          title: 资格不足
+          type: end
+        height: 110
+        id: end_ineligible
+        position:
+          x: 1920
+          y: 590
+        positionAbsolute:
+          x: 1920
+          y: 590
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          desc: ''
+          outputs:
+            - value_selector:
+                - code_node
+                - reply
+              value_type: string
+              variable: answer
+            - value_selector:
+                - code_node
+                - status
+              value_type: string
+              variable: status
+          selected: false
+          title: 没有可用资源
+          type: end
+        height: 110
+        id: end_no_resource
+        position:
+          x: 2230
+          y: 760
+        positionAbsolute:
+          x: 2230
+          y: 760
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          desc: ''
+          outputs:
+            - value_selector:
+                - code_node
+                - reply
+              value_type: string
+              variable: answer
+            - value_selector:
+                - code_node
+                - status
+              value_type: string
+              variable: status
+          selected: false
+          title: 工具异常
+          type: end
+        height: 110
+        id: end_tool_error
+        position:
+          x: 2230
+          y: 930
+        positionAbsolute:
+          x: 2230
+          y: 930
         selected: false
         sourcePosition: right
         targetPosition: left
@@ -209,4 +608,4 @@ workflow:
     viewport:
       x: 0
       y: 0
-      zoom: 0.8
+      zoom: 0.65
