@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ReservationExtraction(BaseModel):
@@ -31,3 +31,8 @@ class ReservationExtraction(BaseModel):
         default_factory=list,
         description="用户需要的设备名称",
     )
+
+    @field_validator("device_names", mode="before")
+    @classmethod
+    def normalize_device_names(cls, value):
+        return [] if value is None else value

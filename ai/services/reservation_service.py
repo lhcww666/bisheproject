@@ -45,6 +45,7 @@ class ReservationExtractionService:
             "把用户请求解析为以下字段：\n"
             "start_time, end_time, participant_count, experiment_name, room_type, "
             "room_name, device_names。\n"
+            "device_names 必须是字符串数组；没有设备需求时输出 []，不能输出 null。\n"
             "时间必须转换为 yyyy-MM-dd HH:mm:ss。无法确定的字段用 null。"
         )
         history_text = "\n".join(
