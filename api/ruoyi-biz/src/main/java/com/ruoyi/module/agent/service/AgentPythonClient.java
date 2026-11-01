@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.InputStream;
 import java.time.Duration;
 
 /**
@@ -80,6 +81,53 @@ public class AgentPythonClient
         catch (Exception exception)
         {
             throw unavailable("Python Agent 服务调用失败");
+        }
+    }
+
+    public InputStream streamChat(
+            String contextToken,
+            String requestId,
+            PythonChatRequest request)
+    {
+        if (StringUtils.isEmpty(properties.getPythonBaseUrl()))
+        {
+            throw unavailable("Python Agent 服务地址未配置");
+        }
+        try
+        {
+            String baseUrl = properties.getPythonBaseUrl().replaceAll("/+$", "");
+            HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(baseUrl + "/api/ai/chat/stream"))
+                    .timeout(Duration.ofSeconds(Math.max(properties.getPythonTimeoutSeconds(), 1)))
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "text/event-stream")
+                    .header("X-Agent-Context", contextToken)
+                    .header("X-Request-Id", requestId)
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(request)))
+                    .build();
+            HttpResponse<InputStream> response = httpClient.send(
+                    httpRequest,
+                    HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() != HttpStatus.OK.value())
+            {
+                String body = new String(
+                        response.body().readAllBytes(),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                throw unavailable(readErrorMessage(body, response.statusCode()));
+            }
+            return response.body();
+        }
+        catch (ServiceException exception)
+        {
+            throw exception;
+        }
+        catch (InterruptedException exception)
+        {
+            Thread.currentThread().interrupt();
+            throw unavailable("Python Agent 流式调用被中断");
+        }
+        catch (Exception exception)
+        {
+            throw unavailable("Python Agent 流式服务调用失败");
         }
     }
 

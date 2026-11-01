@@ -11,6 +11,7 @@ import com.ruoyi.module.agent.domain.AgentSessionCreateRequest;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.service.AgentChatService;
 import com.ruoyi.module.agent.service.AgentStatusService;
+import com.ruoyi.module.agent.service.AgentStreamService;
 import com.ruoyi.module.agent.service.IChatSessionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -40,6 +42,8 @@ public class AgentController extends BaseController
     private final AgentProperties agentProperties;
 
     private final AgentChatService agentChatService;
+
+    private final AgentStreamService agentStreamService;
 
     @PreAuthorize("@ss.hasPermi('module:agent:use')")
     @GetMapping("/status")
@@ -73,6 +77,14 @@ public class AgentController extends BaseController
     public AjaxResult chat(@Valid @RequestBody AgentChatRequest request)
     {
         return success(agentChatService.chat(SecurityUtils.getUserId(), request));
+    }
+
+    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @Log(title = "智能助手流式对话", businessType = BusinessType.OTHER)
+    @PostMapping(value = "/chat/stream", produces = "text/event-stream")
+    public SseEmitter chatStream(@Valid @RequestBody AgentChatRequest request)
+    {
+        return agentStreamService.stream(SecurityUtils.getUserId(), request);
     }
 
     @PreAuthorize("@ss.hasPermi('module:agent:use')")

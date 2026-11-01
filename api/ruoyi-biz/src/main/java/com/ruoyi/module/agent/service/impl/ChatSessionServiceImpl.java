@@ -96,6 +96,25 @@ public class ChatSessionServiceImpl implements IChatSessionService
     @Transactional(rollbackFor = Exception.class)
     public ChatMessage appendMessage(Long sessionId, Long userId, String role, String content, String traceId)
     {
+        return appendMessage(
+                sessionId,
+                userId,
+                role,
+                content,
+                traceId,
+                SecurityUtils.getUsername());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ChatMessage appendMessage(
+            Long sessionId,
+            Long userId,
+            String role,
+            String content,
+            String traceId,
+            String operator)
+    {
         requireOwnedSession(sessionId, userId);
         String normalizedRole = role == null ? "" : role.trim().toUpperCase(Locale.ROOT);
         if (!MESSAGE_ROLES.contains(normalizedRole) || StringUtils.isEmpty(content) || content.isBlank())
@@ -108,13 +127,13 @@ public class ChatSessionServiceImpl implements IChatSessionService
         message.setRole(normalizedRole);
         message.setContent(content);
         message.setTraceId(traceId);
-        message.setCreateBy(SecurityUtils.getUsername());
+        message.setCreateBy(operator);
         message.setCreateTime(DateUtils.getNowDate());
         chatMessageMapper.insert(message);
 
         ChatSession session = new ChatSession();
         session.setId(sessionId);
-        session.setUpdateBy(SecurityUtils.getUsername());
+        session.setUpdateBy(operator);
         session.setUpdateTime(DateUtils.getNowDate());
         chatSessionMapper.updateById(session);
         return message;

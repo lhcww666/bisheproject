@@ -21,5 +21,13 @@ public interface IChatSessionService
 
     ChatMessage appendMessage(Long sessionId, Long userId, String role, String content, String traceId);
 
+    ChatMessage appendMessage(
+            Long sessionId,
+            Long userId,
+            String role,
+            String content,
+            String traceId,
+            String operator);
+
     void deleteOwnedSession(Long sessionId, Long userId);
 }
