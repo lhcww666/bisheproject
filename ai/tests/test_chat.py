@@ -11,6 +11,7 @@ from integrations.llm import LlmUnavailableError, create_chat_model
 from routers.chat import chat
 from schemas.agent import AgentAuthContext, AgentContextClaims
 from schemas.chat import ChatHistoryItem, ChatRequest
+from schemas.knowledge import KnowledgeCitation
 from services.chat_service import ChatService
 
 
@@ -86,6 +87,16 @@ class FakeBusinessTools:
                 },
             }
         return self.result
+
+
+class FakeKnowledgeService:
+    def __init__(self, citations: list[KnowledgeCitation] | None = None) -> None:
+        self.citations = citations or []
+        self.query = ""
+
+    def search(self, query: str) -> list[KnowledgeCitation]:
+        self.query = query
+        return self.citations
 
 
 class ReservationFakeModel(FakeModel):
@@ -240,6 +251,61 @@ def test_business_tool_failure_returns_controlled_answer() -> None:
     assert response.intent == "BUSINESS_QUERY"
     assert "暂时无法查询实时业务数据" in response.answer
     assert response.tool_calls[0].status == "failed"
+    assert model.messages == []
+
+
+def test_safety_question_uses_retrieved_knowledge_and_returns_citations() -> None:
+    citation = KnowledgeCitation(
+        documentId="safety-1",
+        title="实验室火灾处置",
+        source="lab-safety.md",
+        snippet="电气设备着火时应先切断电源，不能直接用水扑救。",
+        score=0.92,
+    )
+    knowledge = FakeKnowledgeService([citation])
+    model = FakeModel(answer="应先切断电源，不能直接用水扑救[1]。")
+    service = ChatService(
+        settings(),
+        lambda _: model,
+        FakeBusinessTools(),
+        knowledge,
+    )
+
+    response = asyncio.run(
+        service.chat(
+            ChatRequest(sessionId=101, message="电气着火可以用水吗"),
+            context(),
+        )
+    )
+
+    assert response.intent == "SAFETY_KNOWLEDGE"
+    assert response.citations == [citation]
+    assert knowledge.query == "电气着火可以用水吗"
+    assert "[1] 实验室火灾处置" in model.messages[0].content
+    assert citation.snippet in model.messages[0].content
+
+
+def test_safety_question_without_reliable_knowledge_refuses_without_model() -> None:
+    knowledge = FakeKnowledgeService()
+    model = FakeModel(answer="不应调用模型")
+    service = ChatService(
+        settings(),
+        lambda _: model,
+        FakeBusinessTools(),
+        knowledge,
+    )
+
+    response = asyncio.run(
+        service.chat(
+            ChatRequest(sessionId=101, message="实验室中遇到未知气体怎么办"),
+            context(),
+        )
+    )
+
+    assert response.intent == "SAFETY_KNOWLEDGE"
+    assert response.citations == []
+    assert "没有找到" in response.answer
+    assert "实验室管理员" in response.answer
     assert model.messages == []
 
 
@@ -413,3 +479,34 @@ def test_stream_chat_emits_tool_and_done_events() -> None:
     assert events[-1]["type"] == "done"
     assert events[-1]["intent"] == "BUSINESS_QUERY"
     assert events[-1]["toolCalls"][0]["toolName"] == "queryMyReservations"
+
+
+def test_stream_chat_emits_knowledge_citations() -> None:
+    citation = KnowledgeCitation(
+        documentId="safety-1",
+        title="化学品泄漏",
+        source="lab-safety.md",
+        snippet="不要直接接触泄漏物，应立即设置警戒并通知实验室管理员。",
+        score=0.88,
+    )
+    service = ChatService(
+        settings(),
+        lambda _: FakeModel(answer="请立即设置警戒并通知管理员[1]。"),
+        FakeBusinessTools(),
+        FakeKnowledgeService([citation]),
+    )
+
+    async def collect():
+        return [
+            event
+            async for event in service.stream_chat(
+                ChatRequest(sessionId=101, message="化学品泄漏怎么办"),
+                context(),
+            )
+        ]
+
+    events = asyncio.run(collect())
+
+    citation_event = next(event for event in events if event["type"] == "citation")
+    assert citation_event["citation"]["documentId"] == "safety-1"
+    assert events[-1]["citations"][0]["title"] == "化学品泄漏"

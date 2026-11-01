@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from schemas.knowledge import KnowledgeCitation
+
 
 class ChatHistoryItem(BaseModel):
     role: Literal["user", "assistant"]
@@ -44,6 +46,7 @@ class ChatResponse(BaseModel):
         alias="toolCalls",
     )
     draft: dict | None = None
+    citations: list[KnowledgeCitation] = Field(default_factory=list)
     session_id: int = Field(alias="sessionId")
     trace_id: str = Field(alias="traceId")
     model: str

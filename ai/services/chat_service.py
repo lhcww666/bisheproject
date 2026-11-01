@@ -8,6 +8,7 @@ from agent.graph import build_agent_graph
 from config.settings import Settings, get_settings
 from integrations.java_api import JavaApiClient
 from integrations.llm import create_chat_model
+from knowledge.service import KnowledgeService, get_knowledge_service
 from schemas.agent import AgentAuthContext
 from schemas.chat import ChatRequest, ChatResponse, ToolCallSummary
 from tools.business_tools import BusinessToolService
@@ -18,16 +19,19 @@ class ChatService:
         settings: Settings,
         model_factory: Callable[[Settings], BaseChatModel] = create_chat_model,
         business_tools: BusinessToolService | None = None,
+        knowledge_service: KnowledgeService | None = None,
     ) -> None:
         self.settings = settings
         self.model_factory = model_factory
         self.business_tools = business_tools or BusinessToolService(
             JavaApiClient(settings.java_base_url)
         )
+        self.knowledge_service = knowledge_service or get_knowledge_service()
         self.graph = build_agent_graph(
             settings,
             model_factory,
             self.business_tools,
+            self.knowledge_service,
         )
 
     async def chat(
@@ -50,6 +54,7 @@ class ChatService:
                 for tool_call in result.get("tool_calls", [])
             ],
             draft=result.get("draft"),
+            citations=result.get("citations", []),
             session_id=request.session_id,
             trace_id=auth.claims.trace_id,
             model=self.settings.llm_model,
@@ -69,6 +74,7 @@ class ChatService:
         intent = ""
         tool_calls = []
         draft = None
+        citations = []
         try:
             async for update in self.graph.astream(
                 {
@@ -85,6 +91,14 @@ class ChatService:
                         intent = node_update["intent"]
                     if node_update.get("draft") is not None:
                         draft = node_update["draft"]
+                    for citation in node_update.get("citations", []):
+                        citations.append(citation)
+                        yield {
+                            "type": "citation",
+                            "sessionId": request.session_id,
+                            "traceId": auth.claims.trace_id,
+                            "citation": citation.model_dump(by_alias=True),
+                        }
                     for tool_call in node_update.get("tool_calls", []):
                         tool_calls.append(tool_call)
                         yield {
@@ -125,6 +139,10 @@ class ChatService:
             "intent": intent,
             "toolCalls": tool_calls,
             "draft": draft,
+            "citations": [
+                citation.model_dump(by_alias=True)
+                for citation in citations
+            ],
             "model": self.settings.llm_model,
         }
 

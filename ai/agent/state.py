@@ -3,6 +3,7 @@ from typing import Annotated, TypedDict
 
 from schemas.agent import AgentAuthContext
 from schemas.chat import ChatHistoryItem
+from schemas.knowledge import KnowledgeCitation
 from schemas.reservation import ReservationExtraction
 
 
@@ -18,4 +19,5 @@ class AgentState(TypedDict, total=False):
     missing_fields: list[str]
     available_rooms: dict | None
     draft: dict | None
+    citations: list[KnowledgeCitation]
     answer: str

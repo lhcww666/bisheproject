@@ -8,6 +8,7 @@ from agent.state import AgentState
 from config.settings import Settings
 from integrations.java_api import JavaToolError
 from integrations.llm import create_chat_model
+from knowledge.service import KnowledgeService
 from services.reservation_service import (
     ReservationExtractionError,
     ReservationExtractionService,
@@ -34,8 +35,9 @@ PROMPTS = {
     ),
     "SAFETY_KNOWLEDGE": (
         BASE_PROMPT
-        + "当前安全知识库检索尚未接入。不得编造具体安全操作步骤，"
-        "应建议用户查阅正式安全规程或联系实验室管理员。"
+        + "只能依据下方知识片段回答，不得补充片段中没有的安全步骤、设备参数或医疗建议。"
+        "引用知识片段时标注对应编号，例如[1]。"
+        "如果片段不足以回答，应明确说明，并建议用户查阅正式安全规程或联系实验室管理员。"
     ),
     "GENERAL": BASE_PROMPT,
 }
@@ -47,10 +49,12 @@ class AgentNodes:
         settings: Settings,
         model_factory: Callable[[Settings], BaseChatModel] = create_chat_model,
         business_tools: BusinessToolService | None = None,
+        knowledge_service: KnowledgeService | None = None,
     ) -> None:
         self.settings = settings
         self.model_factory = model_factory
         self.business_tools = business_tools
+        self.knowledge_service = knowledge_service
         self.reservation_extractor = ReservationExtractionService(
             settings,
             model_factory,
@@ -71,7 +75,21 @@ class AgentNodes:
             )
         ):
             intent = "BUSINESS_QUERY"
-        elif any(keyword in message for keyword in ("安全", "着火", "泄漏", "防护", "应急")):
+        elif any(
+            keyword in message
+            for keyword in (
+                "安全",
+                "着火",
+                "泄漏",
+                "防护",
+                "应急",
+                "气体",
+                "化学品",
+                "灭火",
+                "洗眼器",
+                "危险废物",
+            )
+        ):
             intent = "SAFETY_KNOWLEDGE"
         elif any(keyword in message for keyword in ("预约", "约实验室", "约设备")):
             intent = "RESERVATION"
@@ -364,8 +382,30 @@ class AgentNodes:
                 ],
             }
 
+    def retrieve_safety_knowledge(self, state: AgentState) -> dict:
+        if self.knowledge_service is None:
+            return {"citations": []}
+        return {"citations": self.knowledge_service.search(state["message"])}
+
     async def answer_safety(self, state: AgentState) -> dict[str, str]:
-        return {"answer": await self._answer(state, PROMPTS["SAFETY_KNOWLEDGE"])}
+        citations = state.get("citations", [])
+        if not citations:
+            return {
+                "answer": (
+                    "当前知识库中没有找到足以支持该问题的可靠资料。"
+                    "请查阅实验室正式安全规程，或联系实验室管理员确认。"
+                    "在核实前不要尝试未经说明的危险操作。"
+                )
+            }
+        context = "\n\n".join(
+            (
+                f"[{index}] {citation.title}（{citation.source}）\n"
+                f"{citation.snippet}"
+            )
+            for index, citation in enumerate(citations, start=1)
+        )
+        prompt = PROMPTS["SAFETY_KNOWLEDGE"] + "\n\n知识片段：\n" + context
+        return {"answer": await self._answer(state, prompt)}
 
     async def answer_general(self, state: AgentState) -> dict[str, str]:
         return {"answer": await self._answer(state, PROMPTS["GENERAL"])}

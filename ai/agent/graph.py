@@ -7,6 +7,7 @@ from agent.nodes import AgentNodes
 from agent.state import AgentState
 from config.settings import Settings
 from integrations.llm import create_chat_model
+from knowledge.service import KnowledgeService
 from tools.business_tools import BusinessToolService
 
 
@@ -14,8 +15,9 @@ def build_agent_graph(
     settings: Settings,
     model_factory: Callable[[Settings], BaseChatModel] = create_chat_model,
     business_tools: BusinessToolService | None = None,
+    knowledge_service: KnowledgeService | None = None,
 ):
-    nodes = AgentNodes(settings, model_factory, business_tools)
+    nodes = AgentNodes(settings, model_factory, business_tools, knowledge_service)
     graph = StateGraph(AgentState)
     graph.add_node("route_intent", nodes.route_intent)
     graph.add_node("query_business_tool", nodes.query_business_tool)
@@ -25,6 +27,7 @@ def build_agent_graph(
     graph.add_node("create_reservation_draft", nodes.create_reservation_draft)
     graph.add_node("business_query", nodes.answer_business_query)
     graph.add_node("reservation", nodes.answer_reservation)
+    graph.add_node("retrieve_safety_knowledge", nodes.retrieve_safety_knowledge)
     graph.add_node("safety_knowledge", nodes.answer_safety)
     graph.add_node("general", nodes.answer_general)
     graph.add_edge(START, "route_intent")
@@ -34,7 +37,7 @@ def build_agent_graph(
         {
             "BUSINESS_QUERY": "query_business_tool",
             "RESERVATION": "extract_reservation",
-            "SAFETY_KNOWLEDGE": "safety_knowledge",
+            "SAFETY_KNOWLEDGE": "retrieve_safety_knowledge",
             "GENERAL": "general",
         },
     )
@@ -57,6 +60,7 @@ def build_agent_graph(
         },
     )
     graph.add_edge("create_reservation_draft", "reservation")
+    graph.add_edge("retrieve_safety_knowledge", "safety_knowledge")
     graph.add_edge("business_query", END)
     graph.add_edge("reservation", END)
     graph.add_edge("safety_knowledge", END)
