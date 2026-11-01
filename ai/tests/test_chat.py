@@ -303,3 +303,33 @@ def test_incomplete_reservation_asks_without_querying_tools() -> None:
     assert "开始时间" in response.answer
     assert "结束时间" in response.answer
     assert business_tools.tool_calls == []
+
+
+def test_stream_chat_emits_tool_and_done_events() -> None:
+    service = ChatService(
+        settings(),
+        lambda _: FakeModel(),
+        FakeBusinessTools(),
+    )
+
+    async def collect():
+        return [
+            event
+            async for event in service.stream_chat(
+                ChatRequest(sessionId=101, message="查询我的预约"),
+                context(),
+            )
+        ]
+
+    events = asyncio.run(collect())
+
+    assert events[0]["type"] == "start"
+    assert any(
+        event["type"] == "tool"
+        and event["toolName"] == "queryMyReservations"
+        for event in events
+    )
+    assert any(event["type"] == "message.delta" for event in events)
+    assert events[-1]["type"] == "done"
+    assert events[-1]["intent"] == "BUSINESS_QUERY"
+    assert events[-1]["toolCalls"][0]["toolName"] == "queryMyReservations"
