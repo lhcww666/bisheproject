@@ -1,9 +1,17 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    agent_context_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "AGENT_CONTEXT_SECRET",
+            "AI_AGENT_CONTEXT_SECRET",
+        ),
+    )
     model_config = SettingsConfigDict(
         env_prefix="AI_",
         env_file=".env",
