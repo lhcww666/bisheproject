@@ -386,6 +386,26 @@ cd ai
 100%。该评测使用脚本模型和固定业务工具响应，只证明 LangGraph 编排、校验和草稿
 流程正确，不代表真实大模型的意图识别或参数抽取质量。
 
+真实模型评测在命令后增加 `--online`：
+
+```powershell
+.\.venv\Scripts\python.exe -m evaluation.run_agent_eval --online
+```
+
+2026-11-01 使用配置中的 `deepseek-chat` 完成首轮在线基线：
+
+- 18/18 用例通过。
+- 意图识别、工具选择、参数处理和端到端成功率均为 100%。
+- 有模型调用的用例平均耗时约 1520 ms。
+- 有模型调用的用例平均消耗约 248 token。
+
+在线评测仍使用固定业务工具和空知识库，不读取或写入真实预约数据。首轮联调发现
+DeepSeek 在无设备需求时会返回 `"device_names": null`，服务端已将其归一化为空
+数组，避免整个预约 JSON 校验失败。
+
+当前意图路由仍由确定性规则完成；在线评测中的真实模型调用用于预约参数抽取和
+自然语言回答。
+
 Dify 接入后可将 `ai/data/knowledge` 中经审核的文档导入 Dify Knowledge，并让 Dify
 HTTP 节点调用 FastAPI `/api/ai/knowledge/search`，复用同一检索与引用结构。两类引擎
 可以在不同会话中并存，但同一请求只使用一个知识源，避免重复召回和引用冲突。
@@ -557,6 +577,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 知识文档 `allowed_roles` 元数据校验，以及在 BM25 打分前执行角色可见性过滤。
 - 25 条离线 RAG 评测集、查询覆盖率阈值和 Top-1/召回/MRR/拒答/角色隔离指标。
 - 18 条统一 Agent 编排评测，覆盖意图、工具、预约参数和草稿端到端流程。
+- DeepSeek 真实模型在线评测模式，并记录模型调用次数、时延和 token 用量。
 - LangGraph 安全知识检索节点；有可靠片段时基于片段回答，无结果时不调用模型并安全拒答。
 - FastAPI `/api/ai/knowledge/search` 独立检索接口，可供 Dify 或其他工作流复用。
 - Python 同步响应、SSE `citation` 事件和 Java Gateway 均透传 `citations`。
@@ -566,4 +587,4 @@ requestId -> sessionId -> traceId -> toolCallId
 
 - Dify 工作流实际导入、安全知识库绑定和运行联调。
 - BGE、pgvector 或 Qdrant 等向量检索方案的对比实验。
-- 使用真实模型运行意图、参数和端到端评测，并记录准确率、时延与 token 成本。
+- 对真实模型进行多轮重复评测并统计波动范围，同时增加其他模型对照。
