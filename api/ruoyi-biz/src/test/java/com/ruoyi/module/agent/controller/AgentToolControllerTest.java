@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.module.agent.domain.AgentContextClaims;
 import com.ruoyi.module.agent.service.AgentContextService;
+import com.ruoyi.module.agent.service.AgentToolAuditService;
 import com.ruoyi.module.agent.service.AgentToolPolicyService;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationView;
@@ -14,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,10 +28,12 @@ class AgentToolControllerTest
     {
         AgentContextService contextService = mock(AgentContextService.class);
         AgentToolPolicyService policyService = mock(AgentToolPolicyService.class);
+        AgentToolAuditService auditService = mock(AgentToolAuditService.class);
         IReservationService reservationService = mock(IReservationService.class);
         AgentToolController controller = new AgentToolController(
                 contextService,
                 policyService,
+                auditService,
                 reservationService);
         AgentContextClaims context = new AgentContextClaims();
         context.setUserId(7L);
@@ -56,6 +60,13 @@ class AgentToolControllerTest
 
         assertEquals(200, result.get(AjaxResult.CODE_TAG));
         verify(policyService).requireAllowed("STUDENT", "queryMyReservations");
+        verify(auditService).success(
+                eq(context),
+                eq("trace-1"),
+                eq("queryMyReservations"),
+                any(),
+                any(),
+                anyLong());
         verify(reservationService).pageMyReservationForUser(
                 any(),
                 eq(7L),
