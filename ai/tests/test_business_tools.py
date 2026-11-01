@@ -62,6 +62,20 @@ class FakeJavaApiClient:
         self.calls.append((context_token, request_id, "devices", room_id))
         return {"list": [{"deviceName": "离心机"}], "total": 1}
 
+    async def create_reservation_draft(
+        self,
+        context_token: str,
+        request_id: str,
+        payload: dict,
+    ) -> dict:
+        self.calls.append((context_token, request_id, "draft", payload))
+        return {
+            "id": 70,
+            "sessionId": payload["sessionId"],
+            "status": "PENDING",
+            "request": payload,
+        }
+
 
 def test_langchain_tool_uses_signed_context() -> None:
     java_api = FakeJavaApiClient()
@@ -104,6 +118,7 @@ def test_langchain_toolbox_exposes_credit_and_safety_tools() -> None:
         "checkSafetyExamStatus",
         "queryAvailableRooms",
         "queryAvailableDevices",
+        "createReservationDraft",
     }
     assert credit["score"] == 100
     assert safety["hasValidPass"] is True
@@ -135,6 +150,31 @@ def test_langchain_toolbox_queries_rooms_and_devices() -> None:
 
     assert rooms["total"] == 1
     assert devices["total"] == 1
+
+
+def test_langchain_toolbox_creates_pending_draft() -> None:
+    java_api = FakeJavaApiClient()
+    service = BusinessToolService(java_api)
+    auth = _auth()
+
+    draft = asyncio.run(
+        service.invoke_tool(
+            auth,
+            "createReservationDraft",
+            {
+                "session_id": 101,
+                "room_id": 12,
+                "experiment_name": "有机溶剂萃取",
+                "start_time": "2026-11-08 14:00:00",
+                "end_time": "2026-11-08 16:00:00",
+                "participant_count": 2,
+                "device_ids": [3],
+            },
+        )
+    )
+
+    assert draft["status"] == "PENDING"
+    assert draft["request"]["roomId"] == 12
 
 
 def _auth() -> AgentAuthContext:

@@ -101,6 +101,23 @@ class JavaApiClient:
             error_message="可用设备查询工具暂时不可用",
         )
 
+    async def create_reservation_draft(
+        self,
+        context_token: str,
+        request_id: str,
+        payload: dict,
+    ) -> dict:
+        return await self._post_tool(
+            "/internal/agent/tools/reservation-drafts",
+            context_token,
+            request_id,
+            payload,
+            error_message="预约草稿创建工具暂时不可用",
+            extra_headers={
+                "X-Idempotency-Key": f"{request_id}:createReservationDraft",
+            },
+        )
+
     async def _get_tool(
         self,
         path: str,
@@ -131,16 +148,19 @@ class JavaApiClient:
         request_id: str,
         body: dict,
         error_message: str,
+        extra_headers: dict | None = None,
     ) -> dict:
         try:
+            headers = {
+                "X-Agent-Context": context_token,
+                "X-Request-Id": request_id,
+            }
+            headers.update(extra_headers or {})
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
                 response = await client.post(
                     f"{self.base_url}{path}",
                     json=body,
-                    headers={
-                        "X-Agent-Context": context_token,
-                        "X-Request-Id": request_id,
-                    },
+                    headers=headers,
                 )
             payload = response.json()
         except Exception as exception:

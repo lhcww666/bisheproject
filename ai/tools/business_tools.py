@@ -26,6 +26,17 @@ class AvailableDeviceQueryInput(BaseModel):
     room_id: int = Field(gt=0, description="实验室ID")
 
 
+class ReservationDraftInput(BaseModel):
+    session_id: int = Field(gt=0, description="会话ID")
+    room_id: int = Field(gt=0, description="实验室ID")
+    experiment_name: str = Field(min_length=1, max_length=100)
+    start_time: str = Field(description="开始时间，格式 yyyy-MM-dd HH:mm:ss")
+    end_time: str = Field(description="结束时间，格式 yyyy-MM-dd HH:mm:ss")
+    participant_count: int = Field(ge=1)
+    device_ids: list[int] = Field(default_factory=list)
+    remark: str | None = Field(default=None, max_length=500)
+
+
 class BusinessToolService:
     def __init__(self, java_api_client: JavaApiClient) -> None:
         self.java_api_client = java_api_client
@@ -72,6 +83,31 @@ class BusinessToolService:
                 room_id,
             )
 
+        async def create_reservation_draft(
+            session_id: int,
+            room_id: int,
+            experiment_name: str,
+            start_time: str,
+            end_time: str,
+            participant_count: int,
+            device_ids: list[int] | None = None,
+            remark: str | None = None,
+        ) -> dict:
+            return await self.java_api_client.create_reservation_draft(
+                auth.token,
+                auth.request_id,
+                {
+                    "sessionId": session_id,
+                    "roomId": room_id,
+                    "experimentName": experiment_name,
+                    "startTime": start_time,
+                    "endTime": end_time,
+                    "participantCount": participant_count,
+                    "deviceIds": device_ids or [],
+                    "remark": remark,
+                },
+            )
+
         return [
             StructuredTool.from_function(
                 coroutine=query_my_reservations,
@@ -100,6 +136,12 @@ class BusinessToolService:
                 name="queryAvailableDevices",
                 description="查询指定实验室当前可预约的设备。",
                 args_schema=AvailableDeviceQueryInput,
+            ),
+            StructuredTool.from_function(
+                coroutine=create_reservation_draft,
+                name="createReservationDraft",
+                description="创建待用户确认的预约草稿，不直接创建正式预约。",
+                args_schema=ReservationDraftInput,
             ),
         ]
 
