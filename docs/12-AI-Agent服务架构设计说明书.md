@@ -468,9 +468,10 @@ requestId -> sessionId -> traceId -> toolCallId
 - Python `createReservationDraft` LangChain 工具。
 - 智能助手前端会话栏、消息区、同步聊天和意图展示。
 - 服务未连接、请求失败和手动刷新状态。
+- 同步对话中展示工具名称及成功、失败状态。
 
 尚未完成：
 
 - SSE 流式转发。
 - Dify 工作流。
-- Agent 工具事件展示、引用展示和预约草稿确认弹窗。
+- Agent SSE 工具事件、引用展示和预约草稿确认弹窗。
