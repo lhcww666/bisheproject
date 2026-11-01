@@ -455,10 +455,13 @@ requestId -> sessionId -> traceId -> toolCallId
 - LangChain DeepSeek/OpenAI 兼容模型适配和同步 `/api/ai/chat`。
 - Spring Boot `/module/agent/chat` 同步转发、历史消息和双消息保存。
 - LangGraph 按业务查询、预约、安全知识和普通对话四类意图路由。
+- Java 内部预约查询工具按签名上下文中的用户身份返回本人预约摘要。
+- LangChain `queryMyReservations` 工具和 LangGraph 业务查询节点。
+- 工具成功、失败与耗时写入 `agent_tool_call_log`。
 
 尚未完成：
 
-- LangGraph 业务工具节点与预约多轮分析。
+- 其他实验室业务工具与预约多轮分析。
 - SSE 流式转发。
 - Dify 工作流。
 - 预约草稿接口和确认流程。
