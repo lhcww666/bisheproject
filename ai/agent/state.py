@@ -1,4 +1,5 @@
-from typing import TypedDict
+import operator
+from typing import Annotated, TypedDict
 
 from schemas.agent import AgentAuthContext
 from schemas.chat import ChatHistoryItem
@@ -12,6 +13,7 @@ class AgentState(TypedDict, total=False):
     intent: str
     tool_result: dict | None
     tool_error: str | None
+    tool_calls: Annotated[list[dict], operator.add]
     reservation: ReservationExtraction
     missing_fields: list[str]
     available_rooms: dict | None

@@ -16,11 +16,23 @@ class ChatRequest(BaseModel):
     history: list[ChatHistoryItem] = Field(default_factory=list, max_length=30)
 
 
+class ToolCallSummary(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    tool_name: str = Field(alias="toolName")
+    status: Literal["succeeded", "failed"]
+    error: str | None = None
+
+
 class ChatResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     answer: str
     intent: str
+    tool_calls: list[ToolCallSummary] = Field(
+        default_factory=list,
+        alias="toolCalls",
+    )
     session_id: int = Field(alias="sessionId")
     trace_id: str = Field(alias="traceId")
     model: str

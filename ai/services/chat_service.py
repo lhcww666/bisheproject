@@ -8,7 +8,7 @@ from config.settings import Settings, get_settings
 from integrations.java_api import JavaApiClient
 from integrations.llm import create_chat_model
 from schemas.agent import AgentAuthContext
-from schemas.chat import ChatRequest, ChatResponse
+from schemas.chat import ChatRequest, ChatResponse, ToolCallSummary
 from tools.business_tools import BusinessToolService
 
 class ChatService:
@@ -44,6 +44,10 @@ class ChatService:
         return ChatResponse(
             answer=result["answer"],
             intent=result["intent"],
+            tool_calls=[
+                ToolCallSummary.model_validate(tool_call)
+                for tool_call in result.get("tool_calls", [])
+            ],
             session_id=request.session_id,
             trace_id=auth.claims.trace_id,
             model=self.settings.llm_model,

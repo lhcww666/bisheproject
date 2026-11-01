@@ -126,6 +126,8 @@ def test_chat_service_builds_messages() -> None:
     assert model.messages[-1].content == "查询我的预约"
     assert business_tools.auth.token == "signed-context"
     assert business_tools.tool_calls == ["queryMyReservations"]
+    assert response.tool_calls[0].tool_name == "queryMyReservations"
+    assert response.tool_calls[0].status == "succeeded"
 
 
 def test_chat_route_rejects_session_mismatch() -> None:
@@ -199,6 +201,7 @@ def test_business_tool_failure_returns_controlled_answer() -> None:
 
     assert response.intent == "BUSINESS_QUERY"
     assert "暂时无法查询实时业务数据" in response.answer
+    assert response.tool_calls[0].status == "failed"
     assert model.messages == []
 
 
@@ -263,6 +266,7 @@ def test_complete_reservation_queries_available_rooms() -> None:
     assert response.intent == "RESERVATION"
     assert response.answer == "已找到可用实验室"
     assert business_tools.tool_calls == ["queryAvailableRooms"]
+    assert response.tool_calls[0].tool_name == "queryAvailableRooms"
     assert business_tools.tool_arguments[0] == {
         "start_time": "2026-11-11 14:00:00",
         "end_time": "2026-11-11 16:00:00",

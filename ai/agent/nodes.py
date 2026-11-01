@@ -98,7 +98,7 @@ class AgentNodes:
 
     async def query_business_tool(self, state: AgentState) -> dict:
         if self.business_tools is None:
-            return {"tool_error": "业务查询工具未配置"}
+            return {"tool_error": "业务查询工具未配置", "tool_calls": []}
         try:
             message = state["message"]
             if "预约资格" in message or "资格" in message:
@@ -113,15 +113,36 @@ class AgentNodes:
             else:
                 tool_calls = [("queryMyReservations", {})]
             result = {}
+            events = []
             for tool_name, arguments in tool_calls:
                 result[tool_name] = await self.business_tools.invoke_tool(
                     state["auth"],
                     tool_name,
                     arguments,
                 )
-            return {"tool_result": result, "tool_error": None}
+                events.append(
+                    {
+                        "toolName": tool_name,
+                        "status": "succeeded",
+                        "error": None,
+                    }
+                )
+            return {
+                "tool_result": result,
+                "tool_error": None,
+                "tool_calls": events,
+            }
         except JavaToolError as exception:
-            return {"tool_error": str(exception)}
+            return {
+                "tool_error": str(exception),
+                "tool_calls": [
+                    {
+                        "toolName": tool_calls[-1][0],
+                        "status": "failed",
+                        "error": str(exception),
+                    }
+                ],
+            }
 
     async def answer_reservation(self, state: AgentState) -> dict[str, str]:
         if state.get("tool_error"):
@@ -164,7 +185,10 @@ class AgentNodes:
 
     async def query_reservation_rooms(self, state: AgentState) -> dict:
         if self.business_tools is None:
-            return {"tool_error": "可用实验室工具未配置"}
+            return {
+                "tool_error": "可用实验室工具未配置",
+                "tool_calls": [],
+            }
         reservation = state["reservation"]
         try:
             rooms = await self.business_tools.invoke_tool(
@@ -176,9 +200,28 @@ class AgentNodes:
                     "participant_count": reservation.participant_count,
                 },
             )
-            return {"available_rooms": rooms, "tool_error": None}
+            return {
+                "available_rooms": rooms,
+                "tool_error": None,
+                "tool_calls": [
+                    {
+                        "toolName": "queryAvailableRooms",
+                        "status": "succeeded",
+                        "error": None,
+                    }
+                ],
+            }
         except Exception as exception:
-            return {"tool_error": str(exception)}
+            return {
+                "tool_error": str(exception),
+                "tool_calls": [
+                    {
+                        "toolName": "queryAvailableRooms",
+                        "status": "failed",
+                        "error": str(exception),
+                    }
+                ],
+            }
 
     async def answer_safety(self, state: AgentState) -> dict[str, str]:
         return {"answer": await self._answer(state, PROMPTS["SAFETY_KNOWLEDGE"])}
