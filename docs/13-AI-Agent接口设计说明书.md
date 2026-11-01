@@ -268,6 +268,8 @@ event: done
 data: {"type":"done","messageId":"9001","traceId":"trace-20261101-001"}
 ```
 
+当预约草稿创建成功时，完成事件还会携带 `draft` 对象，前端据此打开确认弹窗；草稿不会因模型或 SSE 完成而自动提交。
+
 #### 错误事件
 
 ```text

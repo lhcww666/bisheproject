@@ -472,8 +472,10 @@ requestId -> sessionId -> traceId -> toolCallId
 - FastAPI `start/tool/message.delta/done/error` SSE 事件。
 - Java Gateway 异步代理 SSE，并在完成后保存助手消息。
 - 前端 fetch 流解析、消息增量更新和工具状态即时追加。
+- 用户明确选择可用实验室后，LangGraph 匹配设备和房间并创建待确认草稿。
+- 前端预约草稿确认弹窗、取消和正式提交。
 
 尚未完成：
 
 - Dify 工作流。
-- Agent 引用展示、预约草稿事件和草稿确认弹窗。
+- Agent 知识引用展示。
