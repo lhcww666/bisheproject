@@ -102,13 +102,16 @@ Python 和 Dify 调用 Spring Boot 内部工具时必须携带：
 {
   "enabled": true,
   "engine": "python",
-  "pythonAvailable": true,
-  "difyAvailable": true,
+  "pythonConfigured": true,
+  "pythonAvailable": false,
+  "difyConfigured": false,
   "role": "STUDENT"
 }
 ```
 
 不返回模型密钥、Dify 密钥或内部服务地址。
+
+`pythonAvailable` 表示 Gateway 实际探测 `/api/ai/health` 的结果；`pythonConfigured` 和 `difyConfigured` 只表示服务地址是否配置。
 
 ### 4.2 查询会话列表
 
@@ -596,3 +599,24 @@ Dify 输出必须经过 Spring Boot 归一化后才能发送给前端。
 9. `POST /module/agent/drafts/{draftId}/confirm`
 
 其余接口可以在同一条链路稳定后再实现。
+
+## 13. 当前实现状态
+
+已实现：
+
+| 方法 | 路径 | 状态 |
+| --- | --- | --- |
+| GET | `/module/agent/status` | 已实现 |
+| GET | `/module/agent/sessions` | 已实现 |
+| POST | `/module/agent/sessions` | 已实现 |
+| GET | `/module/agent/sessions/{sessionId}/messages` | 已实现 |
+| DELETE | `/module/agent/sessions/{sessionId}` | 已实现 |
+
+设计完成、尚未实现：
+
+- 同步和 SSE 对话。
+- FastAPI 内部接口。
+- Dify 工作流调用。
+- 预约草稿确认。
+- 内部业务工具。
+- Agent 审计查询页面。

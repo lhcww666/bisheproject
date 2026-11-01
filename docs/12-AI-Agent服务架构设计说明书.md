@@ -299,11 +299,11 @@ Redis 只保存可过期的会话工作状态。MySQL 中的 `chat_message` 是�
 
 | 表 | 关键内容 |
 | --- | --- |
-| `chat_session` | 用户、标题、引擎、创建和更新时间 |
-| `chat_message` | 会话、角色、内容、引用和 trace |
+| `agent_chat_session` | 用户、标题、引擎、创建和更新时间 |
+| `agent_chat_message` | 会话、角色、内容、引用和 trace |
 | `agent_run` | 引擎、意图、状态、耗时和模型信息 |
-| `tool_call_log` | 工具、脱敏参数、状态、耗时和关联消息 |
-| `reservation_draft` | 用户、会话、结构化预约参数、状态和过期时间 |
+| `agent_tool_call_log` | 工具、脱敏参数、状态、耗时和关联消息 |
+| `agent_reservation_draft` | 用户、会话、结构化预约参数、状态和过期时间 |
 
 约束原则：
 
@@ -438,3 +438,23 @@ requestId -> sessionId -> traceId -> toolCallId
 - 在资源允许时接入本地 Qwen 模型
 
 这些扩展必须在首条端到端链路稳定后再进行。
+
+## 19. 当前实现进度
+
+截至本次基础网关提交，已完成：
+
+- `agent_chat_session`、`agent_chat_message`、`agent_run`、`agent_tool_call_log`、`agent_reservation_draft` 五张表。
+- Spring Boot Agent 会话创建、列表、历史消息和本人删除。
+- 会话归属校验与跨用户访问拒绝。
+- Agent 状态接口和 Python `/api/ai/health` 探测。
+- `module:agent:use` 与 `module:agent:audit` 菜单权限脚本。
+- 会话 Service 单元测试。
+
+尚未完成：
+
+- Python FastAPI 服务。
+- LangGraph 对话与预约分析。
+- SSE 流式转发。
+- Dify 工作流。
+- 预约草稿接口和确认流程。
+- Agent 前端页面。

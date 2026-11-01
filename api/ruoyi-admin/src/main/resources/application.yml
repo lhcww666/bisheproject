@@ -128,6 +128,14 @@ xss:
 tenant:
   enable: false
   column: tenant_id
+
+# Python Agent 服务配置
+bishe:
+  ai:
+    enabled: true
+    engine: python
+    python-base-url: http://127.0.0.1:8091
+    dify-base-url:
   filterTables:
   ignoreTables:
     - QRTZ_BLOB_TRIGGERS

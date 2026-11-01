@@ -119,7 +119,7 @@ ai/
 
 ## 数据所有权
 
-- Spring Boot 和 MySQL 拥有会话、消息、Agent 运行、工具调用审计、预约草稿和全部实验室业务数据。
+- Spring Boot 和 MySQL 拥有 `agent_chat_session`、`agent_chat_message`、`agent_run`、`agent_tool_call_log`、`agent_reservation_draft` 和全部实验室业务数据。
 - Python 只拥有临时执行状态以及可选的 Redis 检查点。
 - Dify 拥有首版工作流定义和权威知识文档。
 - Dify 工作流导出文件统一存放在 `ai/dify/workflows/` 下，运行期数据库卷不提交到仓库。

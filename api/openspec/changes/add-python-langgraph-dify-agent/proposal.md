@@ -23,6 +23,6 @@
   - `ai/`
   - `ui/src/api/module`
   - `ui/src/views/module/agent`
-  - `tools/sql-source/module`
+  - `sql/module`
 - AI 服务停止时，原有实验室业务仍须可用。
 - 本次变更不会把 `springai` 分支的 Agent 代码合并到 `py-agent`。
