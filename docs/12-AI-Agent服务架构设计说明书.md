@@ -478,6 +478,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 安全问答和预约分析两份可导入 Dify DSL。
 - Java 同步对话支持 `engine=dify`，按安全/预约场景选择对应工作流密钥。
 - Python 结构化预约分析接口和多状态 Dify 预约分支工作流。
+- 前端新建会话可选择 Python 或 Dify，Python 使用 SSE，Dify 使用同步 Workflow。
 
 尚未完成：
 
