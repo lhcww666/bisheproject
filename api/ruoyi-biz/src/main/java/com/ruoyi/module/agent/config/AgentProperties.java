@@ -20,11 +20,15 @@ public class AgentProperties
 
     private String difyBaseUrl;
 
+    private String difyApiKey;
+
     private String contextSecret;
 
     private long contextTtlSeconds = 300;
 
     private long pythonTimeoutSeconds = 60;
+
+    private long difyTimeoutSeconds = 60;
 
     private long draftTtlMinutes = 30;
 
