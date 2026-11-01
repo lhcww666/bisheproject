@@ -1,33 +1,33 @@
 ## ADDED Requirements
 
-### Requirement: Unified Agent entry point
-The system SHALL provide one Spring Boot entry point for browser Agent requests regardless of whether the selected engine is Python or Dify.
+### Requirement: 统一的 Agent 入口
+系统 MUST 为浏览器 Agent 请求提供统一的 Spring Boot 入口，不因选择 Python 或 Dify 引擎而改变前端调用方式。
 
-#### Scenario: Switch engine without frontend changes
-- **WHEN** an administrator changes the configured Agent engine
-- **THEN** the browser SHALL continue using the same session and chat endpoints
-- **AND** the response SHALL use the same normalized event contract
+#### Scenario: 切换引擎不修改前端
+- **WHEN** 管理员切换当前 Agent 引擎
+- **THEN** 浏览器继续使用相同的会话和对话接口
+- **AND** 响应继续使用统一的事件契约
 
-### Requirement: User-owned sessions
-The system SHALL bind every Agent session to the authenticated user.
+### Requirement: 用户独占会话
+系统 MUST 将每个 Agent 会话绑定到当前登录用户。
 
-#### Scenario: Other user opens a session
-- **WHEN** a user requests a session owned by another user
-- **THEN** the system SHALL deny access
-- **AND** the session and message contents SHALL NOT be returned
+#### Scenario: 其他用户访问会话
+- **WHEN** 用户请求访问其他用户的会话
+- **THEN** 系统拒绝访问
+- **AND** 不得返回该会话及其消息内容
 
-### Requirement: Normalized streaming events
-The system SHALL stream Agent progress as typed server-sent events.
+### Requirement: 统一流式事件
+系统 MUST 通过带类型的事件流返回 Agent 执行进度。
 
-#### Scenario: Tool call during a streamed answer
-- **WHEN** the Agent invokes a business tool while generating an answer
-- **THEN** the stream SHALL emit a tool event with status and trace ID
-- **AND** the stream SHALL finish with exactly one terminal done or error event
+#### Scenario: 回答过程中调用工具
+- **WHEN** Agent 在生成回答时调用业务工具
+- **THEN** 事件流返回包含状态和追踪 ID 的工具事件
+- **AND** 事件流只能以一个完成事件或一个错误事件结束
 
-### Requirement: Graceful AI dependency failure
-The system SHALL keep ordinary laboratory business available when Python or Dify is unavailable.
+### Requirement: AI 依赖故障降级
+Python 或 Dify 不可用时，系统 MUST 保持普通实验室业务可用。
 
-#### Scenario: Python service timeout
-- **WHEN** the Python Agent service exceeds its configured timeout
-- **THEN** the Gateway SHALL return a recoverable Agent error
-- **AND** ordinary room, reservation, review, safety-exam, and credit pages SHALL remain usable
+#### Scenario: Python 服务超时
+- **WHEN** Python Agent 服务超过配置的超时时间
+- **THEN** Gateway 返回可恢复的 Agent 错误
+- **AND** 实验室、预约、审核、安全考试和信用页面仍可正常使用

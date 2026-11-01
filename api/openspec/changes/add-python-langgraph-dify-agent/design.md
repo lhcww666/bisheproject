@@ -1,84 +1,84 @@
-## Context
+## 背景
 
-`py-agent` is based on the core laboratory business in `dev`. Spring Boot owns JWT authentication, role and data-scope checks, reservation rules, review status transitions, safety-exam validity, credit thresholds, and transactional writes. The new AI components must not duplicate or bypass those rules.
+`py-agent` 基于 `dev` 中的核心实验室业务。Spring Boot 负责 JWT 认证、角色与数据范围校验、预约规则、审核状态流转、安全考试有效期、信用分阈值和事务写入。新增 AI 组件不得复制或绕过这些规则。
 
-The selected stack has separate responsibilities:
+所选技术栈分别承担以下职责：
 
-- FastAPI provides the Python service boundary, validation, streaming, and lifecycle management.
-- LangChain provides model adapters, tool definitions, prompt components, output parsers, and optional knowledge-processing components.
-- LangGraph provides stateful Agent orchestration, conditional routing, tool loops, and resumable multi-turn collection.
-- Dify provides a server-side visual workflow layer and a knowledge/configuration surface.
+- FastAPI 提供 Python 服务边界、参数校验、流式输出和服务生命周期管理。
+- LangChain 提供模型适配、工具定义、提示词组件、输出解析和可选的知识处理组件。
+- LangGraph 提供有状态 Agent 编排、条件路由、工具循环和可恢复的多轮信息收集。
+- Dify 提供服务端可视化工作流层，以及知识库和流程配置界面。
 
-## Goals / Non-Goals
+## 目标与非目标
 
-- Goals:
-  - Provide one Spring Boot entry point for browser clients regardless of the selected AI engine.
-  - Support both a direct Python/LangGraph path and a Dify-outer/LangGraph-inner path.
-  - Keep all business writes in Java services with the original transaction checks.
-  - Make every Agent run and tool call traceable.
-  - Keep the original business system usable when AI dependencies fail.
-- Non-Goals:
-  - Allow the model or Dify to access MySQL business tables directly.
-  - Allow the model to approve reviews, change credit, adjust inventory, or confirm reservations.
-  - Support unrestricted multi-agent collaboration in the first release.
-  - Maintain two independent production knowledge bases in the first release.
-  - Replace the `springai` branch implementation.
+- 目标：
+  - 不论选择哪种 AI 引擎，浏览器都只访问一个 Spring Boot 入口。
+  - 同时支持 Python 直连路径和“Dify 外层、LangGraph 内层”的组合路径。
+  - 所有业务写入仍由 Java Service 执行原有事务校验。
+  - 每次 Agent 运行和工具调用都可追踪。
+  - AI 依赖故障时，原有业务系统仍可使用。
+- 非目标：
+  - 允许模型或 Dify 直接访问 MySQL 业务表。
+  - 允许模型审核预约、修改信用、调整库存或确认预约。
+  - 首版支持不受限制的多 Agent 自由协作。
+  - 首版同时维护两套权威知识库。
+  - 替换 `springai` 分支的实现。
 
-## Decisions
+## 关键决策
 
-### Decision: Spring Boot remains the control plane
+### 决策：Spring Boot 继续作为业务控制面
 
-The browser authenticates only with the existing JWT. Spring Boot resolves the current user and role, applies endpoint permissions, creates the Agent request context, and exposes narrowly scoped internal tools.
+浏览器只使用现有 JWT 登录。Spring Boot 解析当前用户和角色，执行接口权限校验，创建 Agent 请求上下文，并且只暴露范围明确的内部工具。
 
-Alternative considered: let Python call public user APIs with the browser token. Rejected because it increases token exposure, couples Python to all browser API shapes, and makes authorization harder to audit.
+考虑过让 Python 携带浏览器 Token 调用公共用户接口，但没有采用。该方案会增加 Token 暴露范围，使 Python 与所有前端接口结构强耦合，也更难审计授权过程。
 
-### Decision: Use short-lived signed service context
+### 决策：使用短期签名服务上下文
 
-Spring Boot creates a short-lived signed context for each Agent request. It includes `userId`, role, session ID, trace ID, expiration, and the allowed tool set. Python and Dify may only pass this context to internal tool endpoints; they cannot invent or modify the user identity.
+Spring Boot 为每次 Agent 请求生成短期签名上下文，包含 `userId`、角色、会话 ID、追踪 ID、过期时间和允许调用的工具集合。Python 和 Dify 只能将该上下文传给内部工具接口，不能伪造或修改用户身份。
 
-The signing secret is supplied through an ignored local file or environment variable. Internal tool endpoints are not exposed by the public reverse proxy.
+签名密钥通过被 Git 忽略的本地配置或环境变量提供。内部工具接口不得由公共反向代理暴露。
 
-### Decision: Use the same public AI contract for both engines
+### 决策：两种引擎使用同一套公共 AI 接口
 
-The Spring Boot AI Gateway normalizes requests and responses for the `python` and `dify` engines. Both paths emit the same message, tool, citation, draft, completion, and error events.
+Spring Boot AI Gateway 统一处理 `python` 和 `dify` 引擎的请求与响应。两种路径都产生相同的消息、工具、引用、草稿、完成和错误事件。
 
-Alternative considered: let the frontend call each engine directly. Rejected because sessions, audits, permissions, and business drafts would be fragmented across clients and platforms.
+考虑过让前端直接调用不同引擎，但没有采用。该方案会使会话、审计、权限和预约草稿分散在客户端与多个平台中。
 
-### Decision: LangChain is a component layer inside LangGraph
+### 决策：LangChain 是 LangGraph 内部的组件层
 
-LangChain supplies the model adapter, tool schemas, prompt composition, parser, and later RAG components. LangGraph owns state transitions and multi-turn behavior. No separate LangChain-only agent implementation is required.
+LangChain 负责模型适配、工具参数结构、提示词组合、输出解析以及后续 RAG 组件。LangGraph 负责状态流转和多轮行为，不再单独实现一套只使用 LangChain 的 Agent。
 
-### Decision: Dify is the outer workflow layer
+### 决策：Dify 作为外层工作流
 
-For the Dify path, Spring Boot calls a Dify Workflow API. Dify performs intent routing and simple validation, then calls the LangGraph reservation sub-Agent through an HTTP node. Dify does not receive database credentials and cannot execute business writes.
+选择 Dify 路径时，Spring Boot 调用 Dify Workflow API。Dify 完成意图路由和简单参数检查，再通过 HTTP 节点调用 LangGraph 预约子 Agent。Dify 不持有数据库凭据，也不能直接执行业务写入。
 
-### Decision: One canonical knowledge source
+### 决策：首版只使用一个权威知识源
 
-The first release uses Dify Knowledge as the canonical reviewed safety-knowledge source. Python retrieves knowledge through a server-side retrieval tool. A later change may add a BGE/Qdrant retriever for comparison, but Dify Knowledge and the Python vector store must not both be authoritative for the same documents.
+首版使用 Dify 知识库作为经过审核的安全知识权威来源。Python 通过服务端检索工具获取知识。后续可以增加 BGE 和 Qdrant 检索实现用于对比，但同一批文档不能同时由 Dify 知识库和 Python 向量库作为权威来源。
 
-## Architecture
+## 总体架构
 
 ```text
-Vue Agent Page
+Vue Agent 页面
     |
     | JWT / SSE
     v
 Spring Boot AI Gateway
-    |-- session and message persistence
-    |-- engine routing
-    |-- signed Agent context
-    |-- audit and draft endpoints
+    |-- 会话与消息持久化
+    |-- 引擎路由
+    |-- 签名 Agent 上下文
+    |-- 审计与草稿接口
     |
     +--> FastAPI + LangGraph + LangChain
     |
-    +--> Dify Workflow --> LangGraph sub-Agent
+    +--> Dify Workflow --> LangGraph 子 Agent
     |
-    +--> internal controlled tools --> business services --> MySQL
+    +--> 内部受控工具 --> 业务 Service --> MySQL
 ```
 
-## Python Service Structure
+## Python 服务结构
 
-The Python project follows the flat layout used by the existing FastAPI reference project:
+Python 项目沿用现有 FastAPI 参考项目的扁平结构：
 
 ```text
 ai/
@@ -97,11 +97,11 @@ ai/
 └── tests/
 ```
 
-`routers` contains HTTP boundaries. `services` contains use cases. `agent` contains LangGraph state and graph construction. `tools` contains model-callable tools. `integrations` contains Java, LLM, and Dify clients. The Python service does not contain business database models or SQL.
+`routers` 保存 HTTP 边界，`services` 保存用例，`agent` 保存 LangGraph 状态和图，`tools` 保存模型可调用的工具，`integrations` 保存 Java、模型和 Dify 客户端。Python 服务不包含业务数据库模型和 SQL。
 
-## Agent State
+## Agent 状态
 
-The first LangGraph state contains:
+第一版 LangGraph 状态包含：
 
 - `messages`
 - `user_context`
@@ -115,57 +115,57 @@ The first LangGraph state contains:
 - `final_answer`
 - `trace_id`
 
-The first graph supports knowledge questions, read-only business queries, and reservation parameter collection. Redis may store short-lived checkpoints keyed by session ID; MySQL remains the durable source for user-visible messages.
+第一版状态图支持知识问答、只读业务查询和预约参数收集。Redis 可以保存以会话 ID 为键的短期检查点，MySQL 仍然是用户可见消息的持久化权威来源。
 
-## Data Ownership
+## 数据所有权
 
-- Spring Boot and MySQL own sessions, messages, Agent runs, tool-call audit records, reservation drafts, and all laboratory business data.
-- Python owns only transient execution state and optional Redis checkpoints.
-- Dify owns workflow definitions and the canonical knowledge documents for the first release.
-- Dify workflow exports are versioned under `ai/dify/workflows/`; runtime database volumes are not committed.
+- Spring Boot 和 MySQL 拥有会话、消息、Agent 运行、工具调用审计、预约草稿和全部实验室业务数据。
+- Python 只拥有临时执行状态以及可选的 Redis 检查点。
+- Dify 拥有首版工作流定义和权威知识文档。
+- Dify 工作流导出文件统一存放在 `ai/dify/workflows/` 下，运行期数据库卷不提交到仓库。
 
-## Security and Failure Handling
+## 安全与故障处理
 
-- Tool calls require a valid signed context and role allowlist.
-- Only `createReservationDraft` may create a temporary record. Reservation confirmation remains a user-facing Spring Boot operation.
-- Tool retries use an idempotency key based on request ID and session ID.
-- Model prompts and user text never grant authorization.
-- Timeouts are bounded for Java-to-Python, Java-to-Dify, and Python-to-tool calls.
-- If Python or Dify is unavailable, the Gateway returns a recoverable error and keeps the original business pages usable.
-- Secrets, tokens, and full internal tool payloads are excluded from normal logs.
+- 工具调用必须携带有效签名上下文，并通过角色白名单。
+- 只有 `createReservationDraft` 可以创建临时记录。预约确认仍然是面向用户的 Spring Boot 操作。
+- 工具重试使用由请求 ID 和会话 ID 形成的幂等键。
+- 模型提示词和用户文本都不能授予业务权限。
+- Java 到 Python、Java 到 Dify、Python 到工具的调用都必须设置超时上限。
+- Python 或 Dify 不可用时，Gateway 返回可恢复错误，同时保持原有业务页面可用。
+- 密钥、Token 和完整的内部工具请求不得进入普通日志。
 
-## API Surface
+## 接口范围
 
-The detailed contract is documented in `docs/13-AI-Agent接口设计说明书.md`. The first implementation includes:
+详细契约见 `docs/13-AI-Agent接口设计说明书.md`。第一版实现包括：
 
-- Browser-facing session, history, streaming chat, status, and draft confirmation endpoints.
-- FastAPI chat, reservation analysis, and health endpoints.
-- Internal read-only business tools and the draft-creation tool.
+- 面向浏览器的会话、历史消息、流式对话、状态和草稿确认接口。
+- FastAPI 的对话、预约分析和健康检查接口。
+- 内部只读业务工具和预约草稿创建工具。
 
-## Evaluation
+## 评测设计
 
-Python/LangGraph and Dify are evaluated against the same curated cases used for the Spring AI baseline. Required measurements are intent accuracy, parameter extraction, tool-selection accuracy, task completion, unauthorized-access blocking, response latency, and model cost.
+Python/LangGraph 和 Dify 使用与 Spring AI 基线相同的人工整理用例进行评测。必须统计意图准确率、参数提取准确率、工具选择准确率、任务完成率、越权访问拦截、响应延迟和模型成本。
 
-## Risks / Trade-offs
+## 风险与权衡
 
-- Extra network hops increase latency and failure modes.
-  - Mitigation: explicit timeouts, health checks, bounded retries, and streamed progress events.
-- Dify and Python can both evolve into duplicate orchestration layers.
-  - Mitigation: Dify owns only the outer workflow; LangGraph owns stateful sub-Agent behavior.
-- Knowledge updates can split across systems.
-  - Mitigation: one canonical knowledge source in the first release.
-- Service context tokens may leak through logs.
-  - Mitigation: short expiration, header allowlists, log redaction, and no browser exposure.
-- The old `dev` baseline lacks later business enhancements.
-  - Mitigation: port only explicitly selected non-AI business changes instead of merging the complete `springai` branch.
+- 额外网络跳转会提高延迟和失败概率。
+  - 处理方式：显式超时、健康检查、有限重试和流式进度事件。
+- Dify 和 Python 可能逐渐重复承担编排职责。
+  - 处理方式：Dify 只负责外层工作流，LangGraph 负责有状态子 Agent。
+- 知识更新可能分散到多个系统。
+  - 处理方式：首版只保留一个权威知识源。
+- 服务上下文令牌可能通过日志泄露。
+  - 处理方式：短有效期、请求头白名单、日志脱敏，并且不向浏览器暴露。
+- 旧 `dev` 基线缺少后续业务增强。
+  - 处理方式：只迁移明确需要的非 AI 业务变更，不完整合并 `springai` 分支。
 
-## Migration Plan
+## 迁移与回滚计划
 
-1. Add the AI Gateway and persistence schema without changing existing booking behavior.
-2. Add the Python service and read-only tools.
-3. Enable LangGraph routing for read-only scenarios.
-4. Add Dify workflows and engine switching.
-5. Add knowledge retrieval and reservation drafts.
-6. Run evaluation and only then expose the Agent menu to selected roles.
+1. 在不改变现有预约行为的前提下增加 AI Gateway 和持久化结构。
+2. 增加 Python 服务和只读工具。
+3. 为首批只读场景启用 LangGraph 路由。
+4. 增加 Dify 工作流和引擎切换。
+5. 增加知识检索和预约草稿。
+6. 完成评测后，再向选定角色开放 Agent 菜单。
 
-Rollback disables the Agent menu and engine routing. Existing laboratory pages continue to use the unchanged business APIs.
+回滚时关闭 Agent 菜单和引擎路由即可。原有实验室页面继续使用未修改的业务接口。

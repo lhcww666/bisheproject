@@ -1,71 +1,71 @@
-## 1. Design and Contract
+## 1. 设计与契约
 
-- [x] 1.1 Write the change proposal.
-- [x] 1.2 Write the technical design and security boundaries.
-- [x] 1.3 Write the Python Agent architecture and interface documents.
-- [ ] 1.4 Review and approve this OpenSpec change.
+- [x] 1.1 编写变更提案。
+- [x] 1.2 编写技术设计与安全边界。
+- [x] 1.3 编写 Python Agent 架构和接口文档。
+- [ ] 1.4 评审并批准本次 OpenSpec 变更。
 
-## 2. Spring Boot AI Gateway
+## 2. Spring Boot AI 网关
 
-- [ ] 2.1 Add Agent session, message, run, tool-call, and reservation-draft persistence.
-- [ ] 2.2 Add session ownership and menu permissions.
-- [ ] 2.3 Add signed short-lived Agent context generation and validation.
-- [ ] 2.4 Add Python and Dify engine routing with timeout and fallback.
-- [ ] 2.5 Add normalized SSE events for message, tool, citation, draft, done, and error.
-- [ ] 2.6 Add rate limiting, request IDs, and log redaction.
+- [ ] 2.1 增加 Agent 会话、消息、运行、工具调用和预约草稿的持久化。
+- [ ] 2.2 增加会话归属和菜单权限。
+- [ ] 2.3 增加短期签名 Agent 上下文的生成与校验。
+- [ ] 2.4 增加 Python 和 Dify 引擎路由、超时与降级。
+- [ ] 2.5 增加统一的 SSE 消息、工具、引用、草稿、完成和错误事件。
+- [ ] 2.6 增加限流、请求 ID 和日志脱敏。
 
-## 3. Internal Business Tools
+## 3. 内部业务工具
 
-- [ ] 3.1 Expose current-user reservation, safety-exam, and credit queries.
-- [ ] 3.2 Expose available-room and available-device queries.
-- [ ] 3.3 Expose reservation-review explanation queries.
-- [ ] 3.4 Expose the draft-creation tool only to the student role.
-- [ ] 3.5 Add role allowlists, idempotency, and tool audit records.
-- [ ] 3.6 Reject all model-originated reservation confirmation and approval attempts.
+- [ ] 3.1 提供当前用户预约、安全考试和信用查询工具。
+- [ ] 3.2 提供可用实验室和可用设备查询工具。
+- [ ] 3.3 提供预约审核结果解释查询工具。
+- [ ] 3.4 仅向学生角色开放预约草稿创建工具。
+- [ ] 3.5 增加角色白名单、幂等和工具调用审计。
+- [ ] 3.6 拒绝模型发起的预约确认和审核操作。
 
-## 4. Python Service
+## 4. Python 服务
 
-- [ ] 4.1 Create the FastAPI service skeleton and unified response handling.
-- [ ] 4.2 Configure the LangChain model adapter and environment-based secrets.
-- [ ] 4.3 Add health, chat, streaming, and reservation-analysis endpoints.
-- [ ] 4.4 Add LangGraph state, intent routing, tool nodes, and response nodes.
-- [ ] 4.5 Add multi-turn missing-field collection keyed by session ID.
-- [ ] 4.6 Add service-context validation and Java tool client.
-- [ ] 4.7 Add structured logs and trace propagation.
+- [ ] 4.1 创建 FastAPI 服务骨架和统一响应处理。
+- [ ] 4.2 配置 LangChain 模型适配器，并从环境变量读取密钥。
+- [ ] 4.3 增加健康检查、对话、流式对话和预约分析接口。
+- [ ] 4.4 增加 LangGraph 状态、意图路由、工具节点和回答节点。
+- [ ] 4.5 按会话 ID 实现多轮缺失字段收集。
+- [ ] 4.6 增加服务上下文校验和 Java 工具客户端。
+- [ ] 4.7 增加结构化日志和 trace 传递。
 
-## 5. Dify Workflow
+## 5. Dify 工作流
 
-- [ ] 5.1 Create the safety knowledge question workflow.
-- [ ] 5.2 Create the reservation analysis workflow.
-- [ ] 5.3 Add an HTTP node that calls the LangGraph reservation sub-Agent.
-- [ ] 5.4 Pass signed per-request context without exposing it to the browser.
-- [ ] 5.5 Export workflow DSL under `ai/dify/workflows/`.
-- [ ] 5.6 Test Dify failure fallback to the Python path.
+- [ ] 5.1 创建安全知识问答工作流。
+- [ ] 5.2 创建预约分析工作流。
+- [ ] 5.3 增加调用 LangGraph 预约子 Agent 的 HTTP 节点。
+- [ ] 5.4 传递短期请求上下文，且不向浏览器暴露。
+- [ ] 5.5 将工作流 DSL 导出到 `ai/dify/workflows/`。
+- [ ] 5.6 测试 Dify 故障时回退到 Python 路径。
 
-## 6. Knowledge and Draft Closure
+## 6. 知识与预约草稿闭环
 
-- [ ] 6.1 Load reviewed safety documents into the canonical Dify knowledge source.
-- [ ] 6.2 Add role-aware retrieval and source citations.
-- [ ] 6.3 Add a low-confidence no-answer path.
-- [ ] 6.4 Generate a structured reservation draft from LangGraph.
-- [ ] 6.5 Add browser confirmation and Java revalidation before reservation creation.
-- [ ] 6.6 Add draft expiration and cancellation.
+- [ ] 6.1 将审核后的安全文档导入权威 Dify 知识库。
+- [ ] 6.2 增加按角色过滤的知识检索和来源引用。
+- [ ] 6.3 增加低置信度无答案处理。
+- [ ] 6.4 由 LangGraph 生成结构化预约草稿。
+- [ ] 6.5 在创建预约前增加浏览器确认和 Java 二次校验。
+- [ ] 6.6 增加草稿过期和取消。
 
-## 7. Frontend
+## 7. 前端
 
-- [ ] 7.1 Add the Agent API client and route/menu integration.
-- [ ] 7.2 Add session and message panels.
-- [ ] 7.3 Add SSE status rendering for tool calls and citations.
-- [ ] 7.4 Add reservation draft confirmation UI.
-- [ ] 7.5 Add unavailable-service and retry states.
+- [ ] 7.1 增加 Agent API 客户端、路由和菜单接入。
+- [ ] 7.2 增加会话栏和消息区。
+- [ ] 7.3 增加工具调用和知识引用的 SSE 状态展示。
+- [ ] 7.4 增加预约草稿确认界面。
+- [ ] 7.5 增加服务不可用和重试状态。
 
-## 8. Verification
+## 8. 验证
 
-- [ ] 8.1 Test normal, invalid, and unauthorized internal tool calls.
-- [ ] 8.2 Test cross-user session and draft isolation.
-- [ ] 8.3 Test incomplete reservation requests and multi-turn collection.
-- [ ] 8.4 Test that the model cannot create, approve, cancel, or modify business records directly.
-- [ ] 8.5 Test Python and Dify outage fallback.
-- [ ] 8.6 Run the shared Agent evaluation set and record metrics.
-- [ ] 8.7 Verify no secret or runtime volume is tracked by Git.
-- [ ] 8.8 Update as-built documentation after implementation.
+- [ ] 8.1 测试正常、非法和越权的内部工具调用。
+- [ ] 8.2 测试跨用户会话与草稿隔离。
+- [ ] 8.3 测试不完整预约请求和多轮参数收集。
+- [ ] 8.4 测试模型不能直接创建、审核、取消或修改业务记录。
+- [ ] 8.5 测试 Python 和 Dify 故障降级。
+- [ ] 8.6 运行统一的 Agent 评测集并记录指标。
+- [ ] 8.7 确认密钥和运行期数据卷未被 Git 跟踪。
+- [ ] 8.8 实现完成后更新“已实现架构”文档。
