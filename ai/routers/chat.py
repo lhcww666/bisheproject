@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 
 from integrations.llm import LlmUnavailableError
-from schemas.agent import AgentContextClaims
+from schemas.agent import AgentAuthContext
 from schemas.chat import ChatRequest, ChatResponse
 from services.chat_service import ChatService, get_chat_service
 from utils.auth import require_agent_context
@@ -14,13 +14,13 @@ router = APIRouter(prefix="/api/ai", tags=["智能对话"])
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    context: Annotated[AgentContextClaims, Depends(require_agent_context)],
+    auth: Annotated[AgentAuthContext, Depends(require_agent_context)],
     service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> ChatResponse:
-    if context.session_id != request.session_id:
+    if auth.claims.session_id != request.session_id:
         raise HTTPException(status_code=403, detail="会话上下文不匹配")
     try:
-        return await service.chat(request, context)
+        return await service.chat(request, auth)
     except LlmUnavailableError as exception:
         raise HTTPException(status_code=503, detail=str(exception)) from exception
     except Exception as exception:

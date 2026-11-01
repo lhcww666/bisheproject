@@ -32,6 +32,10 @@ class Settings(BaseSettings):
         default=45.0,
         validation_alias=AliasChoices("AI_LLM_TIMEOUT_SECONDS"),
     )
+    java_base_url: str = Field(
+        default="http://127.0.0.1:8087",
+        validation_alias=AliasChoices("AI_JAVA_BASE_URL"),
+    )
     model_config = SettingsConfigDict(
         env_prefix="AI_",
         env_file=".env",

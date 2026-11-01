@@ -5,9 +5,10 @@ from fastapi import HTTPException
 from langchain_core.messages import AIMessage
 
 from config.settings import Settings
+from integrations.java_api import JavaToolError
 from integrations.llm import LlmUnavailableError, create_chat_model
 from routers.chat import chat
-from schemas.agent import AgentContextClaims
+from schemas.agent import AgentAuthContext, AgentContextClaims
 from schemas.chat import ChatHistoryItem, ChatRequest
 from services.chat_service import ChatService
 
@@ -22,31 +23,62 @@ class FakeModel:
         return AIMessage(content=self.answer)
 
 
+class FakeBusinessTools:
+    def __init__(
+        self,
+        result: dict | None = None,
+        error: str | None = None,
+    ) -> None:
+        self.result = result or {
+            "list": [
+                {
+                    "reservationNo": "R-501",
+                    "roomName": "化学实验室 A101",
+                }
+            ],
+            "total": 1,
+        }
+        self.error = error
+        self.auth = None
+
+    async def invoke_query_my_reservations(self, auth, status=None):
+        self.auth = auth
+        if self.error:
+            raise JavaToolError(self.error)
+        return self.result
+
+
 def settings(api_key: str = "test-key") -> Settings:
     return Settings(
         agent_context_secret="0123456789abcdef0123456789abcdef",
         llm_api_key=api_key,
         llm_base_url="http://127.0.0.1:9999",
         llm_model="test-model",
+        java_base_url="http://127.0.0.1:8087",
     )
 
 
-def context(session_id: int = 101) -> AgentContextClaims:
-    return AgentContextClaims(
-        version=1,
-        userId=7,
-        role="STUDENT",
-        sessionId=session_id,
-        traceId="trace-1",
-        allowedTools=[],
-        issuedAt=1,
-        expiresAt=2,
+def context(session_id: int = 101) -> AgentAuthContext:
+    return AgentAuthContext(
+        claims=AgentContextClaims(
+            version=1,
+            userId=7,
+            role="STUDENT",
+            sessionId=session_id,
+            traceId="trace-1",
+            allowedTools=["queryMyReservations"],
+            issuedAt=1,
+            expiresAt=2,
+        ),
+        token="signed-context",
+        request_id="trace-1",
     )
 
 
 def test_chat_service_builds_messages() -> None:
     model = FakeModel()
-    service = ChatService(settings(), lambda _: model)
+    business_tools = FakeBusinessTools()
+    service = ChatService(settings(), lambda _: model, business_tools)
     request = ChatRequest(
         sessionId=101,
         message="查询我的预约",
@@ -61,11 +93,13 @@ def test_chat_service_builds_messages() -> None:
     assert response.trace_id == "trace-1"
     assert response.model == "test-model"
     assert model.messages[0].content.startswith("你是校园实验室")
+    assert "R-501" in model.messages[0].content
     assert model.messages[-1].content == "查询我的预约"
+    assert business_tools.auth.token == "signed-context"
 
 
 def test_chat_route_rejects_session_mismatch() -> None:
-    service = ChatService(settings(), lambda _: FakeModel())
+    service = ChatService(settings(), lambda _: FakeModel(), FakeBusinessTools())
     request = ChatRequest(sessionId=102, message="你好")
 
     with pytest.raises(HTTPException) as exception:
@@ -78,7 +112,7 @@ def test_chat_route_reports_missing_model_configuration() -> None:
     def unavailable(_: Settings):
         raise LlmUnavailableError("模型 API Key 未配置")
 
-    service = ChatService(settings(api_key=""), unavailable)
+    service = ChatService(settings(api_key=""), unavailable, FakeBusinessTools())
     request = ChatRequest(sessionId=101, message="你好")
 
     with pytest.raises(HTTPException) as exception:
@@ -109,10 +143,30 @@ def test_chat_model_factory_requires_api_key() -> None:
 )
 def test_chat_service_routes_intent(message: str, intent: str) -> None:
     response = asyncio.run(
-        ChatService(settings(), lambda _: FakeModel()).chat(
+        ChatService(settings(), lambda _: FakeModel(), FakeBusinessTools()).chat(
             ChatRequest(sessionId=101, message=message),
             context(),
         )
     )
 
     assert response.intent == intent
+
+
+def test_business_tool_failure_returns_controlled_answer() -> None:
+    model = FakeModel(answer="不应调用模型")
+    service = ChatService(
+        settings(),
+        lambda _: model,
+        FakeBusinessTools(error="Java 服务超时"),
+    )
+
+    response = asyncio.run(
+        service.chat(
+            ChatRequest(sessionId=101, message="查询我的预约"),
+            context(),
+        )
+    )
+
+    assert response.intent == "BUSINESS_QUERY"
+    assert "暂时无法查询实时预约数据" in response.answer
+    assert model.messages == []

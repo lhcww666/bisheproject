@@ -65,5 +65,10 @@ def test_reject_missing_secret() -> None:
         verify_agent_context(issue(), "")
 
 
+def test_reject_mismatched_request_id() -> None:
+    with pytest.raises(AgentContextError):
+        verify_agent_context(issue(), SECRET, "trace-2")
+
+
 def _encode_urlsafe(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")

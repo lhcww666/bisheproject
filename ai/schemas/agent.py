@@ -12,3 +12,9 @@ class AgentContextClaims(BaseModel):
     allowed_tools: list[str] = Field(default_factory=list, alias="allowedTools")
     issued_at: int = Field(alias="issuedAt")
     expires_at: int = Field(alias="expiresAt")
+
+
+class AgentAuthContext(BaseModel):
+    claims: AgentContextClaims
+    token: str
+    request_id: str

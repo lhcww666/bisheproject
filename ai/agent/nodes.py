@@ -1,11 +1,14 @@
 from collections.abc import Callable
+import json
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from agent.state import AgentState
 from config.settings import Settings
+from integrations.java_api import JavaToolError
 from integrations.llm import create_chat_model
+from tools.business_tools import BusinessToolService
 
 BASE_PROMPT = (
     "你是校园实验室管理平台的智能助手。"
@@ -38,9 +41,11 @@ class AgentNodes:
         self,
         settings: Settings,
         model_factory: Callable[[Settings], BaseChatModel] = create_chat_model,
+        business_tools: BusinessToolService | None = None,
     ) -> None:
         self.settings = settings
         self.model_factory = model_factory
+        self.business_tools = business_tools
 
     def route_intent(self, state: AgentState) -> dict[str, str]:
         message = state["message"].lower()
@@ -58,7 +63,32 @@ class AgentNodes:
         return {"intent": intent}
 
     async def answer_business_query(self, state: AgentState) -> dict[str, str]:
+        if state.get("tool_error"):
+            return {
+                "answer": (
+                    "暂时无法查询实时预约数据。"
+                    "请稍后重试，或前往“我的预约”页面查看。"
+                )
+            }
+        if state.get("tool_result") is not None:
+            prompt = (
+                PROMPTS["BUSINESS_QUERY"]
+                + "以下是 Java 业务工具返回的真实数据，只能据此总结："
+                + json.dumps(state["tool_result"], ensure_ascii=False)
+            )
+            return {"answer": await self._answer(state, prompt)}
         return {"answer": await self._answer(state, PROMPTS["BUSINESS_QUERY"])}
+
+    async def query_my_reservations(self, state: AgentState) -> dict:
+        if self.business_tools is None:
+            return {"tool_error": "预约工具未配置"}
+        try:
+            result = await self.business_tools.invoke_query_my_reservations(
+                state["auth"]
+            )
+            return {"tool_result": result, "tool_error": None}
+        except JavaToolError as exception:
+            return {"tool_error": str(exception)}
 
     async def answer_reservation(self, state: AgentState) -> dict[str, str]:
         return {"answer": await self._answer(state, PROMPTS["RESERVATION"])}

@@ -15,7 +15,11 @@ class AgentContextError(ValueError):
     """Agent 服务上下文无效。"""
 
 
-def verify_agent_context(token: str, secret: str) -> AgentContextClaims:
+def verify_agent_context(
+    token: str,
+    secret: str,
+    request_id: str | None = None,
+) -> AgentContextClaims:
     if not secret or len(secret.encode("utf-8")) < 32:
         raise AgentContextError("Agent 服务上下文密钥未配置或长度不足32字节")
     if not token or len(token) > MAX_TOKEN_LENGTH:
@@ -53,6 +57,7 @@ def verify_agent_context(token: str, secret: str) -> AgentContextClaims:
         or claims.expires_at <= now_ms
         or claims.expires_at <= claims.issued_at
         or claims.issued_at > now_ms + 60_000
+        or (request_id is not None and request_id != claims.trace_id)
     ):
         raise AgentContextError("Agent 服务上下文无效或已过期")
     return claims
