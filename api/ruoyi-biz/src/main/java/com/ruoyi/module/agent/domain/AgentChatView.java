@@ -1,6 +1,7 @@
 package com.ruoyi.module.agent.domain;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,6 +22,8 @@ public class AgentChatView
     private String intent;
 
     private List<AgentToolCallSummary> toolCalls;
+
+    private Map<String, Object> draft;
 
     private String traceId;
 

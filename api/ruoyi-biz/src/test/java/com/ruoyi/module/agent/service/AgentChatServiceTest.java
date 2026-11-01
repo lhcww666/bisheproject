@@ -79,6 +79,7 @@ class AgentChatServiceTest
         assertEquals("模型回答", result.getAnswer());
         assertEquals("GENERAL", result.getIntent());
         assertEquals("queryMyReservations", result.getToolCalls().get(0).getToolName());
+        assertEquals(null, result.getDraft());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("USER"), eq("你好"), any());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("ASSISTANT"), eq("模型回答"), any());
     }

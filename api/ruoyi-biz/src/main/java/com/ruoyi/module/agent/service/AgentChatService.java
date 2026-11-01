@@ -101,6 +101,7 @@ public class AgentChatService
                 pythonResponse.getToolCalls() == null
                         ? List.of()
                         : pythonResponse.getToolCalls(),
+                pythonResponse.getDraft(),
                 traceId,
                 pythonResponse.getModel());
     }

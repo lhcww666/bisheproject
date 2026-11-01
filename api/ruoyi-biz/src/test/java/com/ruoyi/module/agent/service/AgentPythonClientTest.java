@@ -47,6 +47,7 @@ class AgentPythonClientTest
         assertEquals("模型回答", result.getAnswer());
         assertEquals("GENERAL", result.getIntent());
         assertEquals("queryMyReservations", result.getToolCalls().get(0).getToolName());
+        assertEquals(null, result.getDraft());
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));
         assertEquals("signed-context", requestCaptor.getValue().headers()

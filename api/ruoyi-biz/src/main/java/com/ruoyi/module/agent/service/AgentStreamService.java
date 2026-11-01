@@ -227,6 +227,7 @@ public class AgentStreamService
             done.put("traceId", traceId);
             done.put("intent", response.getIntent());
             done.put("toolCalls", response.getToolCalls() == null ? List.of() : response.getToolCalls());
+            done.put("draft", response.getDraft());
             done.put("model", response.getModel());
             emitter.send(SseEmitter.event()
                     .name("done")
