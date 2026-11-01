@@ -474,8 +474,9 @@ requestId -> sessionId -> traceId -> toolCallId
 - 前端 fetch 流解析、消息增量更新和工具状态即时追加。
 - 用户明确选择可用实验室后，LangGraph 匹配设备和房间并创建待确认草稿。
 - 前端预约草稿确认弹窗、取消和正式提交。
+- Java Dify Workflow blocking API 客户端、服务端密钥和 Agent 上下文传递。
 
 尚未完成：
 
-- Dify 工作流。
+- Dify 安全问答和预约分析工作流本身。
 - Agent 知识引用展示。
