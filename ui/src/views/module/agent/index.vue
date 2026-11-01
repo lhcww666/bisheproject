@@ -227,6 +227,7 @@ async function handleSend() {
       role: "ASSISTANT",
       content: answer.answer,
       intent: answer.intent,
+      toolCalls: answer.toolCalls || [],
       model: answer.model,
       traceId: answer.traceId
     })

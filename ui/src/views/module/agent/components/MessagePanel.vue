@@ -35,6 +35,19 @@
             </el-tag>
             <span v-if="message.model">{{ message.model }}</span>
           </div>
+          <div v-if="message.toolCalls?.length" class="tool-list">
+            <el-tag
+              v-for="tool in message.toolCalls"
+              :key="`${tool.toolName}-${tool.status}`"
+              size="small"
+              :type="tool.status === 'succeeded' ? 'success' : 'danger'"
+              effect="plain"
+              :title="tool.error || ''"
+            >
+              工具 · {{ toolLabel(tool.toolName) }}
+              {{ tool.status === "succeeded" ? "完成" : "失败" }}
+            </el-tag>
+          </div>
         </div>
       </article>
 
@@ -89,6 +102,17 @@ function intentLabel(intent) {
     SAFETY_KNOWLEDGE: "安全知识",
     GENERAL: "普通对话"
   }[intent] || intent
+}
+
+function toolLabel(toolName) {
+  return {
+    queryMyReservations: "本人预约",
+    queryMyCredit: "信用查询",
+    checkSafetyExamStatus: "安全考试",
+    queryAvailableRooms: "可用实验室",
+    queryAvailableDevices: "可用设备",
+    createReservationDraft: "预约草稿"
+  }[toolName] || toolName
 }
 </script>
 
@@ -220,6 +244,13 @@ function intentLabel(intent) {
   margin-top: 7px;
   color: #94a3b8;
   font-size: 11px;
+}
+
+.tool-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .loading-bubble {
