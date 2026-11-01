@@ -9,3 +9,18 @@ class KnowledgeCitation(BaseModel):
     source: str
     snippet: str
     score: float
+
+
+class KnowledgeSearchRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    session_id: int = Field(gt=0, alias="sessionId")
+    query: str = Field(min_length=1, max_length=2000)
+
+
+class KnowledgeSearchResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    citations: list[KnowledgeCitation]
+    session_id: int = Field(alias="sessionId")
+    trace_id: str = Field(alias="traceId")

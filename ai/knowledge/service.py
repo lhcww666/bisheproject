@@ -19,8 +19,12 @@ class KnowledgeService:
         chunks = split_documents(load_documents(directory))
         self.retriever = LocalBm25Retriever(chunks, min_score=min_score)
 
-    def search(self, query: str) -> list[KnowledgeCitation]:
-        return self.retriever.search(query, top_k=self.top_k)
+    def search(
+        self,
+        query: str,
+        top_k: int | None = None,
+    ) -> list[KnowledgeCitation]:
+        return self.retriever.search(query, top_k=top_k or self.top_k)
 
 
 @lru_cache
