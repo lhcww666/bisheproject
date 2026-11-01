@@ -24,6 +24,8 @@ public class AgentProperties
 
     private long contextTtlSeconds = 300;
 
+    private long pythonTimeoutSeconds = 60;
+
     public String normalizedEngine()
     {
         return engine == null || engine.isBlank() ? "python" : engine.trim().toLowerCase();

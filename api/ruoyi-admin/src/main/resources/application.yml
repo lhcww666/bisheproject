@@ -138,6 +138,7 @@ bishe:
     dify-base-url:
     context-secret: ${AGENT_CONTEXT_SECRET:}
     context-ttl-seconds: 300
+    python-timeout-seconds: 60
   filterTables:
   ignoreTables:
     - QRTZ_BLOB_TRIGGERS

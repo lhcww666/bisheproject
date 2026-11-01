@@ -6,8 +6,10 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.module.agent.config.AgentProperties;
+import com.ruoyi.module.agent.domain.AgentChatRequest;
 import com.ruoyi.module.agent.domain.AgentSessionCreateRequest;
 import com.ruoyi.module.agent.domain.ChatSession;
+import com.ruoyi.module.agent.service.AgentChatService;
 import com.ruoyi.module.agent.service.AgentStatusService;
 import com.ruoyi.module.agent.service.IChatSessionService;
 import jakarta.validation.Valid;
@@ -37,6 +39,8 @@ public class AgentController extends BaseController
 
     private final AgentProperties agentProperties;
 
+    private final AgentChatService agentChatService;
+
     @PreAuthorize("@ss.hasPermi('module:agent:use')")
     @GetMapping("/status")
     public AjaxResult status()
@@ -61,6 +65,14 @@ public class AgentController extends BaseController
                 request,
                 agentProperties.normalizedEngine());
         return success(Map.of("sessionId", session.getId()));
+    }
+
+    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @Log(title = "智能助手对话", businessType = BusinessType.OTHER)
+    @PostMapping("/chat")
+    public AjaxResult chat(@Valid @RequestBody AgentChatRequest request)
+    {
+        return success(agentChatService.chat(SecurityUtils.getUserId(), request));
     }
 
     @PreAuthorize("@ss.hasPermi('module:agent:use')")
