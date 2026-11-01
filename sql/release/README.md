@@ -77,7 +77,7 @@ SELECT COUNT(*) AS agent_eval_case_count FROM agent_eval_case;
 7. 模块目录、业务按钮、角色、准入、班级、审核和页面结构脚本
 8. `20` 至 `42` 号生命周期、业务扩展和 Agent 脚本
 
-历史文件 `lab_ai_platform.sql`、`lab_ai_platform_core.sql` 使用旧命名，不属于当前 MySQL 发布链路。PostgreSQL、GaussDB、HighGo 脚本也不包含在本发布包中。
+旧 `lab_ai_platform.sql`、`lab_ai_platform_core.sql` 以及 PostgreSQL、GaussDB、HighGo 初始化脚本已经从 `springai` 分支移除，避免误执行。`api/sql` 中只保留 MySQL 源脚本，供发布文件重新生成。
 
 ## 重新生成
 

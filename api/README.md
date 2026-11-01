@@ -131,19 +131,13 @@ RuoYi SpringBoot3 Pro 是在 **RuoYi-Vue** 基础上的企业级增强版本，�
 - **历史记录**:支持接口变更历史记录和回滚
 - 访问地址：`http://localhost:8087/magic/web`（默认账号：jyx / jyx_692483）
 
-### 6. 🗄️ 多数据库支持
+### 6. 🗄️ 数据库使用范围
 
-支持国内外主流数据库，满足不同场景需求：
+本项目 `springai` 分支固定使用 **MySQL 8**。非 MySQL 初始化脚本已经从分支移除，避免与统一初始化文件冲突。
 
-| 数据库         | 支持版本 | 配置文件              | 初始化脚本       |
-| -------------- | -------- | --------------------- | ---------------- |
-| **MySQL**      | 5.7+     | application-devmy.yml | ruoyi-mysql.sql  |
-| **PostgreSQL** | 12+      | application-devpg.yml | ruoyi-pgsql.sql  |
-| **达梦数据库** | DM8+     | application-devdm.yml | ruoyi-dm8.dmp    |
-| **瀚高数据库** | 6.2+     | application-devhg.yml | ruoyi-highgo.sql |
-| **高斯数据库** | GaussDB  | application-devgs.yml | ruoyi-gauss.sql  |
-
-> 💡 切换数据库只需修改 `application.yml` 中的 `spring.profiles.active` 配置
+| 数据库 | 支持版本 | 配置文件 | 初始化方式 |
+| --- | --- | --- | --- |
+| MySQL | 8.x | `application-devmy.yml` | `../sql/release/01-bishe_schema_full.sql` |
 
 ### 7. 🏢 多租户支持
 
@@ -206,11 +200,7 @@ RuoYi SpringBoot3 Pro 是在 **RuoYi-Vue** 基础上的企业级增强版本，�
 
 ### 数据库支持
 
-- MySQL 5.7+
-- PostgreSQL 12+
-- 达梦数据库 DM8
-- 瀚高数据库 6.2+
-- 高斯数据库 GaussDB
+- MySQL 8.x
 
 ## 内置功能
 
@@ -246,12 +236,7 @@ RuoYi SpringBoot3 Pro 是在 **RuoYi-Vue** 基础上的企业级增强版本，�
 
 - JDK 17 或 JDK 21
 - Maven 3.6+
-- 选择以下数据库之一：
-  - MySQL 5.7+
-  - PostgreSQL 12+
-  - 达梦数据库 DM8
-  - 瀚高数据库 6.2+
-  - 高斯数据库 GaussDB
+- MySQL 8.x
 - Redis
 
 ### 安装步骤
@@ -259,16 +244,10 @@ RuoYi SpringBoot3 Pro 是在 **RuoYi-Vue** 基础上的企业级增强版本，�
 1. **导入数据库脚本**
 
 ```bash
-# MySQL 示例
-mysql -u root -p < sql/ruoyi-mysql.sql
-mysql -u root -p < sql/magic-api-mysql.sql
-mysql -u root -p < sql/region-mysql.sql
-
-# PostgreSQL 示例
-psql -U postgres -d ruoyi < sql/ruoyi-pgsql.sql
-psql -U postgres -d ruoyi < sql/magic-api-pgsql.sql
-psql -U postgres -d ruoyi < sql/region-pgsql.sql
+mysql -u root -p --default-character-set=utf8mb4 < ../sql/release/01-bishe_schema_full.sql
 ```
+
+完整文件会自动创建 `bishe_schema`，并包含若依基础表、Magic API、行政区划、业务表、菜单角色、演示数据和 Agent 数据。不要再单独执行 `ruoyi-mysql.sql`、`magic-api-mysql.sql` 或 `region-mysql.sql`。
 
 2. **修改配置文件**
 
@@ -663,15 +642,9 @@ CREATE TABLE `biz_dingdan`  (
 | openGauss       | BIGSERIAL      | 华为高斯数据库语法   |
 | SQLite          | AUTOINCREMENT  | 轻量级数据库         |
 
-### 切换数据库
+### 数据库配置
 
-1. 修改 `application.yml` 中的 `spring.profiles.active`
-2. 选择对应的配置文件：
-   - `devmy`：开发环境 MySQL
-   - `devpg`：开发环境 PostgreSQL
-   - `devdm`：开发环境达梦数据库
-   - `devhg`：开发环境瀚高数据库
-   - 等等...
+当前项目固定使用 `devmy` 配置和 MySQL 8，不再维护其他数据库初始化链路。
 
 ## 项目结构
 
@@ -683,10 +656,8 @@ RuoYi-SpringBoot3-Pro
 │   └── run.bat            # 启动脚本
 ├── sql                     # SQL脚本
 │   ├── ruoyi-mysql.sql    # MySQL 初始化脚本
-│   ├── ruoyi-pgsql.sql    # PostgreSQL 初始化脚本
-│   ├── ruoyi-dm8.dmp      # 达梦数据库脚本
-│   ├── magic-api-*.sql    # Magic API 脚本
-│   ├── region-*.sql       # 地区数据脚本
+│   ├── magic-api-mysql.sql # Magic API MySQL 脚本
+│   ├── region-mysql.sql   # 地区数据 MySQL 脚本
 │   └── Dify_数据库建表.yml  # Dify 建表工作流
 ├── ruoyi-admin             # 管理后台模块
 ├── ruoyi-framework         # 框架核心模块
