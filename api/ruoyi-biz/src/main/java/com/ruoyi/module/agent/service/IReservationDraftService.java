@@ -16,4 +16,6 @@ public interface IReservationDraftService
     ReservationDraftView get(Long draftId, Long userId);
 
     ReservationDraftView cancel(Long draftId, Long userId);
+
+    ReservationDraftView confirm(Long draftId, Long userId);
 }

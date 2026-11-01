@@ -38,4 +38,12 @@ public class ReservationDraftController extends BaseController
     {
         return success(draftService.cancel(draftId, SecurityUtils.getUserId()));
     }
+
+    @PreAuthorize("@ss.hasPermi('module:agent:use')")
+    @Log(title = "智能助手预约草稿", businessType = BusinessType.INSERT)
+    @PostMapping("/{draftId}/confirm")
+    public AjaxResult confirm(@PathVariable Long draftId)
+    {
+        return success(draftService.confirm(draftId, SecurityUtils.getUserId()));
+    }
 }

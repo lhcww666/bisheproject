@@ -13,6 +13,8 @@ import com.ruoyi.module.agent.domain.ReservationDraftView;
 import com.ruoyi.module.agent.mapper.ReservationDraftMapper;
 import com.ruoyi.module.agent.service.IReservationDraftService;
 import com.ruoyi.module.device.domain.Device;
+import com.ruoyi.module.reservation.domain.Reservation;
+import com.ruoyi.module.reservation.domain.ReservationType;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.room.domain.Room;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,8 @@ public class ReservationDraftServiceImpl implements IReservationDraftService
     private static final String CANCELED = "CANCELED";
 
     private static final String EXPIRED = "EXPIRED";
+
+    private static final String CONFIRMED = "CONFIRMED";
 
     private final ReservationDraftMapper draftMapper;
 
@@ -127,6 +131,40 @@ public class ReservationDraftServiceImpl implements IReservationDraftService
         return toView(draft);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ReservationDraftView confirm(Long draftId, Long userId)
+    {
+        ReservationDraft draft = requireOwned(draftId, userId);
+        if (CONFIRMED.equals(draft.getStatus()))
+        {
+            return toView(draft);
+        }
+        if (!PENDING.equals(draft.getStatus()))
+        {
+            throw new ServiceException("当前预约草稿状态不能确认");
+        }
+
+        AgentReservationDraftCreateRequest request = readRequest(draft);
+        Reservation reservation = new Reservation();
+        reservation.setRoomId(request.getRoomId());
+        reservation.setExperimentName(request.getExperimentName());
+        reservation.setStartTime(parseDateTime(request.getStartTime()));
+        reservation.setEndTime(parseDateTime(request.getEndTime()));
+        reservation.setParticipantCount(request.getParticipantCount());
+        reservation.setDeviceIds(request.getDeviceIds());
+        reservation.setRemark(request.getRemark());
+        reservation.setReservationType(ReservationType.INDIVIDUAL);
+        Reservation created = reservationService.applyReservation(reservation);
+
+        draft.setStatus(CONFIRMED);
+        draft.setConfirmedReservationId(created.getId());
+        draft.setUpdateBy(SecurityUtils.getUsername());
+        draft.setUpdateTime(DateUtils.getNowDate());
+        draftMapper.updateById(draft);
+        return toView(draft);
+    }
+
     private ReservationDraft requireOwned(Long draftId, Long userId)
     {
         ReservationDraft draft = draftMapper.selectById(draftId);
@@ -201,17 +239,22 @@ public class ReservationDraftServiceImpl implements IReservationDraftService
 
     private ReservationDraftView toView(ReservationDraft draft)
     {
+        return new ReservationDraftView(
+                draft.getId(),
+                draft.getSessionId(),
+                draft.getStatus(),
+                draft.getExpiresAt(),
+                draft.getConfirmedReservationId(),
+                readRequest(draft));
+    }
+
+    private AgentReservationDraftCreateRequest readRequest(ReservationDraft draft)
+    {
         try
         {
-            return new ReservationDraftView(
-                    draft.getId(),
-                    draft.getSessionId(),
-                    draft.getStatus(),
-                    draft.getExpiresAt(),
-                    draft.getConfirmedReservationId(),
-                    objectMapper.readValue(
-                            draft.getRequestJson(),
-                            AgentReservationDraftCreateRequest.class));
+            return objectMapper.readValue(
+                    draft.getRequestJson(),
+                    AgentReservationDraftCreateRequest.class);
         }
         catch (Exception exception)
         {

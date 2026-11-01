@@ -8,6 +8,7 @@ import com.ruoyi.module.agent.domain.AgentReservationDraftCreateRequest;
 import com.ruoyi.module.agent.domain.ReservationDraft;
 import com.ruoyi.module.agent.domain.ReservationDraftView;
 import com.ruoyi.module.agent.mapper.ReservationDraftMapper;
+import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.room.domain.Room;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,6 +114,58 @@ class ReservationDraftServiceImplTest
         ReservationDraftView view = service.create(7L, "idem-1", request());
 
         assertEquals(71L, view.getId());
+    }
+
+    @Test
+    void confirmsDraftThroughReservationService()
+    {
+        ReservationDraft draft = pendingDraft();
+        when(draftMapper.selectById(70L)).thenReturn(draft);
+        Reservation created = new Reservation();
+        created.setId(501L);
+        when(reservationService.applyReservation(any(Reservation.class)))
+                .thenReturn(created);
+
+        ReservationDraftView view = service.confirm(70L, 7L);
+
+        assertEquals("CONFIRMED", view.getStatus());
+        assertEquals(501L, view.getConfirmedReservationId());
+        verify(draftMapper).updateById(draft);
+        verify(reservationService).applyReservation(any(Reservation.class));
+    }
+
+    @Test
+    void repeatedConfirmationReturnsExistingReservation()
+    {
+        ReservationDraft draft = pendingDraft();
+        draft.setStatus("CONFIRMED");
+        draft.setConfirmedReservationId(501L);
+        when(draftMapper.selectById(70L)).thenReturn(draft);
+
+        ReservationDraftView view = service.confirm(70L, 7L);
+
+        assertEquals(501L, view.getConfirmedReservationId());
+        verify(reservationService, org.mockito.Mockito.never())
+                .applyReservation(any(Reservation.class));
+    }
+
+    private ReservationDraft pendingDraft()
+    {
+        ReservationDraft draft = new ReservationDraft();
+        draft.setId(70L);
+        draft.setUserId(7L);
+        draft.setSessionId(101L);
+        draft.setStatus("PENDING");
+        draft.setExpiresAt(new Date(System.currentTimeMillis() + 60_000));
+        try
+        {
+            draft.setRequestJson(new ObjectMapper().writeValueAsString(request()));
+        }
+        catch (Exception exception)
+        {
+            throw new RuntimeException(exception);
+        }
+        return draft;
     }
 
     private AgentReservationDraftCreateRequest request()
