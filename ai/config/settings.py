@@ -40,6 +40,21 @@ class Settings(BaseSettings):
         default=8.0,
         validation_alias=AliasChoices("AI_TIMEZONE_OFFSET_HOURS"),
     )
+    knowledge_dir: str = Field(
+        default="data/knowledge",
+        validation_alias=AliasChoices("AI_KNOWLEDGE_DIR"),
+    )
+    knowledge_top_k: int = Field(
+        default=4,
+        ge=1,
+        le=10,
+        validation_alias=AliasChoices("AI_KNOWLEDGE_TOP_K"),
+    )
+    knowledge_min_score: float = Field(
+        default=0.2,
+        ge=0,
+        validation_alias=AliasChoices("AI_KNOWLEDGE_MIN_SCORE"),
+    )
     model_config = SettingsConfigDict(
         env_prefix="AI_",
         env_file=".env",

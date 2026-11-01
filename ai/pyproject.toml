@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.28,<1.0",
     "langchain-core>=1.0,<2.0",
     "langchain-openai>=1.0,<2.0",
+    "langchain-text-splitters>=1.0,<2.0",
     "langgraph>=1.0,<2.0",
     "pydantic-settings>=2.10,<3.0",
     "uvicorn[standard]>=0.35,<1.0",
@@ -23,7 +24,17 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["config*", "routers*", "schemas*", "utils*"]
+include = [
+    "agent*",
+    "config*",
+    "integrations*",
+    "knowledge*",
+    "routers*",
+    "schemas*",
+    "services*",
+    "tools*",
+    "utils*",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
