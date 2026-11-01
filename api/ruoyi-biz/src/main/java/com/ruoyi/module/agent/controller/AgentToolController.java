@@ -7,19 +7,28 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.module.agent.domain.AgentContextClaims;
+import com.ruoyi.module.agent.domain.AgentAvailableDeviceRequest;
+import com.ruoyi.module.agent.domain.AgentAvailableRoomRequest;
+import com.ruoyi.module.agent.domain.AgentDeviceSummary;
 import com.ruoyi.module.agent.domain.AgentReservationSummary;
+import com.ruoyi.module.agent.domain.AgentRoomSummary;
 import com.ruoyi.module.agent.service.AgentContextService;
 import com.ruoyi.module.agent.service.AgentToolPolicyService;
 import com.ruoyi.module.agent.service.AgentToolAuditService;
 import com.ruoyi.module.credit.domain.CreditSummary;
 import com.ruoyi.module.credit.service.ICreditService;
+import com.ruoyi.module.device.domain.Device;
+import com.ruoyi.module.room.domain.Room;
 import com.ruoyi.module.reservation.domain.Reservation;
 import com.ruoyi.module.reservation.domain.ReservationView;
 import com.ruoyi.module.reservation.service.IReservationService;
 import com.ruoyi.module.safety.domain.SafetyExamStatusView;
 import com.ruoyi.module.safety.service.ISafetyExamService;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,6 +37,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Agent 内部业务工具接口。仅允许携带签名上下文的服务端调用。
@@ -186,6 +198,95 @@ public class AgentToolController extends BaseController
         }
     }
 
+    @PostMapping("/rooms/available")
+    public AjaxResult availableRooms(
+            @RequestHeader(value = "X-Agent-Context", required = false) String contextToken,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @Valid @RequestBody AgentAvailableRoomRequest request)
+    {
+        long startedAt = System.nanoTime();
+        AgentContextClaims context = null;
+        Map<String, Object> arguments = Map.of(
+                "startTime", request.getStartTime(),
+                "endTime", request.getEndTime(),
+                "participantCount", request.getParticipantCount() == null
+                        ? ""
+                        : request.getParticipantCount());
+        try
+        {
+            context = contextService.verify(contextToken, requestId);
+            toolPolicyService.requireAllowed(context.getRole(), "queryAvailableRooms");
+            List<AgentRoomSummary> rooms = reservationService.selectAvailableRooms(
+                    context.getUserId(),
+                    parseDateTime(request.getStartTime()),
+                    parseDateTime(request.getEndTime()),
+                    request.getParticipantCount()).stream()
+                    .map(this::toRoomSummary)
+                    .toList();
+            auditService.success(
+                    context,
+                    requestId,
+                    "queryAvailableRooms",
+                    arguments,
+                    Map.of("returned", rooms.size()),
+                    elapsedMs(startedAt));
+            return success(Map.of("list", rooms, "total", rooms.size()));
+        }
+        catch (ServiceException exception)
+        {
+            auditService.failure(
+                    context,
+                    requestId,
+                    "queryAvailableRooms",
+                    arguments,
+                    "AGENT_TOOL_FAILED",
+                    exception.getMessage(),
+                    elapsedMs(startedAt));
+            throw exception;
+        }
+    }
+
+    @PostMapping("/devices/available")
+    public AjaxResult availableDevices(
+            @RequestHeader(value = "X-Agent-Context", required = false) String contextToken,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @Valid @RequestBody AgentAvailableDeviceRequest request)
+    {
+        long startedAt = System.nanoTime();
+        AgentContextClaims context = null;
+        Map<String, Object> arguments = Map.of("roomId", request.getRoomId());
+        try
+        {
+            context = contextService.verify(contextToken, requestId);
+            toolPolicyService.requireAllowed(context.getRole(), "queryAvailableDevices");
+            List<AgentDeviceSummary> devices = reservationService
+                    .selectAvailableDevices(request.getRoomId())
+                    .stream()
+                    .map(this::toDeviceSummary)
+                    .toList();
+            auditService.success(
+                    context,
+                    requestId,
+                    "queryAvailableDevices",
+                    arguments,
+                    Map.of("returned", devices.size()),
+                    elapsedMs(startedAt));
+            return success(Map.of("list", devices, "total", devices.size()));
+        }
+        catch (ServiceException exception)
+        {
+            auditService.failure(
+                    context,
+                    requestId,
+                    "queryAvailableDevices",
+                    arguments,
+                    "AGENT_TOOL_FAILED",
+                    exception.getMessage(),
+                    elapsedMs(startedAt));
+            throw exception;
+        }
+    }
+
     private long elapsedMs(long startedAt)
     {
         return (System.nanoTime() - startedAt) / 1_000_000;
@@ -202,5 +303,46 @@ public class AgentToolController extends BaseController
                 reservation.getEndTime(),
                 reservation.getStatus(),
                 reservation.getReviewComment());
+    }
+
+    private AgentRoomSummary toRoomSummary(Room room)
+    {
+        return new AgentRoomSummary(
+                room.getId(),
+                room.getRoomCode(),
+                room.getRoomName(),
+                room.getRoomType(),
+                room.getLocation(),
+                room.getCapacity(),
+                room.getSafetyLevel());
+    }
+
+    private AgentDeviceSummary toDeviceSummary(Device device)
+    {
+        return new AgentDeviceSummary(
+                device.getId(),
+                device.getDeviceCode(),
+                device.getDeviceName(),
+                device.getDeviceType(),
+                device.getQuantity(),
+                device.getRequiresTraining());
+    }
+
+    private Date parseDateTime(String value)
+    {
+        String[] patterns = { "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd" };
+        for (String pattern : patterns)
+        {
+            try
+            {
+                SimpleDateFormat formatter = new SimpleDateFormat(pattern);
+                formatter.setLenient(false);
+                return formatter.parse(value);
+            }
+            catch (ParseException ignored)
+            {
+            }
+        }
+        throw new ServiceException("时间格式不正确：" + value);
     }
 }
