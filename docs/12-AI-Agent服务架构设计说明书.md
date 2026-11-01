@@ -451,6 +451,9 @@ requestId -> sessionId -> traceId -> toolCallId
 - 会话 Service 单元测试。
 - HMAC-SHA256 短期 Agent 上下文签发、校验、过期和篡改测试。
 - FastAPI 服务骨架、统一异常处理与 `/api/ai/health` 健康接口。
+- FastAPI 校验 Java 签发的 `X-Agent-Context`。
+- LangChain DeepSeek/OpenAI 兼容模型适配和同步 `/api/ai/chat`。
+- Spring Boot `/module/agent/chat` 同步转发、历史消息和双消息保存。
 
 尚未完成：
 

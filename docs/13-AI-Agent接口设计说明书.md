@@ -612,11 +612,13 @@ Dify 输出必须经过 Spring Boot 归一化后才能发送给前端。
 | GET | `/module/agent/sessions/{sessionId}/messages` | 已实现 |
 | DELETE | `/module/agent/sessions/{sessionId}` | 已实现 |
 | GET | `/api/ai/health` | 已实现 |
+| POST | `/module/agent/chat` | 已实现 |
+| POST | `/api/ai/chat` | 已实现 |
 
 设计完成、尚未实现：
 
-- 同步和 SSE 对话。
-- FastAPI 内部接口。
+- SSE 流式对话。
+- FastAPI 流式对话和预约分析接口。
 - Dify 工作流调用。
 - 预约草稿确认。
 - 内部业务工具。
