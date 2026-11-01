@@ -19,6 +19,14 @@ application-local.yml
 application-local.yaml
 *.local
 
+# Python AI service
+ai/.venv/
+ai/.pytest_cache/
+ai/**/__pycache__/
+ai/**/*.py[cod]
+ai/*.egg-info/
+ai/.env
+
 # local Git metadata of the original framework clones
 ui/.git/
 api/.git/
