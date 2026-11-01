@@ -11,7 +11,7 @@
 | 题目 | 基于大语言模型 Agent 的校园实验室智能预约与安全管理平台设计与实现 |
 | 类型 | 本科毕业设计，前后端分离的单体应用 |
 | 核心目标 | 在传统实验室管理平台之上，用 Spring AI 的 Tool Calling 与 RAG 提供一个受控、可追溯的智能助手 |
-| 完整方案 | 根目录 `基于大语言模型Agent的校园实验室智能预约与安全管理平台-计划书.md` |
+| 完整方案 | `docs/00-项目计划书.md` |
 
 实施节奏是“业务系统先行，AI 后接入”：先把实验室、设备、预约、审核、安全考试、信用分的业务闭环做通，再把已有后端能力封装成受控工具交给 Agent 调用。不要为了演示 AI 而跳过业务规则。
 
@@ -28,7 +28,8 @@
 | 认证授权 | Spring Security + JWT + 若依菜单权限体系 |
 | 缓存 | Redis（登录态、验证码） |
 | 基础框架 | 若依 RuoYi-SpringBoot3-Pro（后端）、RuoYi-SpringBoot3-ElementPlus v3.9.1（前端） |
-| 规划中的 AI 能力 | Spring AI + DeepSeek（或通义千问）、RAG + pgvector/Chroma |
+| 已接入的 AI 能力 | Spring AI + DeepSeek Tool Calling、MySQL 混合检索 RAG、本地特征哈希向量 |
+| 后续可选扩展 | 外部 Embedding 服务、pgvector/Chroma、LangChain4j 对比分支 |
 
 ## 三、目录结构
 
@@ -36,10 +37,10 @@
 D:\bishe_project
 ├── api        Spring Boot 3 后端（若依多模块工程）
 ├── ui         Vue 3 前端（若依 Element Plus 工程）
-├── docs       需求、设计、开发与落地说明文档
+├── docs       计划、需求、架构、接口、数据库、开发、操作与设计文档
+│   └── history  早期设计历史稿
 ├── sql        数据库脚本
-├── 后端       旧版若依框架参考代码，仅作参考，不参与构建（已被 .gitignore 忽略）
-└── 命名规范-最终版.md    命名口径的唯一权威来源
+└── 后端       旧版若依框架参考代码，仅作参考，不参与构建（已被 .gitignore 忽略）
 ```
 
 后端模块职责：
@@ -73,7 +74,7 @@ api
 
 ## 四、命名规范
 
-以根目录 `命名规范-最终版.md` 为准，不再使用 `lab_` 前缀与 `LabRoom`、`com.ruoyi.lab` 等旧写法。
+以 `docs/命名规范-最终版.md` 为准，不再使用 `lab_` 前缀与 `LabRoom`、`com.ruoyi.lab` 等旧写法。
 
 ```text
 后端包：com.ruoyi.module.<业务模块>     例：com.ruoyi.module.room
@@ -84,7 +85,7 @@ api
 数据库字段：room_code、start_time 之类，不重复添加 lab_ 前缀
 ```
 
-`docs/数据库设计说明-核心版.md` 里仍写作 `lab_room`、`lab_reservation`，属于历史版本；正式建表以 `sql/module_core.sql` 和《命名规范-最终版》为准，不要把新旧两套表混用。
+`docs/history/数据库设计说明-核心版-旧稿.md` 和 `docs/history/数据库设计说明-旧稿.md` 里仍写作 `lab_room`、`lab_reservation`，属于历史版本；正式建表以 `sql/module_core.sql`、`sql/release/01-bishe_schema_full.sql` 和《命名规范-最终版》为准，不要把新旧两套表混用。
 
 ## 五、开发环境与启动方式
 
@@ -214,10 +215,11 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 
 | 文档 | 用途 |
 | --- | --- |
-| `基于大语言模型Agent的校园实验室智能预约与安全管理平台-计划书.md` | 整体方案、技术栈、实施计划、测试与评价方案 |
-| `命名规范-最终版.md` | 命名口径唯一权威来源 |
+| `docs/README.md` | 项目文档总索引与阅读顺序 |
+| `docs/00-项目计划书.md` | 整体方案、技术栈、实施计划、测试与评价方案 |
+| `docs/命名规范-最终版.md` | 命名口径唯一权威来源 |
 | `docs/01-需求规格说明书.md` | 需求与角色 |
-| `docs/02-系统概要设计说明书.md` | 架构与模块设计 |
+| `docs/02-系统架构设计说明书.md` | 当前架构与模块设计 |
 | `docs/03-接口设计说明书.md` | 接口约定与业务规则 |
 | `docs/04-本地开发指导书.md` | 环境、启动、登录调试 |
 | `docs/05-代码生成与模块落地说明.md` | 从建表到页面的完整落地过程与已验证结论 |
@@ -225,8 +227,9 @@ Test-Path ruoyi-biz\target\classes\mapper\module\RoomMapper.xml
 | `docs/07-系统功能介绍手册.md` | 面向答辩与交付的系统定位、功能、技术特点和使用边界 |
 | `docs/08-系统操作手册.md` | 面向学生、教师、管理员的完整操作步骤、常见问题与演示流程 |
 | `docs/代码生成配置-最终版.md` | 各表生成器配置对照表 |
-| `docs/数据库设计说明-核心版.md`、`docs/数据库设计说明.md` | 表结构设计（命名以《命名规范-最终版》为准） |
-| `docs/页面原型说明.md` | 页面原型 |
+| `docs/10-数据库设计说明书.md` | 当前表结构、关系与约束 |
+| `docs/11-页面与菜单说明.md` | 当前页面、菜单、角色与权限 |
+| `docs/history/README.md` | 早期设计与原型历史稿说明 |
 | `api/openspec/AGENTS.md` | 需要写提案、规格或大改动时的 OpenSpec 流程 |
 
 ## 十二、Git 提交规范

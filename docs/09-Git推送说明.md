@@ -34,7 +34,7 @@ git branch --show-current
 git status
 
 # 2. 暂存并提交，提交信息按 AGENTS.md 的类型前缀写
-git add docs/05-Git推送说明.md
+git add docs/09-Git推送说明.md
 git commit -m "docs: 新增 Git 双远程推送说明"
 
 # 3. 分别推送到两个远程
