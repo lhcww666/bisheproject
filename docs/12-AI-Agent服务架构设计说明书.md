@@ -475,6 +475,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 用户明确选择可用实验室后，LangGraph 匹配设备和房间并创建待确认草稿。
 - 前端预约草稿确认弹窗、取消和正式提交。
 - Java Dify Workflow blocking API 客户端、服务端密钥和 Agent 上下文传递。
+- 安全问答和预约分析两份可导入 Dify DSL。
 
 尚未完成：
 
