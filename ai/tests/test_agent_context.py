@@ -49,7 +49,7 @@ def test_verify_context() -> None:
 
 def test_reject_tampered_context() -> None:
     token = issue()
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    tampered = ("A" if token[0] != "A" else "B") + token[1:]
 
     with pytest.raises(AgentContextError):
         verify_agent_context(tampered, SECRET)
