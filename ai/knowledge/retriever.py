@@ -13,9 +13,11 @@ class LocalBm25Retriever:
         self,
         documents: list[Document],
         min_score: float = 0.2,
+        min_query_coverage: float = 0.15,
     ) -> None:
         self.documents = documents
         self.min_score = min_score
+        self.min_query_coverage = min_query_coverage
         self.term_frequencies = [
             Counter(_tokenize(document.page_content)) for document in documents
         ]
@@ -29,6 +31,7 @@ class LocalBm25Retriever:
         query_terms = _tokenize(query)
         if not query_terms or not self.documents:
             return []
+        query_term_set = set(query_terms)
         normalized_roles = {
             role.strip().upper()
             for role in (roles or [])
@@ -55,6 +58,12 @@ class LocalBm25Retriever:
 
         scored = []
         for index in visible_indexes:
+            coverage = len(
+                query_term_set
+                & set(self.term_frequencies[index].keys())
+            ) / len(query_term_set)
+            if coverage < self.min_query_coverage:
+                continue
             score = self._score(
                 query_terms,
                 index,
@@ -125,8 +134,13 @@ def _tokenize(text: str) -> list[str]:
     chinese_runs = re.findall(r"[\u4e00-\u9fff]+", normalized)
     tokens = list(latin_terms)
     for run in chinese_runs:
-        tokens.extend(run)
-        tokens.extend(run[index : index + 2] for index in range(len(run) - 1))
+        if len(run) == 1:
+            tokens.append(run)
+        else:
+            tokens.extend(
+                run[index : index + 2]
+                for index in range(len(run) - 1)
+            )
     return tokens
 
 

@@ -27,6 +27,7 @@ dev = [
 include = [
     "agent*",
     "config*",
+    "evaluation*",
     "integrations*",
     "knowledge*",
     "routers*",

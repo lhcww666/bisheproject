@@ -55,6 +55,12 @@ class Settings(BaseSettings):
         ge=0,
         validation_alias=AliasChoices("AI_KNOWLEDGE_MIN_SCORE"),
     )
+    knowledge_min_coverage: float = Field(
+        default=0.15,
+        ge=0,
+        le=1,
+        validation_alias=AliasChoices("AI_KNOWLEDGE_MIN_COVERAGE"),
+    )
     model_config = SettingsConfigDict(
         env_prefix="AI_",
         env_file=".env",

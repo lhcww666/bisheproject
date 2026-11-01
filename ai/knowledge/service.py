@@ -15,10 +15,15 @@ class KnowledgeService:
         directory: Path,
         top_k: int = 4,
         min_score: float = 0.2,
+        min_query_coverage: float = 0.15,
     ) -> None:
         self.top_k = top_k
         chunks = split_documents(load_documents(directory))
-        self.retriever = LocalBm25Retriever(chunks, min_score=min_score)
+        self.retriever = LocalBm25Retriever(
+            chunks,
+            min_score=min_score,
+            min_query_coverage=min_query_coverage,
+        )
 
     def search(
         self,
@@ -43,4 +48,5 @@ def get_knowledge_service() -> KnowledgeService:
         directory,
         top_k=settings.knowledge_top_k,
         min_score=settings.knowledge_min_score,
+        min_query_coverage=settings.knowledge_min_coverage,
     )
