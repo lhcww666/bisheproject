@@ -611,6 +611,7 @@ Dify 输出必须经过 Spring Boot 归一化后才能发送给前端。
 | POST | `/module/agent/sessions` | 已实现 |
 | GET | `/module/agent/sessions/{sessionId}/messages` | 已实现 |
 | DELETE | `/module/agent/sessions/{sessionId}` | 已实现 |
+| GET | `/api/ai/health` | 已实现 |
 
 设计完成、尚未实现：
 

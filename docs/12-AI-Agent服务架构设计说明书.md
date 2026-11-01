@@ -449,10 +449,11 @@ requestId -> sessionId -> traceId -> toolCallId
 - Agent 状态接口和 Python `/api/ai/health` 探测。
 - `module:agent:use` 与 `module:agent:audit` 菜单权限脚本。
 - 会话 Service 单元测试。
+- HMAC-SHA256 短期 Agent 上下文签发、校验、过期和篡改测试。
+- FastAPI 服务骨架、统一异常处理与 `/api/ai/health` 健康接口。
 
 尚未完成：
 
-- Python FastAPI 服务。
 - LangGraph 对话与预约分析。
 - SSE 流式转发。
 - Dify 工作流。
