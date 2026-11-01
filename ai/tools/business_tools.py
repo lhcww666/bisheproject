@@ -12,6 +12,20 @@ class ReservationQueryInput(BaseModel):
     )
 
 
+class AvailableRoomQueryInput(BaseModel):
+    start_time: str = Field(description="开始时间，格式 yyyy-MM-dd HH:mm:ss")
+    end_time: str = Field(description="结束时间，格式 yyyy-MM-dd HH:mm:ss")
+    participant_count: int | None = Field(
+        default=None,
+        ge=1,
+        description="参与人数",
+    )
+
+
+class AvailableDeviceQueryInput(BaseModel):
+    room_id: int = Field(gt=0, description="实验室ID")
+
+
 class BusinessToolService:
     def __init__(self, java_api_client: JavaApiClient) -> None:
         self.java_api_client = java_api_client
@@ -38,6 +52,26 @@ class BusinessToolService:
                 auth.request_id,
             )
 
+        async def query_available_rooms(
+            start_time: str,
+            end_time: str,
+            participant_count: int | None = None,
+        ) -> dict:
+            return await self.java_api_client.query_available_rooms(
+                auth.token,
+                auth.request_id,
+                start_time,
+                end_time,
+                participant_count,
+            )
+
+        async def query_available_devices(room_id: int) -> dict:
+            return await self.java_api_client.query_available_devices(
+                auth.token,
+                auth.request_id,
+                room_id,
+            )
+
         return [
             StructuredTool.from_function(
                 coroutine=query_my_reservations,
@@ -54,6 +88,18 @@ class BusinessToolService:
                 coroutine=query_my_credit,
                 name="queryMyCredit",
                 description="查询当前登录用户的信用分和是否允许预约。",
+            ),
+            StructuredTool.from_function(
+                coroutine=query_available_rooms,
+                name="queryAvailableRooms",
+                description="查询指定时段、人数条件下当前用户可预约的实验室。",
+                args_schema=AvailableRoomQueryInput,
+            ),
+            StructuredTool.from_function(
+                coroutine=query_available_devices,
+                name="queryAvailableDevices",
+                description="查询指定实验室当前可预约的设备。",
+                args_schema=AvailableDeviceQueryInput,
             ),
         ]
 

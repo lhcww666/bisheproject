@@ -33,6 +33,35 @@ class FakeJavaApiClient:
         self.calls.append((context_token, request_id, "credit"))
         return {"score": 100, "minScore": 60, "canBook": True}
 
+    async def query_available_rooms(
+        self,
+        context_token: str,
+        request_id: str,
+        start_time: str,
+        end_time: str,
+        participant_count: int | None = None,
+    ) -> dict:
+        self.calls.append(
+            (
+                context_token,
+                request_id,
+                "rooms",
+                start_time,
+                end_time,
+                participant_count,
+            )
+        )
+        return {"list": [{"roomName": "化学实验室 A101"}], "total": 1}
+
+    async def query_available_devices(
+        self,
+        context_token: str,
+        request_id: str,
+        room_id: int,
+    ) -> dict:
+        self.calls.append((context_token, request_id, "devices", room_id))
+        return {"list": [{"deviceName": "离心机"}], "total": 1}
+
 
 def test_langchain_tool_uses_signed_context() -> None:
     java_api = FakeJavaApiClient()
@@ -73,9 +102,39 @@ def test_langchain_toolbox_exposes_credit_and_safety_tools() -> None:
         "queryMyReservations",
         "queryMyCredit",
         "checkSafetyExamStatus",
+        "queryAvailableRooms",
+        "queryAvailableDevices",
     }
     assert credit["score"] == 100
     assert safety["hasValidPass"] is True
+
+
+def test_langchain_toolbox_queries_rooms_and_devices() -> None:
+    java_api = FakeJavaApiClient()
+    service = BusinessToolService(java_api)
+    auth = _auth()
+
+    rooms = asyncio.run(
+        service.invoke_tool(
+            auth,
+            "queryAvailableRooms",
+            {
+                "start_time": "2026-11-08 14:00:00",
+                "end_time": "2026-11-08 16:00:00",
+                "participant_count": 2,
+            },
+        )
+    )
+    devices = asyncio.run(
+        service.invoke_tool(
+            auth,
+            "queryAvailableDevices",
+            {"room_id": 12},
+        )
+    )
+
+    assert rooms["total"] == 1
+    assert devices["total"] == 1
 
 
 def _auth() -> AgentAuthContext:

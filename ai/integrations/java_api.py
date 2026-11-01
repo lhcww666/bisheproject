@@ -65,6 +65,42 @@ class JavaApiClient:
             error_message="信用查询工具暂时不可用",
         )
 
+    async def query_available_rooms(
+        self,
+        context_token: str,
+        request_id: str,
+        start_time: str,
+        end_time: str,
+        participant_count: int | None = None,
+    ) -> dict:
+        body = {
+            "startTime": start_time,
+            "endTime": end_time,
+        }
+        if participant_count is not None:
+            body["participantCount"] = participant_count
+        return await self._post_tool(
+            "/internal/agent/tools/rooms/available",
+            context_token,
+            request_id,
+            body,
+            error_message="可用实验室查询工具暂时不可用",
+        )
+
+    async def query_available_devices(
+        self,
+        context_token: str,
+        request_id: str,
+        room_id: int,
+    ) -> dict:
+        return await self._post_tool(
+            "/internal/agent/tools/devices/available",
+            context_token,
+            request_id,
+            {"roomId": room_id},
+            error_message="可用设备查询工具暂时不可用",
+        )
+
     async def _get_tool(
         self,
         path: str,
@@ -76,6 +112,31 @@ class JavaApiClient:
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
                 response = await client.get(
                     f"{self.base_url}{path}",
+                    headers={
+                        "X-Agent-Context": context_token,
+                        "X-Request-Id": request_id,
+                    },
+                )
+            payload = response.json()
+        except Exception as exception:
+            raise JavaToolError(error_message) from exception
+        if response.status_code != 200 or payload.get("code") != 200:
+            raise JavaToolError(payload.get("msg") or error_message)
+        return payload.get("data") or {}
+
+    async def _post_tool(
+        self,
+        path: str,
+        context_token: str,
+        request_id: str,
+        body: dict,
+        error_message: str,
+    ) -> dict:
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                response = await client.post(
+                    f"{self.base_url}{path}",
+                    json=body,
                     headers={
                         "X-Agent-Context": context_token,
                         "X-Request-Id": request_id,
