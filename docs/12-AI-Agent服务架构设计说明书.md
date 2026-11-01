@@ -476,6 +476,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 前端预约草稿确认弹窗、取消和正式提交。
 - Java Dify Workflow blocking API 客户端、服务端密钥和 Agent 上下文传递。
 - 安全问答和预约分析两份可导入 Dify DSL。
+- Java 同步对话支持 `engine=dify`，按安全/预约场景选择对应工作流密钥。
 
 尚未完成：
 
