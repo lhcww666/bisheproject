@@ -56,6 +56,7 @@ def test_chat_service_builds_messages() -> None:
     response = asyncio.run(service.chat(request, context()))
 
     assert response.answer == "这是模型回答"
+    assert response.intent == "BUSINESS_QUERY"
     assert response.session_id == 101
     assert response.trace_id == "trace-1"
     assert response.model == "test-model"
@@ -95,3 +96,23 @@ def test_chat_model_factory_uses_configured_model() -> None:
 def test_chat_model_factory_requires_api_key() -> None:
     with pytest.raises(LlmUnavailableError):
         create_chat_model(settings(api_key=""))
+
+
+@pytest.mark.parametrize(
+    ("message", "intent"),
+    [
+        ("实验室着火了怎么办", "SAFETY_KNOWLEDGE"),
+        ("我想预约化学实验室", "RESERVATION"),
+        ("查询我的预约", "BUSINESS_QUERY"),
+        ("你好", "GENERAL"),
+    ],
+)
+def test_chat_service_routes_intent(message: str, intent: str) -> None:
+    response = asyncio.run(
+        ChatService(settings(), lambda _: FakeModel()).chat(
+            ChatRequest(sessionId=101, message=message),
+            context(),
+        )
+    )
+
+    assert response.intent == intent

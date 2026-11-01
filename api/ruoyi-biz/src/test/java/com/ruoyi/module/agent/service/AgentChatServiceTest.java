@@ -58,6 +58,7 @@ class AgentChatServiceTest
                     PythonChatRequest request = invocation.getArgument(2);
                     PythonChatResponse response = new PythonChatResponse();
                     response.setAnswer("模型回答");
+                    response.setIntent("GENERAL");
                     response.setSessionId(request.getSessionId());
                     response.setTraceId(((String) invocation.getArgument(1)));
                     response.setModel("test-model");
@@ -71,6 +72,7 @@ class AgentChatServiceTest
 
         assertEquals(205L, result.getMessageId());
         assertEquals("模型回答", result.getAnswer());
+        assertEquals("GENERAL", result.getIntent());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("USER"), eq("你好"), any());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("ASSISTANT"), eq("模型回答"), any());
     }

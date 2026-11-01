@@ -29,7 +29,8 @@ class AgentPythonClientTest
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
         when(response.body()).thenReturn(
-                "{\"answer\":\"模型回答\",\"sessionId\":101,\"traceId\":\"trace-1\",\"model\":\"test-model\"}");
+                "{\"answer\":\"模型回答\",\"intent\":\"GENERAL\",\"sessionId\":101,"
+                        + "\"traceId\":\"trace-1\",\"model\":\"test-model\"}");
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(response);
         AgentProperties properties = new AgentProperties();
@@ -42,6 +43,7 @@ class AgentPythonClientTest
                 new PythonChatRequest(101L, "你好", List.<AgentHistoryItem>of()));
 
         assertEquals("模型回答", result.getAnswer());
+        assertEquals("GENERAL", result.getIntent());
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));
         assertEquals("signed-context", requestCaptor.getValue().headers()

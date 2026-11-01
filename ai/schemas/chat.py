@@ -20,6 +20,7 @@ class ChatResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     answer: str
+    intent: str
     session_id: int = Field(alias="sessionId")
     trace_id: str = Field(alias="traceId")
     model: str

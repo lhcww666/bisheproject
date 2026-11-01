@@ -97,6 +97,7 @@ public class AgentChatService
                 assistantMessage.getId(),
                 request.getSessionId(),
                 pythonResponse.getAnswer(),
+                pythonResponse.getIntent(),
                 traceId,
                 pythonResponse.getModel());
     }

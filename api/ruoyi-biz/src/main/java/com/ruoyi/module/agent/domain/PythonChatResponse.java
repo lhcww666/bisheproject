@@ -10,6 +10,8 @@ public class PythonChatResponse
 {
     private String answer;
 
+    private String intent;
+
     private Long sessionId;
 
     private String traceId;

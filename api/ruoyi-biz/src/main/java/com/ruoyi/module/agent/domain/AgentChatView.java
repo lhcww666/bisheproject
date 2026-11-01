@@ -16,6 +16,8 @@ public class AgentChatView
 
     private String answer;
 
+    private String intent;
+
     private String traceId;
 
     private String model;
