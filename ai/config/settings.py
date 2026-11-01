@@ -12,11 +12,32 @@ class Settings(BaseSettings):
             "AI_AGENT_CONTEXT_SECRET",
         ),
     )
+    llm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("AI_LLM_API_KEY", "DEEPSEEK_API_KEY"),
+    )
+    llm_base_url: str = Field(
+        default="https://api.deepseek.com",
+        validation_alias=AliasChoices("AI_LLM_BASE_URL", "DEEPSEEK_BASE_URL"),
+    )
+    llm_model: str = Field(
+        default="deepseek-chat",
+        validation_alias=AliasChoices("AI_LLM_MODEL", "DEEPSEEK_MODEL"),
+    )
+    llm_temperature: float = Field(
+        default=0.2,
+        validation_alias=AliasChoices("AI_LLM_TEMPERATURE"),
+    )
+    llm_timeout_seconds: float = Field(
+        default=45.0,
+        validation_alias=AliasChoices("AI_LLM_TIMEOUT_SECONDS"),
+    )
     model_config = SettingsConfigDict(
         env_prefix="AI_",
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_name: str = "校园实验室 Python Agent 服务"
