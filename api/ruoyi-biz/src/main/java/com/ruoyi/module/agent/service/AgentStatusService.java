@@ -31,8 +31,19 @@ public class AgentStatusService
                 engine,
                 StringUtils.isNotEmpty(properties.getPythonBaseUrl()),
                 isPythonAvailable(),
-                StringUtils.isNotEmpty(properties.getDifyBaseUrl()),
+                isDifyConfigured(),
                 agentRoleService.currentRole());
+    }
+
+    private boolean isDifyConfigured()
+    {
+        if (StringUtils.isEmpty(properties.getDifyBaseUrl()))
+        {
+            return false;
+        }
+        return StringUtils.isNotEmpty(properties.getDifyApiKey())
+                || StringUtils.isNotEmpty(properties.getDifySafetyApiKey())
+                || StringUtils.isNotEmpty(properties.getDifyReservationApiKey());
     }
 
     private boolean isPythonAvailable()
