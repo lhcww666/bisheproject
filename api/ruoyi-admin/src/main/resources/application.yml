@@ -136,6 +136,8 @@ bishe:
     engine: python
     python-base-url: http://127.0.0.1:8091
     dify-base-url:
+    context-secret: ${AGENT_CONTEXT_SECRET:}
+    context-ttl-seconds: 300
   filterTables:
   ignoreTables:
     - QRTZ_BLOB_TRIGGERS

@@ -20,6 +20,10 @@ public class AgentProperties
 
     private String difyBaseUrl;
 
+    private String contextSecret;
+
+    private long contextTtlSeconds = 300;
+
     public String normalizedEngine()
     {
         return engine == null || engine.isBlank() ? "python" : engine.trim().toLowerCase();
