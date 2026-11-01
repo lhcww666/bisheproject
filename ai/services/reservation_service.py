@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from config.settings import Settings
 from integrations.llm import create_chat_model
+from schemas.chat import ChatHistoryItem
 from schemas.reservation import ReservationExtraction
 
 REQUIRED_FIELD_LABELS = {
@@ -32,6 +33,7 @@ class ReservationExtractionService:
     async def extract(
         self,
         message: str,
+        history: list[ChatHistoryItem] | None = None,
     ) -> tuple[ReservationExtraction, list[str]]:
         current_time = datetime.now(
             timezone(timedelta(hours=self.settings.timezone_offset_hours))
@@ -39,14 +41,22 @@ class ReservationExtractionService:
         prompt = (
             "你是预约参数抽取器。只输出 JSON，不要输出 Markdown。\n"
             f"当前时间：{current_time}，时区 UTC+{self.settings.timezone_offset_hours:g}。\n"
+            "结合历史消息和本轮消息提取参数；后出现的信息覆盖旧信息。\n"
             "把用户请求解析为以下字段：\n"
             "start_time, end_time, participant_count, experiment_name, room_type, device_names。\n"
             "时间必须转换为 yyyy-MM-dd HH:mm:ss。无法确定的字段用 null。"
         )
+        history_text = "\n".join(
+            f"{item.role}: {item.content}" for item in (history or [])
+        )
         result = await self.model_factory(self.settings).ainvoke(
             [
                 SystemMessage(content=prompt),
-                HumanMessage(content=message),
+                HumanMessage(
+                    content=(
+                        f"历史消息：\n{history_text}\n\n本轮消息：\n{message}"
+                    )
+                ),
             ]
         )
         text = result.content if isinstance(result.content, str) else str(result.content)

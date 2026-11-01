@@ -144,7 +144,8 @@ class AgentNodes:
     async def extract_reservation(self, state: AgentState) -> dict:
         try:
             reservation, missing_fields = await self.reservation_extractor.extract(
-                state["message"]
+                state["message"],
+                state.get("history", []),
             )
             return {
                 "reservation": reservation,

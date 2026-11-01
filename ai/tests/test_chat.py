@@ -248,7 +248,13 @@ def test_complete_reservation_queries_available_rooms() -> None:
         service.chat(
             ChatRequest(
                 sessionId=101,
-                message="下周三下午两点到四点预约化学实验室，两个人",
+                message="下周三下午两点到四点预约化学实验室",
+                history=[
+                    ChatHistoryItem(
+                        role="user",
+                        content="这次预约共有两个人",
+                    )
+                ],
             ),
             context(),
         )
@@ -262,6 +268,7 @@ def test_complete_reservation_queries_available_rooms() -> None:
         "end_time": "2026-11-11 16:00:00",
         "participant_count": 2,
     }
+    assert "这次预约共有两个人" in model.calls[0][1].content
 
 
 def test_incomplete_reservation_asks_without_querying_tools() -> None:
