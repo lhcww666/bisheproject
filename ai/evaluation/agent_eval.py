@@ -1,12 +1,15 @@
 import asyncio
 import json
+import time
 from collections.abc import Collection
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage
 
-from config.settings import Settings
+from config.settings import Settings, get_settings
 from schemas.agent import AgentAuthContext, AgentContextClaims
 from schemas.chat import ChatHistoryItem, ChatRequest
 from services.chat_service import ChatService
@@ -44,11 +47,17 @@ class AgentEvalCaseResult:
     actual_tools: list[str]
     actual_query_arguments: dict | None
     actual_draft_status: str | None
+    actual_answer: str
     intent_correct: bool
     tools_correct: bool
     parameters_correct: bool
     answer_correct: bool
     passed: bool
+    model_calls: int
+    elapsed_ms: int
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
 
 
 @dataclass(frozen=True)
@@ -60,6 +69,8 @@ class AgentEvalMetrics:
     tool_selection_accuracy: float
     parameter_accuracy: float
     end_to_end_success_rate: float
+    average_latency_ms: float
+    average_tokens_per_case: float
 
 
 @dataclass(frozen=True)
@@ -84,6 +95,27 @@ class ScriptedModel:
                 content=json.dumps(self.extraction or {}, ensure_ascii=False)
             )
         return AIMessage(content="这是脚本模型回答")
+
+
+class MeasuringModel:
+    def __init__(self, delegate: BaseChatModel) -> None:
+        self.delegate = delegate
+        self.calls = 0
+        self.elapsed_ms = 0
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self.total_tokens = 0
+
+    async def ainvoke(self, messages):
+        started = time.perf_counter()
+        result = await self.delegate.ainvoke(messages)
+        self.elapsed_ms += round((time.perf_counter() - started) * 1000)
+        self.calls += 1
+        usage = getattr(result, "usage_metadata", None) or {}
+        self.prompt_tokens += int(usage.get("input_tokens", 0) or 0)
+        self.completion_tokens += int(usage.get("output_tokens", 0) or 0)
+        self.total_tokens += int(usage.get("total_tokens", 0) or 0)
+        return result
 
 
 class RecordingBusinessTools:
@@ -187,29 +219,44 @@ def load_agent_cases(path: Path) -> list[AgentEvalCase]:
 
 def evaluate_agent_cases(
     cases: list[AgentEvalCase],
+    model_factory: Callable[[Settings], BaseChatModel] | None = None,
+) -> AgentEvalReport:
+    settings = get_settings() if model_factory is not None else _settings()
+    return asyncio.run(
+        _evaluate_agent_cases(cases, model_factory, settings)
+    )
+
+
+async def _evaluate_agent_cases(
+    cases: list[AgentEvalCase],
+    model_factory: Callable[[Settings], BaseChatModel] | None,
+    settings: Settings,
 ) -> AgentEvalReport:
     results = []
     for index, case in enumerate(cases, start=1):
-        model = ScriptedModel(case.extraction)
+        delegate = (
+            model_factory(settings)
+            if model_factory is not None
+            else ScriptedModel(case.extraction)
+        )
+        model = MeasuringModel(delegate)
         tools = RecordingBusinessTools()
         service = ChatService(
-            _settings(),
+            settings,
             lambda _: model,
             tools,
             EmptyKnowledgeService(),
         )
-        response = asyncio.run(
-            service.chat(
-                ChatRequest(
-                    sessionId=100 + index,
-                    message=case.message,
-                    history=[
-                        ChatHistoryItem.model_validate(item)
-                        for item in case.history
-                    ],
-                ),
-                _context(case.role, 100 + index),
-            )
+        response = await service.chat(
+            ChatRequest(
+                sessionId=100 + index,
+                message=case.message,
+                history=[
+                    ChatHistoryItem.model_validate(item)
+                    for item in case.history
+                ],
+            ),
+            _context(case.role, 100 + index),
         )
         actual_tools = [
             tool_call.tool_name for tool_call in response.tool_calls
@@ -250,6 +297,7 @@ def evaluate_agent_cases(
                 actual_tools=actual_tools,
                 actual_query_arguments=query_arguments,
                 actual_draft_status=draft_status,
+                actual_answer=response.answer,
                 intent_correct=intent_correct,
                 tools_correct=tools_correct,
                 parameters_correct=parameters_correct,
@@ -261,6 +309,11 @@ def evaluate_agent_cases(
                     and answer_correct
                     and draft_correct
                 ),
+                model_calls=model.calls,
+                elapsed_ms=model.elapsed_ms,
+                prompt_tokens=model.prompt_tokens,
+                completion_tokens=model.completion_tokens,
+                total_tokens=model.total_tokens,
             )
         )
     return AgentEvalReport(
@@ -269,8 +322,14 @@ def evaluate_agent_cases(
     )
 
 
-def run_agent_evaluation(dataset_path: Path) -> AgentEvalReport:
-    return evaluate_agent_cases(load_agent_cases(dataset_path))
+def run_agent_evaluation(
+    dataset_path: Path,
+    model_factory: Callable[[Settings], BaseChatModel] | None = None,
+) -> AgentEvalReport:
+    return evaluate_agent_cases(
+        load_agent_cases(dataset_path),
+        model_factory=model_factory,
+    )
 
 
 def _parameters_correct(
@@ -299,6 +358,7 @@ def _metrics(results: list[AgentEvalCaseResult]) -> AgentEvalMetrics:
         for result in results
         if result.category == "end_to_end"
     ]
+    model_results = [result for result in results if result.model_calls]
     return AgentEvalMetrics(
         case_count=len(results),
         passed_count=sum(result.passed for result in results),
@@ -321,6 +381,14 @@ def _metrics(results: list[AgentEvalCaseResult]) -> AgentEvalMetrics:
         end_to_end_success_rate=_ratio(
             sum(result.passed for result in end_to_end),
             len(end_to_end),
+        ),
+        average_latency_ms=_ratio(
+            sum(result.elapsed_ms for result in model_results),
+            len(model_results),
+        ),
+        average_tokens_per_case=_ratio(
+            sum(result.total_tokens for result in model_results),
+            len(model_results),
         ),
     )
 
