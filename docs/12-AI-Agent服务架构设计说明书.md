@@ -458,10 +458,12 @@ requestId -> sessionId -> traceId -> toolCallId
 - Java 内部预约查询工具按签名上下文中的用户身份返回本人预约摘要。
 - LangChain `queryMyReservations` 工具和 LangGraph 业务查询节点。
 - 工具成功、失败与耗时写入 `agent_tool_call_log`。
+- Java 内部安全考试和信用工具，以及对应 LangChain 工具封装。
+- 业务查询节点按预约、考试、信用和预约资格选择工具。
 
 尚未完成：
 
-- 其他实验室业务工具与预约多轮分析。
+- 可用实验室/设备查询工具与预约多轮分析。
 - SSE 流式转发。
 - Dify 工作流。
 - 预约草稿接口和确认流程。
