@@ -1,6 +1,7 @@
+import json
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ChatHistoryItem(BaseModel):
@@ -14,6 +15,15 @@ class ChatRequest(BaseModel):
     session_id: int = Field(gt=0, alias="sessionId")
     message: str = Field(min_length=1, max_length=8000)
     history: list[ChatHistoryItem] = Field(default_factory=list, max_length=30)
+
+    @field_validator("history", mode="before")
+    @classmethod
+    def parse_dify_history(cls, value):
+        if isinstance(value, str):
+            if not value:
+                return []
+            return json.loads(value)
+        return value
 
 
 class ToolCallSummary(BaseModel):

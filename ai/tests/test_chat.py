@@ -190,6 +190,18 @@ def test_chat_model_factory_requires_api_key() -> None:
         create_chat_model(settings(api_key=""))
 
 
+def test_chat_request_accepts_dify_json_history() -> None:
+    request = ChatRequest.model_validate(
+        {
+            "sessionId": 101,
+            "message": "继续",
+            "history": '[{"role":"user","content":"上一轮"}]',
+        }
+    )
+
+    assert request.history[0].content == "上一轮"
+
+
 @pytest.mark.parametrize(
     ("message", "intent"),
     [
