@@ -202,6 +202,7 @@ Python 和 Dify 调用 Spring Boot 内部工具时必须携带：
     "messageId": "9001",
     "sessionId": "101",
     "answer": "你下周有 2 条预约……",
+    "intent": "BUSINESS_QUERY",
     "toolCalls": [],
     "references": [],
     "traceId": "trace-20261101-001"

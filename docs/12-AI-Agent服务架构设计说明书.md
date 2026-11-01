@@ -454,10 +454,11 @@ requestId -> sessionId -> traceId -> toolCallId
 - FastAPI 校验 Java 签发的 `X-Agent-Context`。
 - LangChain DeepSeek/OpenAI 兼容模型适配和同步 `/api/ai/chat`。
 - Spring Boot `/module/agent/chat` 同步转发、历史消息和双消息保存。
+- LangGraph 按业务查询、预约、安全知识和普通对话四类意图路由。
 
 尚未完成：
 
-- LangGraph 对话与预约分析。
+- LangGraph 业务工具节点与预约多轮分析。
 - SSE 流式转发。
 - Dify 工作流。
 - 预约草稿接口和确认流程。
