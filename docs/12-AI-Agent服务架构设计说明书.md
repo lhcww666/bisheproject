@@ -368,6 +368,24 @@ cd ai
 评测脚本不调用大模型，只检查检索、引用来源、角色隔离和拒答，因此可以在离线环境
 稳定复现。
 
+统一 Agent 编排评测位于 `ai/evaluation/agent_cases.jsonl`，包含 18 条用例：
+
+- 意图识别：业务查询、预约、安全知识和普通对话。
+- 工具选择：预约、信用、安全考试和预约资格组合。
+- 预约参数：缺失时间、缺失人数、参数全缺、时间范围颠倒和日期归一化。
+- 端到端：查询实验室、创建设备预约草稿和创建无设备预约草稿。
+
+运行命令：
+
+```powershell
+cd ai
+.\.venv\Scripts\python.exe -m evaluation.run_agent_eval
+```
+
+当前编排基线为 18/18 通过，意图识别、工具选择、参数处理和端到端成功率均为
+100%。该评测使用脚本模型和固定业务工具响应，只证明 LangGraph 编排、校验和草稿
+流程正确，不代表真实大模型的意图识别或参数抽取质量。
+
 Dify 接入后可将 `ai/data/knowledge` 中经审核的文档导入 Dify Knowledge，并让 Dify
 HTTP 节点调用 FastAPI `/api/ai/knowledge/search`，复用同一检索与引用结构。两类引擎
 可以在不同会话中并存，但同一请求只使用一个知识源，避免重复召回和引用冲突。
@@ -465,6 +483,10 @@ requestId -> sessionId -> traceId -> toolCallId
 | RAG MRR | 预期文档在引用列表中的平均倒数排名 |
 | RAG 拒答准确率 | 知识库外问题是否返回空引用并拒绝生成 |
 | RAG 角色隔离率 | 无权限文档是否在所有受限角色查询中均未返回 |
+| Agent 编排通过率 | 意图、工具、参数、回答和草稿断言是否全部通过 |
+
+当前统一编排基线覆盖 18 条脚本化用例，全部通过。下一阶段仍需使用真实模型运行
+意图、参数抽取和端到端评测，并记录模型名称、版本、时延和 token 成本。
 
 ## 17. 实施顺序
 
@@ -534,6 +556,7 @@ requestId -> sessionId -> traceId -> toolCallId
 - 本地 Markdown/TXT 知识加载、LangChain 切片、中文 BM25 检索和相关性阈值过滤。
 - 知识文档 `allowed_roles` 元数据校验，以及在 BM25 打分前执行角色可见性过滤。
 - 25 条离线 RAG 评测集、查询覆盖率阈值和 Top-1/召回/MRR/拒答/角色隔离指标。
+- 18 条统一 Agent 编排评测，覆盖意图、工具、预约参数和草稿端到端流程。
 - LangGraph 安全知识检索节点；有可靠片段时基于片段回答，无结果时不调用模型并安全拒答。
 - FastAPI `/api/ai/knowledge/search` 独立检索接口，可供 Dify 或其他工作流复用。
 - Python 同步响应、SSE `citation` 事件和 Java Gateway 均透传 `citations`。
@@ -543,4 +566,4 @@ requestId -> sessionId -> traceId -> toolCallId
 
 - Dify 工作流实际导入、安全知识库绑定和运行联调。
 - BGE、pgvector 或 Qdrant 等向量检索方案的对比实验。
-- 意图、工具、预约参数和端到端链路的统一评测。
+- 使用真实模型运行意图、参数和端到端评测，并记录准确率、时延与 token 成本。
