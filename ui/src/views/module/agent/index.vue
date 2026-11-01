@@ -206,7 +206,7 @@ async function handleSelectSession(sessionId) {
   messagesLoading.value = true
   try {
     const response = await getAgentMessages(sessionId)
-    messages.value = response.data || []
+    messages.value = (response.data || []).map(hydrateMessage)
   } catch {
     messages.value = []
   } finally {
@@ -250,6 +250,7 @@ async function handleSend() {
     content: "",
     intent: "",
     toolCalls: [],
+    citations: [],
     streaming: true
   }
   messages.value.push(streamMessage)
@@ -274,6 +275,15 @@ async function handleSend() {
         {
           onTool(tool) {
             streamMessage.toolCalls.push(tool)
+          },
+          onCitation(payload) {
+            const citation = payload.citation
+            if (
+              citation?.documentId &&
+              !streamMessage.citations.some(item => item.documentId === citation.documentId)
+            ) {
+              streamMessage.citations.push(citation)
+            }
           },
           onDelta(delta) {
             streamMessage.content += delta.content || ""
@@ -303,12 +313,31 @@ function applyAssistantAnswer(message, answer) {
   message.id = answer.messageId || message.id
   message.intent = answer.intent || message.intent
   message.toolCalls = answer.toolCalls || message.toolCalls
+  if (Array.isArray(answer.citations)) {
+    message.citations = answer.citations
+  }
   message.model = answer.model
   message.traceId = answer.traceId
   message.streaming = false
   if (answer.draft) {
     activeDraft.value = answer.draft
     draftVisible.value = true
+  }
+}
+
+function hydrateMessage(message) {
+  let citations = []
+  if (message.referenceJson) {
+    try {
+      const parsed = JSON.parse(message.referenceJson)
+      citations = Array.isArray(parsed) ? parsed : []
+    } catch {
+      citations = []
+    }
+  }
+  return {
+    ...message,
+    citations
   }
 }
 

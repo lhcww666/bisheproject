@@ -89,6 +89,7 @@ export async function sendAgentChatStream(data, handlers = {}) {
         continue
       }
       if (payload.type === 'tool') handlers.onTool?.(payload)
+      else if (payload.type === 'citation') handlers.onCitation?.(payload)
       else if (payload.type === 'message.delta') handlers.onDelta?.(payload)
       else if (payload.type === 'done') {
         completed = true

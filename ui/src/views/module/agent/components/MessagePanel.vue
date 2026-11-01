@@ -55,6 +55,30 @@
               {{ tool.status === "succeeded" ? "完成" : "失败" }}
             </el-tag>
           </div>
+          <div v-if="message.citations?.length" class="citation-list">
+            <span class="citation-label">知识依据</span>
+            <el-popover
+              v-for="(citation, citationIndex) in message.citations"
+              :key="citation.documentId || `${citationIndex}-${citation.source}`"
+              placement="bottom-start"
+              :width="380"
+              trigger="click"
+            >
+              <template #reference>
+                <button type="button" class="citation-link">
+                  [{{ citationIndex + 1 }}] {{ citation.title }}
+                </button>
+              </template>
+              <div class="citation-detail">
+                <div class="citation-name">{{ citation.title }}</div>
+                <div class="citation-source">
+                  {{ citation.source }}
+                  <span v-if="citation.score != null">· 相关度 {{ formatScore(citation.score) }}</span>
+                </div>
+                <p>{{ citation.snippet }}</p>
+              </div>
+            </el-popover>
+          </div>
         </div>
       </article>
 
@@ -81,7 +105,8 @@ const prompts = [
   "查询我的预约",
   "我的信用分是多少",
   "我的安全考试通过了吗",
-  "下周三下午想预约化学实验室，两个人"
+  "下周三下午想预约化学实验室，两个人",
+  "实验室着火时应该怎么处理"
 ]
 
 watch(
@@ -89,7 +114,9 @@ watch(
     [
       props.messages.length,
       props.sending,
-      props.messages.map(message => `${message.content?.length || 0}:${message.toolCalls?.length || 0}`).join("|")
+      props.messages.map(message => {
+        return `${message.content?.length || 0}:${message.toolCalls?.length || 0}:${message.citations?.length || 0}`
+      }).join("|")
     ],
   async () => {
     await nextTick()
@@ -117,6 +144,11 @@ function toolLabel(toolName) {
     queryAvailableDevices: "可用设备",
     createReservationDraft: "预约草稿"
   }[toolName] || toolName
+}
+
+function formatScore(score) {
+  const value = Number(score)
+  return Number.isFinite(value) ? value.toFixed(2) : "-"
 }
 </script>
 
@@ -255,6 +287,57 @@ function toolLabel(toolName) {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
+}
+
+.citation-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.citation-label {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.citation-link {
+  padding: 4px 8px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.citation-link:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.citation-detail {
+  color: #334155;
+}
+
+.citation-name {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.citation-source {
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.citation-detail p {
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
 }
 
 .loading-bubble {
