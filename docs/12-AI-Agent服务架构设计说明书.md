@@ -477,8 +477,9 @@ requestId -> sessionId -> traceId -> toolCallId
 - Java Dify Workflow blocking API 客户端、服务端密钥和 Agent 上下文传递。
 - 安全问答和预约分析两份可导入 Dify DSL。
 - Java 同步对话支持 `engine=dify`，按安全/预约场景选择对应工作流密钥。
+- Python 结构化预约分析接口和多状态 Dify 预约分支工作流。
 
 尚未完成：
 
-- Dify 安全问答和预约分析工作流本身。
+- Dify 工作流实际导入、安全知识库绑定和运行联调。
 - Agent 知识引用展示。
