@@ -618,6 +618,8 @@ Dify 输出必须经过 Spring Boot 归一化后才能发送给前端。
 | GET | `/internal/agent/tools/reservations/my` | 已实现 |
 | GET | `/internal/agent/tools/safety-exam/status` | 已实现 |
 | GET | `/internal/agent/tools/credit/current` | 已实现 |
+| POST | `/internal/agent/tools/rooms/available` | 已实现 |
+| POST | `/internal/agent/tools/devices/available` | 已实现 |
 
 设计完成、尚未实现：
 

@@ -460,10 +460,11 @@ requestId -> sessionId -> traceId -> toolCallId
 - 工具成功、失败与耗时写入 `agent_tool_call_log`。
 - Java 内部安全考试和信用工具，以及对应 LangChain 工具封装。
 - 业务查询节点按预约、考试、信用和预约资格选择工具。
+- Java 可用实验室/设备查询工具和对应 LangChain 工具封装。
 
 尚未完成：
 
-- 可用实验室/设备查询工具与预约多轮分析。
+- 预约时间参数抽取、多轮补全和可用资源查询节点。
 - SSE 流式转发。
 - Dify 工作流。
 - 预约草稿接口和确认流程。
