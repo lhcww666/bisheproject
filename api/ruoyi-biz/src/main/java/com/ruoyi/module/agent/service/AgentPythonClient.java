@@ -6,6 +6,7 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.agent.config.AgentProperties;
 import com.ruoyi.module.agent.domain.PythonChatRequest;
 import com.ruoyi.module.agent.domain.PythonChatResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,7 @@ public class AgentPythonClient
 
     private final HttpClient httpClient;
 
+    @Autowired
     public AgentPythonClient(AgentProperties properties, ObjectMapper objectMapper)
     {
         this(properties, objectMapper, HttpClient.newBuilder()
