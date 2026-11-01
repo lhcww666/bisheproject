@@ -28,7 +28,14 @@
       >
         <div class="avatar">{{ message.role === "USER" ? "我" : "AI" }}</div>
         <div class="bubble-wrap">
-          <div class="bubble">{{ message.content }}</div>
+          <div class="bubble" :class="{ 'loading-bubble': message.streaming && !message.content }">
+            <template v-if="message.streaming && !message.content">
+              <span />
+              <span />
+              <span />
+            </template>
+            <template v-else>{{ message.content }}</template>
+          </div>
           <div v-if="message.role !== 'USER'" class="message-meta">
             <el-tag v-if="message.intent" size="small" effect="plain">
               {{ intentLabel(message.intent) }}
@@ -51,14 +58,6 @@
         </div>
       </article>
 
-      <article v-if="sending" class="message-row assistant">
-        <div class="avatar">AI</div>
-        <div class="bubble loading-bubble">
-          <span />
-          <span />
-          <span />
-        </div>
-      </article>
     </div>
   </section>
 </template>
@@ -86,7 +85,12 @@ const prompts = [
 ]
 
 watch(
-  () => [props.messages.length, props.sending],
+  () =>
+    [
+      props.messages.length,
+      props.sending,
+      props.messages.map(message => `${message.content?.length || 0}:${message.toolCalls?.length || 0}`).join("|")
+    ],
   async () => {
     await nextTick()
     if (panelRef.value) {

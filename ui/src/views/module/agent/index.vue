@@ -82,7 +82,7 @@ import {
   getAgentMessages,
   getAgentStatus,
   listAgentSessions,
-  sendAgentChat
+  sendAgentChatStream
 } from "@/api/module/agent"
 import SessionPanel from "./components/SessionPanel.vue"
 import MessagePanel from "./components/MessagePanel.vue"
@@ -214,31 +214,50 @@ async function handleSend() {
     role: "USER",
     content: text
   })
+  const streamMessage = {
+    id: `stream-${Date.now()}`,
+    role: "ASSISTANT",
+    content: "",
+    intent: "",
+    toolCalls: [],
+    streaming: true
+  }
+  messages.value.push(streamMessage)
   sending.value = true
   try {
-    const response = await sendAgentChat({
-      sessionId,
-      message: text,
-      engine: "python"
-    })
-    const answer = response.data || {}
-    messages.value.push({
-      id: answer.messageId || `answer-${Date.now()}`,
-      role: "ASSISTANT",
-      content: answer.answer,
-      intent: answer.intent,
-      toolCalls: answer.toolCalls || [],
-      model: answer.model,
-      traceId: answer.traceId
-    })
+    await sendAgentChatStream(
+      {
+        sessionId,
+        message: text,
+        engine: "python"
+      },
+      {
+        onTool(tool) {
+          streamMessage.toolCalls.push(tool)
+        },
+        onDelta(delta) {
+          streamMessage.content += delta.content || ""
+          streamMessage.intent = delta.intent || streamMessage.intent
+        },
+        onDone(answer) {
+          streamMessage.id = answer.messageId || streamMessage.id
+          streamMessage.intent = answer.intent || streamMessage.intent
+          streamMessage.toolCalls = answer.toolCalls || streamMessage.toolCalls
+          streamMessage.model = answer.model
+          streamMessage.traceId = answer.traceId
+          streamMessage.streaming = false
+        },
+        onError(error) {
+          streamMessage.content = error.message || "助手响应失败"
+          streamMessage.streaming = false
+        }
+      }
+    )
     await loadSessions()
   } catch (error) {
     const detail = error?.response?.data?.msg || error?.message || "助手响应失败"
-    messages.value.push({
-      id: `error-${Date.now()}`,
-      role: "ASSISTANT",
-      content: detail
-    })
+    streamMessage.content = detail
+    streamMessage.streaming = false
   } finally {
     sending.value = false
   }
