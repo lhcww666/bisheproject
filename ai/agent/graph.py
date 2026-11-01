@@ -22,6 +22,7 @@ def build_agent_graph(
     graph.add_node("extract_reservation", nodes.extract_reservation)
     graph.add_node("ask_reservation_fields", nodes.ask_reservation_fields)
     graph.add_node("query_reservation_rooms", nodes.query_reservation_rooms)
+    graph.add_node("create_reservation_draft", nodes.create_reservation_draft)
     graph.add_node("business_query", nodes.answer_business_query)
     graph.add_node("reservation", nodes.answer_reservation)
     graph.add_node("safety_knowledge", nodes.answer_safety)
@@ -47,7 +48,15 @@ def build_agent_graph(
     )
     graph.add_edge("query_business_tool", "business_query")
     graph.add_edge("ask_reservation_fields", END)
-    graph.add_edge("query_reservation_rooms", "reservation")
+    graph.add_conditional_edges(
+        "query_reservation_rooms",
+        nodes.next_after_room_query,
+        {
+            "answer": "reservation",
+            "draft": "create_reservation_draft",
+        },
+    )
+    graph.add_edge("create_reservation_draft", "reservation")
     graph.add_edge("business_query", END)
     graph.add_edge("reservation", END)
     graph.add_edge("safety_knowledge", END)

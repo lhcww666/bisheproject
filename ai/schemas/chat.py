@@ -33,6 +33,7 @@ class ChatResponse(BaseModel):
         default_factory=list,
         alias="toolCalls",
     )
+    draft: dict | None = None
     session_id: int = Field(alias="sessionId")
     trace_id: str = Field(alias="traceId")
     model: str

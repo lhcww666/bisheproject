@@ -159,6 +159,14 @@ class AgentNodes:
                 + "以下是可用实验室工具返回的结果："
                 + json.dumps(rooms, ensure_ascii=False)
             )
+            if state.get("draft") is not None:
+                prompt += (
+                    "预约草稿已经创建，但尚未提交。"
+                    "请要求用户在前端确认草稿后再创建正式预约。"
+                    + json.dumps(state["draft"], ensure_ascii=False)
+                )
+            elif not state.get("reservation").room_name:
+                prompt += "请列出候选实验室，并要求用户明确选择其中一个。"
             return {"answer": await self._answer(state, prompt)}
         return {"answer": await self._answer(state, PROMPTS["RESERVATION"])}
 
@@ -223,6 +231,139 @@ class AgentNodes:
                 ],
             }
 
+    def next_after_room_query(self, state: AgentState) -> str:
+        if state.get("tool_error") or not state.get("reservation").room_name:
+            return "answer"
+        return "draft"
+
+    async def create_reservation_draft(self, state: AgentState) -> dict:
+        if self.business_tools is None:
+            return {
+                "tool_error": "预约草稿工具未配置",
+                "tool_calls": [],
+            }
+        reservation = state["reservation"]
+        room = _match_room(state.get("available_rooms") or {}, reservation.room_name)
+        if room is None:
+            return {
+                "tool_error": "没有找到用户明确选择的可用实验室",
+                "tool_calls": [
+                    {
+                        "toolName": "createReservationDraft",
+                        "status": "failed",
+                        "error": "所选实验室不在可用列表中",
+                    }
+                ],
+            }
+
+        events = []
+        device_ids = []
+        if reservation.device_names:
+            try:
+                devices = await self.business_tools.invoke_tool(
+                    state["auth"],
+                    "queryAvailableDevices",
+                    {"room_id": room["id"]},
+                )
+                events.append(
+                    {
+                        "toolName": "queryAvailableDevices",
+                        "status": "succeeded",
+                        "error": None,
+                    }
+                )
+                device_ids = _match_devices(devices, reservation.device_names)
+                if device_ids is None:
+                    return {
+                        "tool_error": "所需设备在该实验室不可用",
+                        "tool_calls": events,
+                    }
+            except Exception as exception:
+                events.append(
+                    {
+                        "toolName": "queryAvailableDevices",
+                        "status": "failed",
+                        "error": str(exception),
+                    }
+                )
+                return {
+                    "tool_error": str(exception),
+                    "tool_calls": events,
+                }
+
+        try:
+            draft = await self.business_tools.invoke_tool(
+                state["auth"],
+                "createReservationDraft",
+                {
+                    "session_id": state["auth"].claims.session_id,
+                    "room_id": room["id"],
+                    "experiment_name": reservation.experiment_name
+                    or "实验室预约",
+                    "start_time": reservation.start_time,
+                    "end_time": reservation.end_time,
+                    "participant_count": reservation.participant_count,
+                    "device_ids": device_ids,
+                },
+            )
+            events.append(
+                {
+                    "toolName": "createReservationDraft",
+                    "status": "succeeded",
+                    "error": None,
+                }
+            )
+            return {
+                "draft": draft,
+                "tool_error": None,
+                "tool_calls": events,
+            }
+        except Exception as exception:
+            events.append(
+                {
+                    "toolName": "createReservationDraft",
+                    "status": "failed",
+                    "error": str(exception),
+                }
+            )
+            return {
+                "tool_error": str(exception),
+                "tool_calls": events,
+            }
+        reservation = state["reservation"]
+        try:
+            rooms = await self.business_tools.invoke_tool(
+                state["auth"],
+                "queryAvailableRooms",
+                {
+                    "start_time": reservation.start_time,
+                    "end_time": reservation.end_time,
+                    "participant_count": reservation.participant_count,
+                },
+            )
+            return {
+                "available_rooms": rooms,
+                "tool_error": None,
+                "tool_calls": [
+                    {
+                        "toolName": "queryAvailableRooms",
+                        "status": "succeeded",
+                        "error": None,
+                    }
+                ],
+            }
+        except Exception as exception:
+            return {
+                "tool_error": str(exception),
+                "tool_calls": [
+                    {
+                        "toolName": "queryAvailableRooms",
+                        "status": "failed",
+                        "error": str(exception),
+                    }
+                ],
+            }
+
     async def answer_safety(self, state: AgentState) -> dict[str, str]:
         return {"answer": await self._answer(state, PROMPTS["SAFETY_KNOWLEDGE"])}
 
@@ -240,3 +381,33 @@ class AgentNodes:
         messages.append(HumanMessage(content=state["message"]))
         result = await self.model_factory(self.settings).ainvoke(messages)
         return result.content if isinstance(result.content, str) else str(result.content)
+
+
+def _match_room(rooms: dict, requested: str) -> dict | None:
+    normalized = requested.strip().casefold()
+    for room in rooms.get("list", []):
+        name = str(room.get("roomName", "")).strip().casefold()
+        code = str(room.get("roomCode", "")).strip().casefold()
+        if normalized in {name, code} or normalized in name or normalized in code:
+            return room
+    return None
+
+
+def _match_devices(devices: dict, requested_names: list[str]) -> list[int] | None:
+    available = devices.get("list", [])
+    resolved = []
+    for requested in requested_names:
+        normalized = requested.strip().casefold()
+        match = next(
+            (
+                device
+                for device in available
+                if normalized
+                in str(device.get("deviceName", "")).strip().casefold()
+            ),
+            None,
+        )
+        if match is None or not match.get("id"):
+            return None
+        resolved.append(match["id"])
+    return list(dict.fromkeys(resolved))

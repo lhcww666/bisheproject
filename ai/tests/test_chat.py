@@ -56,8 +56,34 @@ class FakeBusinessTools:
             return {"hasValidPass": True}
         if tool_name == "queryAvailableRooms":
             return {
-                "list": [{"roomName": "化学实验室 A101"}],
+                "list": [
+                    {
+                        "id": 12,
+                        "roomCode": "CHEM-A101",
+                        "roomName": "化学实验室 A101",
+                    }
+                ],
                 "total": 1,
+            }
+        if tool_name == "queryAvailableDevices":
+            return {
+                "list": [
+                    {
+                        "id": 3,
+                        "deviceName": "离心机",
+                    }
+                ],
+                "total": 1,
+            }
+        if tool_name == "createReservationDraft":
+            return {
+                "id": 70,
+                "sessionId": 101,
+                "status": "PENDING",
+                "request": {
+                    "roomId": 12,
+                    "deviceIds": [3],
+                },
             }
         return self.result
 
@@ -241,6 +267,7 @@ def test_complete_reservation_queries_available_rooms() -> None:
             "participant_count": 2,
             "experiment_name": "萃取实验",
             "room_type": "化学",
+            "room_name": None,
             "device_names": [],
         }
     )
@@ -267,6 +294,7 @@ def test_complete_reservation_queries_available_rooms() -> None:
     assert response.answer == "已找到可用实验室"
     assert business_tools.tool_calls == ["queryAvailableRooms"]
     assert response.tool_calls[0].tool_name == "queryAvailableRooms"
+    assert response.draft is None
     assert business_tools.tool_arguments[0] == {
         "start_time": "2026-11-11 14:00:00",
         "end_time": "2026-11-11 16:00:00",
@@ -303,6 +331,46 @@ def test_incomplete_reservation_asks_without_querying_tools() -> None:
     assert "开始时间" in response.answer
     assert "结束时间" in response.answer
     assert business_tools.tool_calls == []
+
+
+def test_selected_room_creates_pending_draft() -> None:
+    model = ReservationFakeModel(
+        {
+            "start_time": "2026-11-11 14:00",
+            "end_time": "2026-11-11 16:00",
+            "participant_count": 2,
+            "experiment_name": "萃取实验",
+            "room_type": "化学",
+            "room_name": "化学实验室 A101",
+            "device_names": ["离心机"],
+        }
+    )
+    business_tools = FakeBusinessTools()
+    service = ChatService(settings(), lambda _: model, business_tools)
+
+    response = asyncio.run(
+        service.chat(
+            ChatRequest(
+                sessionId=101,
+                message="预约化学实验室 A101，使用离心机",
+                history=[
+                    ChatHistoryItem(
+                        role="user",
+                        content="预约下周三下午两点到四点，两个人",
+                    )
+                ],
+            ),
+            context(),
+        )
+    )
+
+    assert business_tools.tool_calls == [
+        "queryAvailableRooms",
+        "queryAvailableDevices",
+        "createReservationDraft",
+    ]
+    assert response.draft["id"] == 70
+    assert response.draft["status"] == "PENDING"
 
 
 def test_stream_chat_emits_tool_and_done_events() -> None:

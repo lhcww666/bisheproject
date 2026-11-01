@@ -49,6 +49,7 @@ class ChatService:
                 ToolCallSummary.model_validate(tool_call)
                 for tool_call in result.get("tool_calls", [])
             ],
+            draft=result.get("draft"),
             session_id=request.session_id,
             trace_id=auth.claims.trace_id,
             model=self.settings.llm_model,
@@ -67,6 +68,7 @@ class ChatService:
         answer = ""
         intent = ""
         tool_calls = []
+        draft = None
         try:
             async for update in self.graph.astream(
                 {
@@ -81,6 +83,8 @@ class ChatService:
                         continue
                     if node_update.get("intent"):
                         intent = node_update["intent"]
+                    if node_update.get("draft") is not None:
+                        draft = node_update["draft"]
                     for tool_call in node_update.get("tool_calls", []):
                         tool_calls.append(tool_call)
                         yield {
@@ -120,6 +124,7 @@ class ChatService:
             "answer": answer,
             "intent": intent,
             "toolCalls": tool_calls,
+            "draft": draft,
             "model": self.settings.llm_model,
         }
 

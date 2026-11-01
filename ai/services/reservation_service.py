@@ -43,7 +43,8 @@ class ReservationExtractionService:
             f"当前时间：{current_time}，时区 UTC+{self.settings.timezone_offset_hours:g}。\n"
             "结合历史消息和本轮消息提取参数；后出现的信息覆盖旧信息。\n"
             "把用户请求解析为以下字段：\n"
-            "start_time, end_time, participant_count, experiment_name, room_type, device_names。\n"
+            "start_time, end_time, participant_count, experiment_name, room_type, "
+            "room_name, device_names。\n"
             "时间必须转换为 yyyy-MM-dd HH:mm:ss。无法确定的字段用 null。"
         )
         history_text = "\n".join(

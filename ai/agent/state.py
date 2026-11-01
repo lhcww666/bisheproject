@@ -17,4 +17,5 @@ class AgentState(TypedDict, total=False):
     reservation: ReservationExtraction
     missing_fields: list[str]
     available_rooms: dict | None
+    draft: dict | None
     answer: str

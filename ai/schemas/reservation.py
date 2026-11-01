@@ -23,6 +23,10 @@ class ReservationExtraction(BaseModel):
         default=None,
         description="实验室类型偏好",
     )
+    room_name: str | None = Field(
+        default=None,
+        description="用户明确选择的实验室名称或编号",
+    )
     device_names: list[str] = Field(
         default_factory=list,
         description="用户需要的设备名称",
