@@ -23,6 +23,8 @@ public class AgentChatView
 
     private List<AgentToolCallSummary> toolCalls;
 
+    private List<AgentKnowledgeCitation> citations;
+
     private Map<String, Object> draft;
 
     private String traceId;

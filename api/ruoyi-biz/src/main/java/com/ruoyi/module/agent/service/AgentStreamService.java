@@ -7,6 +7,7 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.module.agent.config.AgentProperties;
 import com.ruoyi.module.agent.domain.AgentChatRequest;
 import com.ruoyi.module.agent.domain.AgentHistoryItem;
+import com.ruoyi.module.agent.domain.AgentKnowledgeCitation;
 import com.ruoyi.module.agent.domain.ChatMessage;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.domain.PythonChatRequest;
@@ -213,12 +214,15 @@ public class AgentStreamService
             {
                 throw new ServiceException("Python Agent 返回的会话或追踪信息不一致");
             }
-            ChatMessage assistant = chatSessionService.appendMessage(
+            List<AgentKnowledgeCitation> citations = response.getCitations() == null
+                    ? List.of()
+                    : response.getCitations();
+            ChatMessage assistant = chatSessionService.appendAssistantMessage(
                     request.getSessionId(),
                     userId,
-                    "ASSISTANT",
                     response.getAnswer(),
                     traceId,
+                    objectMapper.valueToTree(citations).toString(),
                     operator);
             Map<String, Object> done = new LinkedHashMap<>();
             done.put("type", "done");
@@ -227,6 +231,7 @@ public class AgentStreamService
             done.put("traceId", traceId);
             done.put("intent", response.getIntent());
             done.put("toolCalls", response.getToolCalls() == null ? List.of() : response.getToolCalls());
+            done.put("citations", citations);
             done.put("draft", response.getDraft());
             done.put("model", response.getModel());
             emitter.send(SseEmitter.event()

@@ -115,6 +115,63 @@ public class ChatSessionServiceImpl implements IChatSessionService
             String traceId,
             String operator)
     {
+        return appendMessageInternal(
+                sessionId,
+                userId,
+                role,
+                content,
+                traceId,
+                operator,
+                null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ChatMessage appendAssistantMessage(
+            Long sessionId,
+            Long userId,
+            String content,
+            String traceId,
+            String referenceJson)
+    {
+        return appendAssistantMessage(
+                sessionId,
+                userId,
+                content,
+                traceId,
+                referenceJson,
+                SecurityUtils.getUsername());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ChatMessage appendAssistantMessage(
+            Long sessionId,
+            Long userId,
+            String content,
+            String traceId,
+            String referenceJson,
+            String operator)
+    {
+        return appendMessageInternal(
+                sessionId,
+                userId,
+                "ASSISTANT",
+                content,
+                traceId,
+                operator,
+                referenceJson);
+    }
+
+    private ChatMessage appendMessageInternal(
+            Long sessionId,
+            Long userId,
+            String role,
+            String content,
+            String traceId,
+            String operator,
+            String referenceJson)
+    {
         requireOwnedSession(sessionId, userId);
         String normalizedRole = role == null ? "" : role.trim().toUpperCase(Locale.ROOT);
         if (!MESSAGE_ROLES.contains(normalizedRole) || StringUtils.isEmpty(content) || content.isBlank())
@@ -127,6 +184,7 @@ public class ChatSessionServiceImpl implements IChatSessionService
         message.setRole(normalizedRole);
         message.setContent(content);
         message.setTraceId(traceId);
+        message.setReferenceJson(referenceJson);
         message.setCreateBy(operator);
         message.setCreateTime(DateUtils.getNowDate());
         chatMessageMapper.insert(message);

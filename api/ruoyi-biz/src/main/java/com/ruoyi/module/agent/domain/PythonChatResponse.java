@@ -17,6 +17,8 @@ public class PythonChatResponse
 
     private List<AgentToolCallSummary> toolCalls;
 
+    private List<AgentKnowledgeCitation> citations;
+
     private Map<String, Object> draft;
 
     private Long sessionId;

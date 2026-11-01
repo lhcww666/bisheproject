@@ -29,5 +29,20 @@ public interface IChatSessionService
             String traceId,
             String operator);
 
+    ChatMessage appendAssistantMessage(
+            Long sessionId,
+            Long userId,
+            String content,
+            String traceId,
+            String referenceJson);
+
+    ChatMessage appendAssistantMessage(
+            Long sessionId,
+            Long userId,
+            String content,
+            String traceId,
+            String referenceJson,
+            String operator);
+
     void deleteOwnedSession(Long sessionId, Long userId);
 }

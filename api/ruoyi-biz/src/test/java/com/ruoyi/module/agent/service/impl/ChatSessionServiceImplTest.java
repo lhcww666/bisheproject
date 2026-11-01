@@ -4,6 +4,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.module.agent.domain.AgentSessionCreateRequest;
+import com.ruoyi.module.agent.domain.ChatMessage;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.mapper.ChatMessageMapper;
 import com.ruoyi.module.agent.mapper.ChatSessionMapper;
@@ -114,5 +115,32 @@ class ChatSessionServiceImplTest
         service.deleteOwnedSession(3L, 8L);
 
         verify(chatSessionMapper).deleteById(3L);
+    }
+
+    @Test
+    void appendAssistantMessageStoresKnowledgeReferences()
+    {
+        ChatSession session = new ChatSession();
+        session.setId(3L);
+        session.setUserId(7L);
+        when(chatSessionMapper.selectById(3L)).thenReturn(session);
+        doAnswer(invocation -> {
+            ChatMessage message = invocation.getArgument(0);
+            message.setId(21L);
+            return 1;
+        }).when(chatMessageMapper).insert(any(ChatMessage.class));
+        String references = "[{\"documentId\":\"safety-1\"}]";
+
+        ChatMessage message = service.appendAssistantMessage(
+                3L,
+                7L,
+                "先切断电源[1]。",
+                "trace-1",
+                references);
+
+        assertEquals(21L, message.getId());
+        assertEquals("ASSISTANT", message.getRole());
+        assertEquals(references, message.getReferenceJson());
+        verify(chatMessageMapper).insert(message);
     }
 }

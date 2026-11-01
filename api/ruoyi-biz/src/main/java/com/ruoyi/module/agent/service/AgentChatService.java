@@ -7,6 +7,7 @@ import com.ruoyi.module.agent.config.AgentProperties;
 import com.ruoyi.module.agent.domain.AgentChatRequest;
 import com.ruoyi.module.agent.domain.AgentChatView;
 import com.ruoyi.module.agent.domain.AgentHistoryItem;
+import com.ruoyi.module.agent.domain.AgentKnowledgeCitation;
 import com.ruoyi.module.agent.domain.ChatMessage;
 import com.ruoyi.module.agent.domain.ChatSession;
 import com.ruoyi.module.agent.domain.AgentContextClaims;
@@ -112,12 +113,15 @@ public class AgentChatService
             {
                 throw new ServiceException("Python Agent 返回的会话或追踪信息不一致");
             }
-            ChatMessage assistantMessage = chatSessionService.appendMessage(
+            List<AgentKnowledgeCitation> citations = pythonResponse.getCitations() == null
+                    ? List.of()
+                    : pythonResponse.getCitations();
+            ChatMessage assistantMessage = chatSessionService.appendAssistantMessage(
                     request.getSessionId(),
                     userId,
-                    "ASSISTANT",
                     pythonResponse.getAnswer(),
-                    traceId);
+                    traceId,
+                    serializeReferences(citations));
             result = new AgentChatView(
                     assistantMessage.getId(),
                     request.getSessionId(),
@@ -126,6 +130,7 @@ public class AgentChatService
                     pythonResponse.getToolCalls() == null
                             ? List.of()
                             : pythonResponse.getToolCalls(),
+                    citations,
                     pythonResponse.getDraft(),
                     traceId,
                     pythonResponse.getModel());
@@ -173,24 +178,31 @@ public class AgentChatService
                 : objectMapper.convertValue(
                         rawToolCalls,
                         new TypeReference<List<AgentToolCallSummary>>() { });
+        Object rawCitations = outputs.get("citations");
+        List<AgentKnowledgeCitation> citations = rawCitations == null
+                ? List.of()
+                : objectMapper.convertValue(
+                        rawCitations,
+                        new TypeReference<List<AgentKnowledgeCitation>>() { });
         Object rawDraft = outputs.get("draft");
         Map<String, Object> draft = rawDraft instanceof Map<?, ?>
                 ? objectMapper.convertValue(
                         rawDraft,
                         new TypeReference<Map<String, Object>>() { })
                 : null;
-        ChatMessage assistantMessage = chatSessionService.appendMessage(
+        ChatMessage assistantMessage = chatSessionService.appendAssistantMessage(
                 request.getSessionId(),
                 userId,
-                "ASSISTANT",
                 answer,
-                traceId);
+                traceId,
+                serializeReferences(citations));
         return new AgentChatView(
                 assistantMessage.getId(),
                 request.getSessionId(),
                 answer,
                 intent,
                 toolCalls,
+                citations,
                 draft,
                 traceId,
                 "Dify");
@@ -203,6 +215,16 @@ public class AgentChatService
                 || text.contains("着火")
                 || text.contains("泄漏")
                 || text.contains("防护")
-                || text.contains("应急");
+                || text.contains("应急")
+                || text.contains("气体")
+                || text.contains("化学品")
+                || text.contains("灭火")
+                || text.contains("洗眼器")
+                || text.contains("危险废物");
+    }
+
+    private String serializeReferences(List<AgentKnowledgeCitation> citations)
+    {
+        return objectMapper.valueToTree(citations).toString();
     }
 }

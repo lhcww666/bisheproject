@@ -31,7 +31,10 @@ class AgentPythonClientTest
         when(response.body()).thenReturn(
                 "{\"answer\":\"模型回答\",\"intent\":\"GENERAL\","
                         + "\"toolCalls\":[{\"toolName\":\"queryMyReservations\","
-                        + "\"status\":\"succeeded\",\"error\":null}],\"sessionId\":101,"
+                        + "\"status\":\"succeeded\",\"error\":null}],"
+                        + "\"citations\":[{\"documentId\":\"safety-1\","
+                        + "\"title\":\"实验室火灾处置\",\"source\":\"lab-safety.md\","
+                        + "\"snippet\":\"先切断电源。\",\"score\":0.9}],\"sessionId\":101,"
                         + "\"traceId\":\"trace-1\",\"model\":\"test-model\"}");
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(response);
@@ -47,6 +50,7 @@ class AgentPythonClientTest
         assertEquals("模型回答", result.getAnswer());
         assertEquals("GENERAL", result.getIntent());
         assertEquals("queryMyReservations", result.getToolCalls().get(0).getToolName());
+        assertEquals("safety-1", result.getCitations().get(0).getDocumentId());
         assertEquals(null, result.getDraft());
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
         verify(httpClient).send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));

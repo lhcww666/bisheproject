@@ -55,7 +55,7 @@ class AgentChatServiceTest
                 .thenReturn("signed-context");
         ChatMessage assistant = new ChatMessage();
         assistant.setId(205L);
-        when(sessionService.appendMessage(eq(101L), eq(7L), eq("ASSISTANT"), eq("模型回答"), any()))
+        when(sessionService.appendAssistantMessage(eq(101L), eq(7L), eq("模型回答"), any(), any()))
                 .thenAnswer(invocation -> {
                     assistant.setSessionId(101L);
                     return assistant;
@@ -85,9 +85,15 @@ class AgentChatServiceTest
         assertEquals("模型回答", result.getAnswer());
         assertEquals("GENERAL", result.getIntent());
         assertEquals("queryMyReservations", result.getToolCalls().get(0).getToolName());
+        assertEquals(List.of(), result.getCitations());
         assertEquals(null, result.getDraft());
         verify(sessionService).appendMessage(eq(101L), eq(7L), eq("USER"), eq("你好"), any());
-        verify(sessionService).appendMessage(eq(101L), eq(7L), eq("ASSISTANT"), eq("模型回答"), any());
+        verify(sessionService).appendAssistantMessage(
+                eq(101L),
+                eq(7L),
+                eq("模型回答"),
+                any(),
+                any());
     }
 
     @Test
@@ -126,13 +132,24 @@ class AgentChatServiceTest
                         Map.of(
                                 "answer", "Dify安全回答",
                                 "intent", "SAFETY_KNOWLEDGE",
-                                "tool_calls", List.of()),
+                                "tool_calls", List.of(),
+                                "citations", List.of(Map.of(
+                                        "documentId", "safety-1",
+                                        "title", "实验室火灾处置",
+                                        "source", "lab-safety.md",
+                                        "snippet", "先切断电源。",
+                                        "score", 0.9))),
                         null,
                         12L,
                         20L));
         ChatMessage assistant = new ChatMessage();
         assistant.setId(206L);
-        when(sessionService.appendMessage(eq(102L), eq(7L), eq("ASSISTANT"), eq("Dify安全回答"), any()))
+        when(sessionService.appendAssistantMessage(
+                eq(102L),
+                eq(7L),
+                eq("Dify安全回答"),
+                any(),
+                any()))
                 .thenReturn(assistant);
 
         AgentChatRequest request = new AgentChatRequest();
@@ -143,6 +160,7 @@ class AgentChatServiceTest
 
         assertEquals("Dify安全回答", result.getAnswer());
         assertEquals("Dify", result.getModel());
+        assertEquals("safety-1", result.getCitations().get(0).getDocumentId());
         verify(difyClient).runWorkflow(eq("safety"), any(), eq("signed-context"), any(), any());
         verify(pythonClient, org.mockito.Mockito.never())
                 .chat(any(), any(), any(PythonChatRequest.class));
