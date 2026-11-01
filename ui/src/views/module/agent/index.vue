@@ -72,12 +72,22 @@
         </footer>
       </main>
     </div>
+
+    <draft-confirm-dialog
+      v-model="draftVisible"
+      :draft="activeDraft"
+      :submitting="draftSubmitting"
+      @confirm="handleConfirmDraft"
+      @cancel="handleCancelDraft"
+    />
   </div>
 </template>
 
 <script setup name="AgentAssistant">
 import {
   createAgentSession,
+  cancelReservationDraft,
+  confirmReservationDraft,
   deleteAgentSession,
   getAgentMessages,
   getAgentStatus,
@@ -86,6 +96,7 @@ import {
 } from "@/api/module/agent"
 import SessionPanel from "./components/SessionPanel.vue"
 import MessagePanel from "./components/MessagePanel.vue"
+import DraftConfirmDialog from "./components/DraftConfirmDialog.vue"
 
 const { proxy } = getCurrentInstance()
 const sessions = ref([])
@@ -98,6 +109,9 @@ const messagesLoading = ref(false)
 const creatingSession = ref(false)
 const sending = ref(false)
 const statusLoading = ref(false)
+const activeDraft = ref(null)
+const draftVisible = ref(false)
+const draftSubmitting = ref(false)
 
 const currentSession = computed(() =>
   sessions.value.find(session => session.id === currentSessionId.value)
@@ -246,6 +260,10 @@ async function handleSend() {
           streamMessage.model = answer.model
           streamMessage.traceId = answer.traceId
           streamMessage.streaming = false
+          if (answer.draft) {
+            activeDraft.value = answer.draft
+            draftVisible.value = true
+          }
         },
         onError(error) {
           streamMessage.content = error.message || "助手响应失败"
@@ -260,6 +278,35 @@ async function handleSend() {
     streamMessage.streaming = false
   } finally {
     sending.value = false
+  }
+}
+
+async function handleConfirmDraft() {
+  if (!activeDraft.value || draftSubmitting.value) return
+  draftSubmitting.value = true
+  try {
+    const response = await confirmReservationDraft(activeDraft.value.id)
+    const reservationId = response.data?.confirmedReservationId
+    proxy.$modal.msgSuccess(
+      reservationId ? `预约申请已提交，预约 ID：${reservationId}` : "预约申请已提交"
+    )
+    draftVisible.value = false
+    activeDraft.value = null
+  } finally {
+    draftSubmitting.value = false
+  }
+}
+
+async function handleCancelDraft() {
+  if (!activeDraft.value || draftSubmitting.value) return
+  draftSubmitting.value = true
+  try {
+    await cancelReservationDraft(activeDraft.value.id)
+    proxy.$modal.msgSuccess("预约草稿已取消")
+    draftVisible.value = false
+    activeDraft.value = null
+  } finally {
+    draftSubmitting.value = false
   }
 }
 
