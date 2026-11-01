@@ -6,6 +6,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.module.agent.config.AgentProperties;
 import com.ruoyi.module.agent.domain.AgentContextClaims;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
@@ -38,6 +39,7 @@ public class AgentContextService
 
     private final Clock clock;
 
+    @Autowired
     public AgentContextService(AgentProperties properties, ObjectMapper objectMapper)
     {
         this(properties, objectMapper, Clock.systemUTC());
